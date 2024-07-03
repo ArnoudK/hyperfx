@@ -1,0 +1,28 @@
+{
+	"compilerOptions": {
+		// Lib stuff
+		"lib": ["ES2018", "DOM"],
+		"target": "ES6",
+		"module": "ES2020",
+		"moduleDetection": "force",
+		"allowJs": true,
+		"esModuleInterop": true,
+		// Bundler Stuff
+		"moduleResolution": "Bundler",
+		"verbatimModuleSyntax": true,
+		"composite": true,
+		"outDir": "build",
+		"strict": true,
+		"skipLibCheck": true,
+		"noFallthroughCasesInSwitch": true,
+		"emitDeclarationOnly": true,
+		"declarationDir": "build",
+		"rootDir": "src",
+		"noUnusedLocals": false,
+		"noUnusedParameters": false,
+		"strictNullChecks": true,
+		"noPropertyAccessFromIndexSignature": false,
+		"allowSyntheticDefaultImports": true
+	},
+	"exclude": ["**/*config.js", "build", "dist", "test"]
+}
