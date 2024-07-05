@@ -7,8 +7,8 @@ Most of HyperFX is a wrapper around creating DOM elements is TypeScript/JavaScri
 ## Get started
 
 ```bash
-yarn create vite my-vue-app --template vanilla-ts
-yarn add hyperfx
+pnpm create vite my-vue-app --template vanilla-ts
+pnpm add hyperfx
 ```
 
 ### Example code:
@@ -16,23 +16,24 @@ yarn add hyperfx
 _index.html_
 
 ```html
-<!DOCTYPE html>
-<html>
-<head>
-<script type="module" src="/src/main.ts" defer="defer"></script>
-<style>
-.red {
-color: red;
-font-size: 1.2rem;
-font-weight: bolder;
-border: 2px solid red;
-border-radius: 5px;
-}
-</style>
-<head/>
-<body>
-<div id="deez"></div>
-</body>
+<!doctype html>
+<html lang="en">
+	<head>
+		<script type="module" src="/src/main.ts" defer async></script>
+		<style>
+			.red {
+				color: red;
+				font-size: 1.2rem;
+				padding: 0.5rem;
+				font-weight: bolder;
+				border: 0.15rem solid red;
+				border-radius: 0.5rem;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="deez"></div>
+	</body>
 </html>
 ```
 
@@ -48,7 +49,7 @@ myDiv.appendChild(newP);
 You can run it with
 
 ```sh
-yarn dev
+pnpm dev
 ```
 
 And it should look like this in the browser:
@@ -59,13 +60,18 @@ And it should look like this in the browser:
         .red {
             color: red;
             font-size: 1.2rem;
+			padding: 0.5rem;
             font-weight: bolder;
-            border: 2px solid red;
-            border-radius: 5px;
+            border: 0.15rem solid red;
+            border-radius: 0.5rem;
         }
     </style>
                 <div id="deez">
-                <p class="red">This is a red paragraph!</p>
+                	<p class="red">This is a red paragraph!</p>
                 </div>
     </body>
 </html>
+
+### Example project
+
+Inside the 'example_project' directory is an example project using tailwind with vite. This project shows basic usage with routing.

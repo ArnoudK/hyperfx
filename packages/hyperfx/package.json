@@ -1,0 +1,36 @@
+{
+	"name": "hyperfx",
+	"packageManager": "pnpm@9.2.0",
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"license": "MIT",
+	"private": "false",
+	"author": {
+		"name": "Arnoud Kerkhof"
+	},
+	"version": "0.0.2",
+	"scripts": {
+		"lint": "npx prettier ./src ./test --write",
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"release": "pnpm run build && changeset publish",
+		"prepublish": "pnpm build",
+		"test": "tsx test/index.ts"
+	},
+	"devDependencies": {
+		"@changesets/cli": "^2.27.7",
+		"@eslint/js": "^9.6.0",
+		"@types/jsdom": "^21.1.7",
+		"@types/node": "^20.14.9",
+		"jsdom": "^24.1.0",
+		"ts-node": "^10.9.2",
+		"tslib": "^2.6.3",
+		"tsup": "^8.1.0",
+		"tsx": "^4.16.2",
+		"typescript": "^5.5.3"
+	},
+	"files": [
+		"dist/"
+	]
+}

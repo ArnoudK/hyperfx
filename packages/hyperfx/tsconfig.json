@@ -1,0 +1,34 @@
+{
+	"compilerOptions": {
+		// Lib stuff
+		"lib": ["ES2020", "DOM"],
+		"target": "ES6",
+		"module": "ES2020",
+		"moduleDetection": "force",
+		"allowJs": true,
+		"esModuleInterop": true,
+		// Bundler Stuff
+		"moduleResolution": "Bundler",
+		"verbatimModuleSyntax": true,
+
+		"strict": true,
+		"skipLibCheck": true,
+		"noFallthroughCasesInSwitch": true,
+		"noEmit": true,
+		"rootDir": "src",
+		"noUncheckedIndexedAccess": true,
+		"noUnusedLocals": false,
+		"noUnusedParameters": false,
+		"strictNullChecks": true,
+		"noPropertyAccessFromIndexSignature": false,
+		"allowSyntheticDefaultImports": true
+	},
+	"exclude": [
+		"**/*.config.*s",
+		"build",
+		"dist",
+		"test",
+		"example_project",
+		"tsup.config.ts"
+	]
+}

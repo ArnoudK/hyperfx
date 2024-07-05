@@ -1,42 +1,19 @@
 {
-	"name": "hyperfx",
-	"packageManager": "yarn@1.22.22",
-	"main": "dist/bundle.js",
-	"module": "dist/index.mjs",
-	"type": "module",
-	"license": "MIT",
-	"private": "false",
-	"author": {
-		"name": "Arnoud Kerkhof"
-	},
-	"version": "0",
-	"scripts": {
-		"lint": "npx prettier ./src ./test --write",
-		"watch": "rollup -c rollup.config.js -w",
-		"build": "tsc -b --clean && tsc -b --declaration && rollup -c rollup.config.js && rollup -c rollup-types.config.js",
-		"prepublish": "yarn build",
-		"test": "tsx test/index.ts"
-	},
-	"devDependencies": {
-		"@eslint/js": "^9.4.0",
-		"@rollup/plugin-node-resolve": "^15.2.3",
-		"@rollup/plugin-terser": "^0.4.4",
-		"@rollup/plugin-typescript": "^11.1.6",
-		"@types/jsdom": "^21.1.7",
-		"@types/node": "^20.14.2",
-		"jsdom": "^24.1.0",
-		"prettier": "^3.3.1",
-		"rollup": "^4.18.0",
-		"rollup-plugin-dts": "^6.1.1",
-		"tslib": "^2.6.3",
-		"tsx": "^4.16.0",
-		"typescript": "^5.4.5"
-	},
-	"types": "dist/index.d.ts",
-	"files": [
-		"dist/"
-	],
-	"dependencies": {
-		"morphdom": "^2.7.3"
-	}
+  "name": "hyperfx_full",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "lint": "npx prettier packages/**/src example_project/src --write",
+    "test": ""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@9.4.0+sha512.f549b8a52c9d2b8536762f99c0722205efc5af913e77835dbccc3b0b0b2ca9e7dc8022b78062c17291c48e88749c70ce88eb5a74f1fa8c4bf5e18bb46c8bd83a",
+  "devDependencies": {
+    "turbo": "^2.0.6",
+    "prettier": "^3.3.2",
+    "prettier-plugin-tailwindcss": "^0.6.5"
+  }
 }
