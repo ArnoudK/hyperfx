@@ -1,4 +1,10 @@
-import { Div, RouteRegister, PageComponent, RootComponent } from "hyperfx";
+import {
+  Div,
+  RouteRegister,
+  PageComponent,
+  RootComponent,
+  navigateTo,
+} from "hyperfx";
 import { parse } from "marked";
 import md from "../assets/index.md?raw";
 import { DocNav } from "./docnav";
@@ -19,19 +25,35 @@ const layOut = Div(
 );
 appRoot.appendChild(layOut);
 
-const rr = RouteRegister(mdSpace).registerRoute(
-  "/",
-  PageComponent(
-    rootComp,
-    null,
-    () => {
-      return Div({}).Modify$HFX((a) => {
-        a.innerHTML = helloText;
-      });
-    },
-    () => {}
+const rr = RouteRegister(mdSpace)
+  .registerRoute(
+    "/",
+    PageComponent(
+      rootComp,
+      null,
+      () => {
+        return Div({}).Modify$HFX((a) => {
+          a.innerHTML = helloText;
+        });
+      },
+      () => {
+        navigateTo("/hyperfx");
+      }
+    )
   )
-);
+  .registerRoute(
+    "/hyperfx",
+    PageComponent(
+      rootComp,
+      null,
+      () => {
+        return Div({}).Modify$HFX((a) => {
+          a.innerHTML = helloText;
+        });
+      },
+      () => {}
+    )
+  );
 
 RegisterDocs(rr);
 rr.enable();

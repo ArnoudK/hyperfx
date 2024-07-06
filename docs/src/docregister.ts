@@ -21,7 +21,7 @@ type regtype = {
   data: string;
 };
 
-export const prefix_md_doc = "/docs/" as const;
+export const prefix_md_doc = "/hyperfx/docs/" as const;
 export const docsMD: regtype[] = [
   {
     title: "Getting Started",
