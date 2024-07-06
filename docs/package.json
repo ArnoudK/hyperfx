@@ -1,0 +1,29 @@
+{
+  "name": "hyperfx-docs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "lint": "npx prettier ./src --write",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "echo \"TODO: Example has no test \""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "hyperfx": "../packages/hyperfx",
+    "marked": "^13.0.2"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "postcss-load-config": "^6.0.1",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0",
+    "vite-plugin-compression": "^0.5.1"
+  }
+}
