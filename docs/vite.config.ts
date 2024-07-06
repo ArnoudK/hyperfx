@@ -5,12 +5,12 @@ export default defineConfig({
   server: {
     port: 3030,
   },
-
+  base: "/hyperfx",
   build: {
     target: "es2020",
     ssr: false,
     modulePreload: true,
-
+    minify: true,
     rollupOptions: {
       output: {
         minifyInternalExports: true,
