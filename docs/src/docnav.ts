@@ -5,7 +5,7 @@ export function DocNav() {
   //TODO mobile first???
   return Nav(
     { class: "flex p-2 bg-slate-950 text-gray-200" },
-    A({ class: "p-2", href: "/" }, t("home")),
+    A({ class: "p-2", href: "/hyperfx" }, t("home")),
     A(
       { class: "p-2", href: `${prefix_md_doc}${docsMD[0].route_name}` },
       t("Get started")
