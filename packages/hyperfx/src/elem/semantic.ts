@@ -72,3 +72,17 @@ export function Main(attributes: GlobalAttr, ...children: HTMLElement[]) {
 }
 
 export function Button(attributes: GlobalAttr, ...children: HTMLElement[]) {}
+
+export function Footer(attributes: GlobalAttr, ...children: HTMLElement[]) {
+  const res = document.createElement("footer");
+  const attrs = Object.keys(attributes);
+  for (const attr of attrs) {
+    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
+  }
+
+  for (const child of children) {
+    res.appendChild(child);
+  }
+
+  return res;
+}

@@ -5,5 +5,5 @@
       "fileMatch": ["package.json", "tsup.config.json"]
     }
   ],
-  "tailwindCSS.experimental.classRegex": ["class: ['\"](.*?)['\"]"]
+  "tailwindCSS.experimental.classRegex": ["class:\\s+['\"](.*?)['\"]"]
 }

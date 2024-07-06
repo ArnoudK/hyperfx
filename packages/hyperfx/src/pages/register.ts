@@ -108,6 +108,7 @@ function onPageChange() {
   reg.currentPage = undefined;
 
   if (reg.currentRoute) {
+    reg.currentRoute.comp.removeAllChildren();
     for (const p of reg.currentRoute.params) {
       p.value = undefined;
     }

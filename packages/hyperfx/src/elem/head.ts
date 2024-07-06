@@ -23,3 +23,9 @@ function Base(attr: BaseAttr) {
   if (attr.target) b.setAttribute("target", attr.target);
   return b;
 }
+/** 
+ * Sets the document title (this is a void function use it above the return in your render)
+ */
+export function Title(title: string) {
+  document.title = title;
+}
