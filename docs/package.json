@@ -15,8 +15,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@vite-pwa/assets-generator": "^0.2.4",
     "hyperfx": "../packages/hyperfx",
-    "marked": "^13.0.2"
+    "marked": "^13.0.2",
+    "vite-plugin-pwa": "^0.20.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",

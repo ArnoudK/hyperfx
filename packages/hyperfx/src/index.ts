@@ -40,10 +40,9 @@ Object.defineProperty(HTMLElement.prototype, "WithEventListener$HFX", {
   },
 });
 
-Object.defineProperty(HTMLElement.prototype, "Modify$HFX", {
-  value: function <T extends HTMLElement>(this: T, modfn: (a: T) => void) {
-    modfn(this);
-    return this;
+Object.defineProperty(Object.prototype, "With$HFX", {
+  value: function <T extends Object>(this: T, func: (obj: T) => T) {
+    return func(this);
   },
 });
 
@@ -54,8 +53,9 @@ declare global {
       eventtype: K,
       listener: (ev: HTMLElementEventMap[keyof HTMLElementEventMap]) => void
     ): this;
-    /** Run a function on the Element and return the Element */
-    Modify$HFX<T extends HTMLElement>(this: T, modfn: (el: T) => void): this;
+  }
+  interface Object {
+    With$HFX<T extends Object>(this: T, run: (obj: T) => this): T;
   }
 }
 
@@ -90,10 +90,9 @@ export {
   P,
   t,
   Span,
-  
+
   /* Other DOM stuff */
   RenderToBody,
-  
   Title,
   /* Reactive stuff */
   WithEventListener,

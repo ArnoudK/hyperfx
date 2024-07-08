@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import viteCompression from "vite-plugin-compression";
+import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   appType: "spa",
   server: {
@@ -7,10 +8,8 @@ export default defineConfig({
   },
   base: "/hyperfx",
   build: {
-    target: "es2020",
+    target: "es6",
     ssr: false,
-    modulePreload: true,
-    minify: true,
     rollupOptions: {
       output: {
         minifyInternalExports: true,
@@ -18,8 +17,30 @@ export default defineConfig({
       },
     },
   },
-
+  clearScreen: false,
   plugins: [
+    VitePWA({
+      devOptions: {
+        enabled: true,
+      },
+
+      strategies: "generateSW",
+      workbox: {
+        inlineWorkboxRuntime: true,
+        navigateFallback: "/hyperfx",
+        cleanupOutdatedCaches: true,
+      },
+      injectRegister: "script-defer",
+      minify: true,
+      manifest: {
+        name: "HyperFX Docs",
+        lang: "en",
+        start_url: "/hyperfx",
+        scope: "/hyperfx",
+        background_color: "#1E293B",
+        theme_color: "#A5B4FC",
+      },
+    }),
     viteCompression({ algorithm: "brotliCompress" }),
     viteCompression({ algorithm: "gzip" }),
   ],

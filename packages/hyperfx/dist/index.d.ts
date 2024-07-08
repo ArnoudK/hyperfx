@@ -376,8 +376,9 @@ declare global {
     interface HTMLElement {
         /** Add an event listener and return the Element */
         WithEventListener$HFX<K extends keyof HTMLElementEventMap>(eventtype: K, listener: (ev: HTMLElementEventMap[keyof HTMLElementEventMap]) => void): this;
-        /** Run a function on the Element and return the Element */
-        Modify$HFX<T extends HTMLElement>(this: T, modfn: (el: T) => void): this;
+    }
+    interface Object {
+        With$HFX<T extends Object>(this: T, run: (obj: T) => this): T;
     }
 }
 

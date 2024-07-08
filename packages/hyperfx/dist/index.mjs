@@ -1039,7 +1039,10 @@ function onPageChange() {
     }
   }
   reg.currentRoute = void 0;
-  const url = window.location.pathname;
+  let url = window.location.pathname;
+  if (url.length > 1 && url.at(-1) == "/") {
+    url = url.slice(0, url.length - 1);
+  }
   for (const r of reg.routes) {
     const match = url.match(r.route);
     reg.currentRoute = r;
@@ -1108,10 +1111,9 @@ Object.defineProperty(HTMLElement.prototype, "WithEventListener$HFX", {
     return this;
   }
 });
-Object.defineProperty(HTMLElement.prototype, "Modify$HFX", {
-  value: function(modfn) {
-    modfn(this);
-    return this;
+Object.defineProperty(Object.prototype, "With$HFX", {
+  value: function(func) {
+    return func(this);
   }
 });
 export {
