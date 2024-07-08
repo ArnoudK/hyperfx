@@ -9,8 +9,12 @@ import { parse } from "marked";
 import md from "../assets/index.md?raw";
 import { DocNav } from "./docnav";
 import { RegisterDocs } from "./docregister";
-const appRoot = document.getElementById("app")!;
 
+
+const appRoot = document.getElementById("app");
+if (!appRoot) {
+  throw "ERROR: app root not found??";
+}
 const rootComp = RootComponent();
 
 const helloText = parse(md) as string;
@@ -32,8 +36,9 @@ const rr = RouteRegister(mdSpace)
       rootComp,
       null,
       () => {
-        return Div({}).Modify$HFX((a) => {
+        return Div({}).With$HFX((a) => {
           a.innerHTML = helloText;
+          return a;
         });
       },
       () => {
@@ -47,8 +52,9 @@ const rr = RouteRegister(mdSpace)
       rootComp,
       null,
       () => {
-        return Div({}).Modify$HFX((a) => {
+        return Div({ class: "mx-auto p-2" }).With$HFX((a) => {
           a.innerHTML = helloText;
+          return a;
         });
       },
       () => {}

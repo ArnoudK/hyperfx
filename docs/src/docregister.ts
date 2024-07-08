@@ -51,8 +51,9 @@ export function RegisterDocs(reg: ReturnType<typeof RouteRegister>) {
           return Div(
             { class: "flex flex-auto w-full " },
             SideNav(),
-            Main({ class: "p-4 w-full" }).Modify$HFX((e) => {
+            Main({ class: "p-4 w-full" }).With$HFX((e) => {
               e.innerHTML = parse(doc.data) as string;
+              return e;
             })
           );
         },

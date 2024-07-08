@@ -61,7 +61,7 @@ export class PageRegister {
     } satisfies routeItem;
     if (this.routes.find((a) => a.route == routeI.route)) {
       throw new Error(
-        `Route already exist '${route}'.\nRegex: '${routeI.route.source}'\nRouteData: ${JSON.stringify(routeI)}`,
+        `Route already exist '${route}'.\nRegex: '${routeI.route.source}'\nRouteData: ${JSON.stringify(routeI)}`
       );
     }
 
@@ -115,7 +115,11 @@ function onPageChange() {
   }
   reg.currentRoute = undefined;
 
-  const url = window.location.pathname;
+  let url = window.location.pathname;
+  // take care of trailing /
+  if (url.length > 1 && url.at(-1) == "/") {
+    url = url.slice(0, url.length - 1);
+  }
   // load the current page
   for (const r of reg.routes) {
     const match = url.match(r.route);
