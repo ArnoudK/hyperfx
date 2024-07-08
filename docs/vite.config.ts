@@ -26,8 +26,26 @@ export default defineConfig({
 
       strategies: "generateSW",
       workbox: {
-        inlineWorkboxRuntime: true,
-        navigateFallback: "/hyperfx",
+        navigateFallback: undefined,
+        globPatterns: ["**/*"],
+        runtimeCaching: [
+          {
+            urlPattern: /\/hyperfx\/docs\/\.+/,
+            handler: {
+              handle: async () => {
+                return new Response(null, {
+                  status: 307,
+                  headers: {
+                    location: "/hyperfx/",
+                  },
+                });
+              },
+            },
+          },
+          { urlPattern: "/hyperfx", handler: "NetworkOnly" },
+          { urlPattern: "/hyperfx/", handler: "NetworkOnly" },
+        ],
+        navigationPreload: false,
         cleanupOutdatedCaches: true,
       },
       injectRegister: "script-defer",
