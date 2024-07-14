@@ -1,20 +1,6 @@
 import type { GlobalAttr } from "./attr";
+import { createS } from "./elem";
 
-export function Br(attributes: GlobalAttr) {
-  const res = document.createElement("br");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
+export const Br = (attributes: GlobalAttr) => createS("br", attributes);
 
-  return res;
-}
-export function Hr(attributes: GlobalAttr) {
-  const res = document.createElement("hr");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-
-  return res;
-}
+export const Hr = (attributes: GlobalAttr) => createS("hr", attributes);

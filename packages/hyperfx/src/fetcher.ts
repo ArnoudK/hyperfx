@@ -3,15 +3,19 @@
  */
 export const fetcher = {
   post,
+  get,
 };
 
-interface FetchResult<T> {
-  result: T | undefined;
+interface FetchResult<T, K extends boolean> {
+  succes: boolean;
+  result: K extends true ? T : undefined;
   /**
    * Status will be 0 if err is caused by an exception
    *
    */
-  err: { status: number; name: string; cause: string | object } | undefined;
+  err: K extends false
+    ? { status: number; name: string; cause: string | object }
+    : undefined;
 }
 
 /**
@@ -24,9 +28,8 @@ interface FetchResult<T> {
 async function get<T>(
   url: string,
   headers: {} | undefined | undefined,
-  requestInit: Partial<RequestInit> | null | undefined,
-): Promise<FetchResult<T>> {
-  let res: FetchResult<T> = { result: undefined, err: undefined };
+  requestInit: Partial<RequestInit> | null | undefined
+): Promise<FetchResult<T, boolean>> {
   if (!requestInit) requestInit = {};
 
   requestInit.method = "GET";
@@ -34,24 +37,39 @@ async function get<T>(
   if (headers) {
     requestInit.headers = headers;
   }
-  await fetch(url, requestInit)
-    .then(async (val) => {
-      if (val.ok && val.status >= 200 && val.status <= 299) {
-        res.result = await val.json();
-      } else {
-        res.err = {
-          name: `Status: ${val.status} => ${val.statusText}`,
+  try {
+    const fetch_result = await fetch(url, requestInit);
+
+    if (
+      fetch_result.ok &&
+      fetch_result.status >= 200 &&
+      fetch_result.status <= 299
+    ) {
+      return {
+        succes: true,
+        err: undefined,
+        result: await fetch_result.json(),
+      };
+    } else {
+      return {
+        succes: false,
+        result: undefined,
+        err: {
+          name: `Status: ${fetch_result.status} => ${fetch_result.statusText}`,
           cause: "Request did not succees!",
-          status: val.status,
-        } as any;
-      }
-    })
-    .catch((e) => {
-      res.err = e;
-      res.err!.status = 0;
-    })
-    .finally(() => {});
-  return res;
+          status: fetch_result.status,
+        },
+      };
+    }
+  } catch (e: any) {
+    const res = {
+      err: e,
+      succes: false,
+      result: undefined,
+    };
+    res.err.status = 0;
+    return res;
+  }
 }
 
 /**
@@ -66,9 +84,8 @@ async function post<T>(
   url: string,
   body: string | null | undefined,
   headers: {} | undefined | undefined,
-  requestInit: Partial<RequestInit> | null | undefined,
-): Promise<FetchResult<T>> {
-  let res: FetchResult<T> = { result: undefined, err: undefined };
+  requestInit: Partial<RequestInit> | null | undefined
+): Promise<FetchResult<T, boolean>> {
   if (!requestInit) requestInit = {};
 
   requestInit.method = "POST";
@@ -78,22 +95,32 @@ async function post<T>(
   if (headers) {
     requestInit.headers = headers;
   }
-  await fetch(url, requestInit)
-    .then(async (val) => {
-      if (val.ok && val.status >= 200 && val.status <= 299) {
-        res.result = await val.json();
-      } else {
-        res.err = {
+  try {
+    const val = await fetch(url, requestInit);
+    if (val.ok && val.status >= 200 && val.status <= 299) {
+      return {
+        succes: true,
+        err: undefined,
+        result: await val.json(),
+      };
+    } else {
+      return {
+        succes: false,
+        result: undefined,
+        err: {
           name: `Status: ${val.status} => ${val.statusText}`,
           cause: "Request did not succees!",
           status: val.status,
-        } as any;
-      }
-    })
-    .catch((e) => {
-      res.err = e;
-      res.err!.status = 0;
-    })
-    .finally(() => {});
-  return res;
+        },
+      };
+    }
+  } catch (e: any) {
+    const res = {
+      err: e,
+      succes: false,
+      result: undefined,
+    };
+    res.err.status = 0;
+    return res;
+  }
 }

@@ -1,7 +1,7 @@
 import { navigateTo } from "../pages/navigate";
 import type { GlobalAttr, targetValues } from "./attr";
-import { t } from "./elem";
-/** 
+import { addAttr, addChildren, createE, t } from "./elem";
+/**
     * this file is for Elements with phrasing content that should have text as children
     * Phrasing context:  https://developer.mozilla.org/en-US/docs/Web/HTML/Content_categories#phrasing_content
     But only the ones that are not just semantic divs
@@ -9,40 +9,17 @@ import { t } from "./elem";
 
 export function Span(attributes: GlobalAttr, text: string) {
   const res = document.createElement("span");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
+  addAttr(res, attributes);
   res.appendChild(t(text));
   return res;
 }
 type TextChild = Text | HTMLElement;
 
-export function P(attributes: GlobalAttr, ...children: TextChild[]) {
-  const res = document.createElement("p");
-  const attrs = Object.keys(attributes);
+export const P = (attributes: GlobalAttr, ...children: TextChild[]) =>
+  createE("p", attributes, children);
 
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-  return res;
-}
-
-export function Abbr(attributes: GlobalAttr, ...children: Text[]) {
-  const res = document.createElement("abbr");
-  const attrs = Object.keys(attributes);
-
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-  return res;
-}
+export const Abbr = (attributes: GlobalAttr, ...children: Text[]) =>
+  createE("abbr", attributes, children);
 
 type anchorAttr = Partial<GlobalAttr> & {
   href: string;
@@ -64,16 +41,7 @@ type anchorAttr = Partial<GlobalAttr> & {
 };
 
 export function A(attributes: anchorAttr, ...children: TextChild[]) {
-  const res = document.createElement("a");
-  const attrs = Object.keys(attributes);
-
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-
+  const res = createE("a", attributes, children);
   if (attributes.href[0] == "/") {
     res.addEventListener("click", (ev) => {
       navigateTo((ev.target as HTMLAnchorElement).href);
@@ -84,67 +52,17 @@ export function A(attributes: anchorAttr, ...children: TextChild[]) {
   return res;
 }
 
-export function B(attributes: GlobalAttr, ...children: Text[]) {
-  const res = document.createElement("b");
-  const attrs = Object.keys(attributes);
+export const B = (attributes: GlobalAttr, ...children: Text[]) =>
+  createE("b", attributes, children);
 
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-  return res;
-}
+export const Bdi = (attributes: GlobalAttr, ...children: Text[]) =>
+  createE("bdi", attributes, children);
 
-export function Bdi(attributes: GlobalAttr, ...children: Text[]) {
-  const res = document.createElement("bdi");
-  const attrs = Object.keys(attributes);
+export const Bdo = (attributes: GlobalAttr, ...children: Text[]) =>
+  createE("bdo", attributes, children);
 
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-  return res;
-}
+export const I = (attributes: GlobalAttr, ...children: Text[]) =>
+  createE("i", attributes, children);
 
-export function Bdo(attributes: GlobalAttr, ...children: Text[]) {
-  const res = document.createElement("bdo");
-  const attrs = Object.keys(attributes);
-
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-  return res;
-}
-
-export function I(attributes: GlobalAttr, ...children: Text[]) {
-  const res = document.createElement("bdo");
-  const attrs = Object.keys(attributes);
-
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-  return res;
-}
-
-export function Cite(attributes: GlobalAttr, ...children: TextChild[]) {
-  const res = document.createElement("bdo");
-  const attrs = Object.keys(attributes);
-
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-  return res;
-}
+export const Cite = (attributes: GlobalAttr, ...children: TextChild[]) =>
+  createE("cite", attributes, children);

@@ -64,7 +64,7 @@ class Comp<K extends any> {
   constructor(
     parent: WhateverComponent,
     data: K,
-    render: (data: K, comp: Comp<K>) => HTMLElement
+    render: (data: K, comp: Comp<K>) => HTMLElement,
   ) {
     this.render = render;
     this.data = data;
@@ -94,7 +94,7 @@ class RootComp extends Comp<undefined> {
 export function Component<K extends any>(
   parent: WhateverComponent,
   data: K,
-  render: (data: K, comp: Comp<K>) => HTMLElement
+  render: (data: K, comp: Comp<K>) => HTMLElement,
 ) {
   const comp = new Comp(parent, data, render);
 
@@ -104,7 +104,7 @@ export function Component<K extends any>(
 export type WhateverPageComponent = PageComp<any>;
 /**
  *
- * @param pageLoad Function is called when the route-path and matches the route this registered with in the 'pagehandler'. NOTE WHEN USING .Update ON COMPONENT IT WILL RENDER!!! (if you do so use no render)
+ * @param OnPageLoad Function is called when the route-path and matches the route this registered with in the 'pagehandler'. NOTE WHEN USING .Update ON COMPONENT IT WILL RENDER!!! (if you do so use no render)
  */
 export class PageComp<K extends any> extends Comp<K> {
   removeAllChildren() {
@@ -120,7 +120,7 @@ export class PageComp<K extends any> extends Comp<K> {
     parent: WhateverComponent,
     data: K,
     render: (data: K, comp: Comp<K>) => HTMLElement,
-    onPageLoad: (data: K, comp: PageComp<K>) => void
+    onPageLoad: (data: K, comp: PageComp<K>) => void,
   ) {
     super(parent, data, render);
     this.onPageLoad = onPageLoad;
@@ -131,7 +131,7 @@ export function PageComponent<K extends any>(
   parent: WhateverComponent,
   data: K,
   render: (data: K, comp: Comp<K>) => HTMLElement,
-  onPageLoad: (data: K, comp: PageComp<K>) => void
+  onPageLoad: (data: K, comp: PageComp<K>) => void,
 ) {
   return new PageComp(parent, data, render, onPageLoad);
 }

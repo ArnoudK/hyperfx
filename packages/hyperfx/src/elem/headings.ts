@@ -1,19 +1,10 @@
 import type { GlobalAttr } from "./attr";
+import { addAttr, addChildren, createE } from "./elem";
 
 type heads = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
-function Head(t: heads, attributes: GlobalAttr, ...children: Text[]) {
-  const res = document.createElement(t);
-  const attrs = Object.keys(attributes);
-
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-  for (const child of children) {
-    res.appendChild(child);
-  }
-  return res;
-}
+const Head = (t: heads, attributes: GlobalAttr, ...children: Text[]) =>
+  createE(t, attributes, children);
 
 export const H1 = (attributes: GlobalAttr, ...children: Text[]) =>
   Head("h1", attributes, ...children);

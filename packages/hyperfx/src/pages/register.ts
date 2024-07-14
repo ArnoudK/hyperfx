@@ -20,6 +20,8 @@ export class PageRegister {
 
   public currentPage: WhateverPageComponent | undefined;
   public currentRoute: routeItem | undefined;
+
+  public queryParams: URLSearchParams;
   /**
    * Add a route with a custom component. Those will be loaded on page load or a softnavigate with navigateTo.
    * params can be added with [name] e.g.: '/mypage/[myparam]/info'
@@ -50,7 +52,7 @@ export class PageRegister {
 
           continue;
         }
-        resultStr += `\/${s}`;
+        resultStr += "/" + s;
       }
     }
     const routeI = {
@@ -61,7 +63,7 @@ export class PageRegister {
     } satisfies routeItem;
     if (this.routes.find((a) => a.route == routeI.route)) {
       throw new Error(
-        `Route already exist '${route}'.\nRegex: '${routeI.route.source}'\nRouteData: ${JSON.stringify(routeI)}`
+        `Route already exist '${route}'.\nRegex: '${routeI.route.source}'\nRouteData: ${JSON.stringify(routeI)}`,
       );
     }
 
@@ -90,6 +92,7 @@ export class PageRegister {
   public constructor(anchor: HTMLElement) {
     this.Anchor = anchor;
     this.routes = [];
+    this.queryParams = new URLSearchParams(window.location.search);
   }
 }
 
@@ -115,6 +118,7 @@ function onPageChange() {
   }
   reg.currentRoute = undefined;
 
+  reg.queryParams = new URLSearchParams(window.location.search);
   let url = window.location.pathname;
   // take care of trailing /
   if (url.length > 1 && url.at(-1) == "/") {
@@ -135,6 +139,7 @@ function onPageChange() {
       return;
     }
   }
+
   // nothing found => 404 page
   if (url.startsWith("/404") || url.startsWith("404")) {
     return;
@@ -142,10 +147,29 @@ function onPageChange() {
   navigateTo(`/404?page=${url}`);
 }
 
+/* Get a param value from the current Route */
 export function GetParamValue(name: string) {
   const reg: PageRegister = (window as any).__$HFX__Register;
   if (reg) {
     return reg.getParamValue(name);
   }
   return undefined;
+}
+
+/* Get a query param (?name=value) value from the current url */
+export function GetQueryValue(name: string) {
+  const reg: PageRegister = (window as any).__$HFX__Register;
+  if (reg) {
+    return reg.queryParams.get(name);
+  }
+  return null;
+}
+
+/* Get an array[] with all query params that match the name (?name=value&name=otherValue) from the current url*/
+export function GetQueryValues(name: string) {
+  const reg: PageRegister = (window as any).__$HFX__Register;
+  if (reg) {
+    return reg.queryParams.getAll(name);
+  }
+  return [];
 }

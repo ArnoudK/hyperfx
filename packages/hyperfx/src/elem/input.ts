@@ -1,4 +1,5 @@
 import type { GlobalAttr, targetValues } from "./attr";
+import { addAttr, addChildren, createE, createS } from "./elem";
 
 type inputRequired = {
   type:
@@ -230,27 +231,9 @@ type InputAttr<inputType> = {
                                                   type: "Error something went wrong ????";
                                                 });
 
-export function Input<inputType>(attrs: InputAttr<inputType>) {
-  const input = document.createElement("input");
-  const attributes = Object.keys(attrs);
-  for (const attr of attributes) {
-    // @ts-ignore
-    input.setAttribute(attr, attrs[attr as any]);
-  }
-  return input;
-}
+export const Input = (attrs: InputAttr<inputType>) => createS("input", attrs);
 
 type LabelAttr = GlobalAttr & { for: string };
 
-export function Label(attrs: LabelAttr, ...children: (HTMLElement | Text)[]) {
-  const label = document.createElement("label");
-  const attributes = Object.keys(attrs);
-  for (const attr of attributes) {
-    // @ts-ignore
-    label.setAttribute(attr, attrs[attr]);
-  }
-  for (const c of children) {
-    label.appendChild(c);
-  }
-  return label;
-}
+export const Label = (attrs: LabelAttr, ...children: (HTMLElement | Text)[]) =>
+  createE("label", attrs, children);
