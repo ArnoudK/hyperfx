@@ -1,6 +1,7 @@
 /* Elements that should be inside the head */
 
 import type { targetValues } from "./attr";
+import { createS } from "./elem";
 
 type BaseAttrOpt = {
   href: string;
@@ -23,8 +24,22 @@ function Base(attr: BaseAttr) {
   if (attr.target) b.setAttribute("target", attr.target);
   return b;
 }
-/** 
- * Sets the document title (this is a void function use it above the return in your render)
+/**
+ * Sets or updates the meta description in the head
+ */
+export function MetaDescription(description: string) {
+  const current = document.head.querySelector('meta[name="description"]');
+  if (current) {
+    current.setAttribute("content", description);
+  } else {
+    document.head.appendChild(
+      createS("meta", { name: "description", content: description })
+    );
+  }
+}
+
+/**
+ * Sets or updates the document title (this is a void function use it above the return in your render)
  */
 export function Title(title: string) {
   document.title = title;

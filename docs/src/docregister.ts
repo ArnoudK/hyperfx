@@ -1,19 +1,7 @@
-import { parse } from "marked";
-
 // import MD files
 import basics from "../assets/docs/basics.md?raw";
 import example from "../assets/docs/example.md?raw";
 import getting_started from "../assets/docs/getting_started.md?raw";
-
-import {
-  Div,
-  Main,
-  PageComponent,
-  RootComponent,
-  RouteRegister,
-  Title,
-} from "hyperfx";
-import { SideNav } from "./docnav";
 
 type regtype = {
   title: string;
@@ -21,11 +9,11 @@ type regtype = {
   data: string;
 };
 
-export const prefix_md_doc = "/hyperfx/docs/" as const;
+export const prefix_md_doc = "/hyperfx?doc=" as const;
 export const docsMD: regtype[] = [
   {
-    title: "Getting Started",
-    route_name: "start",
+    title: "Get Started",
+    route_name: "get_started",
     data: getting_started,
   },
   {
@@ -39,29 +27,3 @@ export const docsMD: regtype[] = [
     data: example,
   },
 ] as const;
-
-export function RegisterDocs(reg: ReturnType<typeof RouteRegister>) {
-  for (const doc of docsMD) {
-    reg.registerRoute(
-      `${prefix_md_doc}${doc.route_name}`,
-      PageComponent(
-        RootComponent(),
-        null,
-        () => {
-          return Div(
-            { class: "flex flex-auto w-full " },
-            SideNav(),
-            Main({ class: "p-4 w-full" }).With$HFX((e) => {
-              e.innerHTML = parse(doc.data) as string;
-              return e;
-            })
-          );
-        },
-        () => {
-          Title(doc.title);
-        }
-      )
-    );
-  }
-  return reg;
-}

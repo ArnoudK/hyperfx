@@ -1,88 +1,25 @@
 import type { GlobalAttr } from "./attr";
+import { createE } from "./elem";
 
-export function Address(attributes: GlobalAttr, ...children: HTMLElement[]) {
-  const res = document.createElement("address");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
+export const Address = (attributes: GlobalAttr, ...children: HTMLElement[]) =>
+  createE("address", attributes, children);
 
-  for (const child of children) {
-    res.appendChild(child);
-  }
-
-  return res;
-}
-
-export function Nav(attributes: GlobalAttr, ...children: HTMLElement[]) {
-  const res = document.createElement("nav");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-
-  for (const child of children) {
-    res.appendChild(child);
-  }
-
-  return res;
-}
+export const Nav = (attributes: GlobalAttr, ...children: HTMLElement[]) =>
+  createE("nav", attributes, children);
 
 /** https://developer.mozilla.org/en-US/docs/Web/HTML/Element/article */
-export function Article(attributes: GlobalAttr, ...children: HTMLElement[]) {
-  const res = document.createElement("article");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-
-  for (const child of children) {
-    res.appendChild(child);
-  }
-
-  return res;
-}
+export const Article = (attributes: GlobalAttr, ...children: HTMLElement[]) =>
+  createE("article", attributes, children);
 
 /** https://developer.mozilla.org/en-US/docs/Web/HTML/Element/aside */
-export function Aside(attributes: GlobalAttr, ...children: HTMLElement[]) {
-  const res = document.createElement("aside");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
+export const Aside = (attributes: GlobalAttr, ...children: HTMLElement[]) =>
+  createE("aside", attributes, children);
 
-  for (const child of children) {
-    res.appendChild(child);
-  }
+export const Main = (attributes: GlobalAttr, ...children: HTMLElement[]) =>
+  createE("main", attributes, children);
 
-  return res;
-}
-export function Main(attributes: GlobalAttr, ...children: HTMLElement[]) {
-  const res = document.createElement("main");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
+export const Button = (attributes: GlobalAttr, ...children: HTMLElement[]) =>
+  createE("button", attributes, children);
 
-  for (const child of children) {
-    res.appendChild(child);
-  }
-
-  return res;
-}
-
-export function Button(attributes: GlobalAttr, ...children: HTMLElement[]) {}
-
-export function Footer(attributes: GlobalAttr, ...children: HTMLElement[]) {
-  const res = document.createElement("footer");
-  const attrs = Object.keys(attributes);
-  for (const attr of attrs) {
-    res.setAttribute(attr, attributes[attr as keyof GlobalAttr]!);
-  }
-
-  for (const child of children) {
-    res.appendChild(child);
-  }
-
-  return res;
-}
+export const Footer = (attributes: GlobalAttr, ...children: HTMLElement[]) =>
+  createE("footer", attributes, children);

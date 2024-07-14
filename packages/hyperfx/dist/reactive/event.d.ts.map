@@ -1,0 +1,1 @@
+{"version":3,"file":"event.d.ts","sourceRoot":"","sources":["../../src/reactive/event.ts"],"names":[],"mappings":"AAAA,KAAK,SAAS,GAAG,MAAM,mBAAmB,CAAC;AAE3C,wBAAgB,iBAAiB,CAAC,CAAC,SAAS,SAAS,EAAE,CAAC,SAAS,WAAW,EAC1E,EAAE,EAAE,CAAC,EACL,SAAS,EAAE,CAAC,EACZ,QAAQ,EAAE,CAAC,EAAE,EAAE,mBAAmB,CAAC,CAAC,CAAC,KAAK,IAAI,GAC7C,CAAC,CAGH"}

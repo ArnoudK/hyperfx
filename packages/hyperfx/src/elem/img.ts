@@ -1,4 +1,5 @@
 import type { GlobalAttr } from "./attr";
+import { addAttr, createS } from "./elem";
 
 type requiredImgAttr = { src: string };
 type optionImgAttr = {
@@ -26,11 +27,4 @@ type optionImgAttr = {
 
 type imageAttr = requiredImgAttr & GlobalAttr & Partial<optionImgAttr>;
 
-export function Img(attrs: imageAttr) {
-  const img = document.createElement("img");
-  const attributes = Object.keys(attrs);
-  for (const attr of attributes) {
-    img.setAttribute(attr, attrs[attr! as any as keyof imageAttr]!);
-  }
-  return img;
-}
+export const Img = (attrs: imageAttr) => createS("img", attrs);
