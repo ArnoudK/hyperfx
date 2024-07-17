@@ -15,10 +15,10 @@ export function Span(attributes: GlobalAttr, text: string) {
 }
 type TextChild = Text | HTMLElement;
 
-export const P = (attributes: GlobalAttr, ...children: TextChild[]) =>
+export const P = (attributes: GlobalAttr, ...children: readonly TextChild[]) =>
   createE("p", attributes, children);
 
-export const Abbr = (attributes: GlobalAttr, ...children: Text[]) =>
+export const Abbr = (attributes: GlobalAttr, ...children: readonly Text[]) =>
   createE("abbr", attributes, children);
 
 type anchorAttr = Partial<GlobalAttr> & {
@@ -40,7 +40,7 @@ type anchorAttr = Partial<GlobalAttr> & {
   rel?: string;
 };
 
-export function A(attributes: anchorAttr, ...children: TextChild[]) {
+export function A(attributes: anchorAttr, ...children: readonly TextChild[]) {
   const res = createE("a", attributes, children);
   if (attributes.href[0] == "/") {
     res.addEventListener("click", (ev) => {
@@ -52,17 +52,19 @@ export function A(attributes: anchorAttr, ...children: TextChild[]) {
   return res;
 }
 
-export const B = (attributes: GlobalAttr, ...children: Text[]) =>
+export const B = (attributes: GlobalAttr, ...children: readonly Text[]) =>
   createE("b", attributes, children);
 
-export const Bdi = (attributes: GlobalAttr, ...children: Text[]) =>
+export const Bdi = (attributes: GlobalAttr, ...children: readonly Text[]) =>
   createE("bdi", attributes, children);
 
-export const Bdo = (attributes: GlobalAttr, ...children: Text[]) =>
+export const Bdo = (attributes: GlobalAttr, ...children: readonly Text[]) =>
   createE("bdo", attributes, children);
 
-export const I = (attributes: GlobalAttr, ...children: Text[]) =>
+export const I = (attributes: GlobalAttr, ...children: readonly Text[]) =>
   createE("i", attributes, children);
 
-export const Cite = (attributes: GlobalAttr, ...children: TextChild[]) =>
-  createE("cite", attributes, children);
+export const Cite = (
+  attributes: GlobalAttr,
+  ...children: readonly TextChild[]
+) => createE("cite", attributes, children);

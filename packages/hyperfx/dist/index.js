@@ -1168,7 +1168,8 @@ Object.defineProperty(HTMLElement.prototype, "WithEvent$HFX", {
 });
 Object.defineProperty(Object.prototype, "With$HFX", {
     value: function (func) {
-        return func(this);
+        func(this);
+        return this;
     },
 });
 

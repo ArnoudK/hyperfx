@@ -15,9 +15,16 @@ export default defineConfig({
       output: {
         preserveModules: false,
         esModule: false,
+        inlineDynamicImports: true,
+        generatedCode: {
+          arrowFunctions: true,
+          constBindings: true,
+          objectShorthand: true,
+          symbols: true,
+        },
         minifyInternalExports: true,
         compact: true,
-        format: "cjs",
+        format: "iife",
       },
     },
   },
@@ -25,7 +32,7 @@ export default defineConfig({
   plugins: [
     viteSingleFile({
       removeViteModuleLoader: true,
-      useRecommendedBuildConfig: true,
+      //      useRecommendedBuildConfig: true,
     }),
     viteCompression({ algorithm: "brotliCompress" }),
     viteCompression({ algorithm: "gzip" }),

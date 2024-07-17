@@ -63,8 +63,9 @@ Object.defineProperty(HTMLElement.prototype, "WithEvent$HFX", {
 });
 
 Object.defineProperty(Object.prototype, "With$HFX", {
-  value: function <T extends Object>(this: T, func: (obj: T) => T) {
-    return func(this);
+  value: function <T extends Object>(this: T, func: (obj: T) => void) {
+    func(this);
+    return this;
   },
 });
 
@@ -77,7 +78,7 @@ declare global {
     ): this;
   }
   interface Object {
-    With$HFX<T extends Object>(this: T, run: (obj: T) => this): T;
+    With$HFX<T extends Object>(this: T, run: (obj: T) => void): T;
   }
 }
 

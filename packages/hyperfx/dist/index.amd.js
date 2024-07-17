@@ -1168,7 +1168,8 @@ define(['exports'], (function (exports) { 'use strict';
     });
     Object.defineProperty(Object.prototype, "With$HFX", {
         value: function (func) {
-            return func(this);
+            func(this);
+            return this;
         },
     });
 

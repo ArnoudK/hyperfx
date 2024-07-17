@@ -18,7 +18,7 @@ declare global {
         WithEvent$HFX<K extends keyof HTMLElementEventMap>(eventtype: K, listener: (ev: HTMLElementEventMap[keyof HTMLElementEventMap]) => void): this;
     }
     interface Object {
-        With$HFX<T extends Object>(this: T, run: (obj: T) => this): T;
+        With$HFX<T extends Object>(this: T, run: (obj: T) => void): T;
     }
 }
 export { A, Abbr, Address, Article, Aside, B, Bdi, Bdo, Button, Br, Cite, Div, Footer, H1, H2, H3, H4, H5, H6, Hr, I, Img, Input, Label, Main, Nav, P, t, Span, Table, TableBody, TableData, TableFoot, TableHead, TableHeader, TableRow, Tbody, Td, Tfoot, Th, Thead, Tr, TableCaption, RenderToBody, Title, MetaDescription, WithEventListener, Component, RootComponent, PageComponent, navigateTo, RouteRegister, GetParamValue, GetQueryValue, GetQueryValues, fetcher, };

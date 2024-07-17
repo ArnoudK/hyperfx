@@ -136,6 +136,6 @@ export declare const Input: (attrs: InputAttr<inputType>) => HTMLInputElement;
 type LabelAttr = GlobalAttr & {
     for: string;
 };
-export declare const Label: (attrs: LabelAttr, ...children: (HTMLElement | Text)[]) => HTMLLabelElement;
+export declare const Label: (attrs: LabelAttr, ...children: readonly (HTMLElement | Text)[]) => HTMLLabelElement;
 export {};
 //# sourceMappingURL=input.d.ts.map
