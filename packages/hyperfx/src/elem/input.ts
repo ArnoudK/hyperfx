@@ -25,7 +25,7 @@ type inputRequired = {
     | "url"
     | "week";
   /**   @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#name
-        '_charset_' combined with hidden will set the value to the 'user-agent'  
+        '_charset_' combined with hidden will set the value to the 'user-agent'
         'isindex' is not allowed as name
          */
   name: string | "_charset_";
@@ -235,5 +235,7 @@ export const Input = (attrs: InputAttr<inputType>) => createS("input", attrs);
 
 type LabelAttr = GlobalAttr & { for: string };
 
-export const Label = (attrs: LabelAttr, ...children: (HTMLElement | Text)[]) =>
-  createE("label", attrs, children);
+export const Label = (
+  attrs: LabelAttr,
+  ...children: readonly (HTMLElement | Text)[]
+) => createE("label", attrs, children);

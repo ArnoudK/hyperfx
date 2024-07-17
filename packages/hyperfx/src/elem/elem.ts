@@ -2,8 +2,10 @@ import type { GlobalAttr, HtmlAtrribute } from "./attr";
 
 type BodyChild = HTMLDivElement | HTMLSpanElement | HTMLParagraphElement;
 
-export const Div = (attributes: GlobalAttr, ...children: BodyChild[]) =>
-  createE("div", attributes, children);
+export const Div = (
+  attributes: GlobalAttr,
+  ...children: readonly BodyChild[]
+) => createE("div", attributes, children);
 
 /** Render text (the text content inside a tag): */
 export const t = (t: string) => document.createTextNode(t);
@@ -17,7 +19,7 @@ export function addAttr(el: Element, attributes: object) {
   }
 }
 
-export function addChildren(e: Element, children: (Element | Text)[]) {
+export function addChildren(e: Element, children: readonly (Element | Text)[]) {
   for (const c of children) {
     e.appendChild(c);
   }
@@ -38,7 +40,7 @@ export function createS<K extends keyof HTMLElementTagNameMap>(
 export function createE<K extends keyof HTMLElementTagNameMap>(
   name: K,
   attributes: object,
-  children: (Text | Element)[],
+  children: readonly (Text | Element)[],
 ) {
   const el = document.createElement(name);
   const attrs = Object.keys(attributes);

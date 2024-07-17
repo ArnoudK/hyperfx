@@ -11,11 +11,13 @@ import {
   Title,
   P,
   t,
+  A,
   Article,
   MetaDescription,
+  Br,
 } from "hyperfx";
 import { parse } from "marked";
-import md from "../assets/index.md?raw";
+import index_md from "../assets/index.md?raw";
 import { DocNav, SideNav } from "./docnav";
 
 import { docsMD } from "./docregister";
@@ -30,32 +32,38 @@ hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("html", html);
 hljs.registerLanguage("bash", bash);
 
-const appRoot = document.getElementById("app");
-if (!appRoot) {
+const app_root = document.getElementById("app");
+if (!app_root) {
   throw "ERROR: app root not found??";
 }
-const rootComp = RootComponent();
+const root_comp = RootComponent();
 
-const helloText = parse(md) as string;
+const hello_text = parse(index_md) as string;
 
-const mdSpace = Main({ class: "flex flex-auto flex-col" });
+const md_space = Main({ class: "flex flex-auto flex-col" });
 
-const layOut = Div(
+const layout = Div(
   { class: "flex flex-auto flex-col" },
   DocNav(),
-  mdSpace,
+  md_space,
   Footer(
     { class: "bg-slate-900 mx-auto w-full min-h-12 p-4 text-center" },
     Span({ class: "w-full " }, "© Arnoud Kerkhof"),
   ),
 );
-appRoot.replaceChildren(layOut);
 
-RouteRegister(mdSpace)
+app_root.replaceChildren(layout);
+
+/* Register routing + it triggers popstate (url changes)
+ *    register '/' to redirect to /hyperfx
+ *    register '/hyperfx' to load the doc when the url changes 'popstate' and
+ *              load the corresponding docs
+ */
+RouteRegister(md_space)
   .registerRoute(
     "/",
     PageComponent(
-      rootComp,
+      root_comp,
       null,
       () => {
         return Article({}, P({}, t("Could not load??")));
@@ -68,45 +76,48 @@ RouteRegister(mdSpace)
   .registerRoute(
     "/hyperfx",
     PageComponent(
-      rootComp,
+      root_comp,
       null,
       () => {
-        const doc = GetQueryValue("doc");
-        // console.log("doc: ", doc);
-        // console.log("mdSpace: ", mdSpace);
-        if (doc) {
-          const mdDoc = docsMD.find((a) => a.route_name == doc);
-          // console.log("mdDoc: ", mdDoc);
-          if (mdDoc) {
-            const docElement = Div(
-              { class: "flex flex-auto " },
-              SideNav(),
-              Article({
-                class: "p-4 flex flex-col overflow-auto mx-auto",
-              }).With$HFX((e) => {
-                e.innerHTML = parse(mdDoc.data) as string;
-                return e;
-              }),
-            );
-            const codeEls = docElement.querySelectorAll("pre code");
-            for (const codeblock of codeEls) {
-              hljs.highlightElement(codeblock as HTMLElement);
-            }
-            Title(`${mdDoc.title} | HyperFX`);
-            MetaDescription(`HyperFX docs about ${mdDoc.title}.`);
-            return docElement;
-          } else {
-            Title("Doc not found :( | HyperFX");
-            return Div({}, P({}, t("The docs could not be found.")));
+        const doc = GetQueryValue("doc") || "main";
+
+        const md_doc = docsMD.find((a) => a.route_name == doc);
+        if (md_doc) {
+          const doc_element = Div(
+            { class: "flex flex-auto " },
+            SideNav(),
+            Article({
+              class: "p-4 flex flex-col overflow-auto mx-auto",
+            }).With$HFX((e) => {
+              e.innerHTML = parse(md_doc.data) as string;
+            }),
+          );
+          const code_blocks = doc_element.querySelectorAll("pre code");
+          for (const code_block of code_blocks) {
+            hljs.highlightElement(code_block as HTMLElement);
           }
-        } else {
+          Title(`${md_doc.title} | HyperFX`);
+          MetaDescription(`HyperFX docs about ${md_doc.title}.`);
+          return doc_element;
+        } else if (doc == "main") {
           Title("HyperFX docs");
+          MetaDescription("Learn HyperFX todo and 'Read The Friendly Manual'!");
           return Div(
             {},
             Article({ class: "p-4 mx-auto" }).With$HFX((a) => {
-              a.innerHTML = helloText;
-              return a;
+              a.innerHTML = hello_text;
             }),
+          );
+        } else {
+          Title("Doc not found :( | HyperFX");
+          return Div(
+            { class: "text-xl p-4" },
+            P({}, t(`The docs for '${doc}' could not be found : (`)),
+            Br({}),
+            A(
+              { href: "/hyperfx", class: "underline text-blue-400" },
+              t("Go back"),
+            ),
           );
         }
       },
