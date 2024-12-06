@@ -18,7 +18,7 @@ type BaseAttr = Partial<BaseAttrOpt> &
  *
  *A document's used base URL can be accessed by scripts with Node.baseURI. If the document has no <base> elements, then baseURI defaults to location.href.
  */
-function Base(attr: BaseAttr) {
+export function Base(attr: BaseAttr) {
   const b = document.createElement("base");
   if (attr.href) b.setAttribute("href", attr.href);
   if (attr.target) b.setAttribute("target", attr.target);
@@ -41,6 +41,4 @@ export function MetaDescription(description: string) {
 /**
  * Sets or updates the document title (this is a void function use it above the return in your render)
  */
-export function Title(title: string) {
-  document.title = title;
-}
+export const Title = (title: string) => (document.title = title);

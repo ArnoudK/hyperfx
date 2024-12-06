@@ -147,7 +147,7 @@ function onPageChange() {
   navigateTo(`/404?page=${url}`);
 }
 
-/* Get a param value from the current Route */
+/** Get a param value from the current Route */
 export function GetParamValue(name: string) {
   const reg: PageRegister = (window as any).__$HFX__Register;
   if (reg) {
@@ -156,7 +156,7 @@ export function GetParamValue(name: string) {
   return undefined;
 }
 
-/* Get a query param (?name=value) value from the current url */
+/** Get a query param (?name=value) value from the current url */
 export function GetQueryValue(name: string) {
   const reg: PageRegister = (window as any).__$HFX__Register;
   if (reg) {
@@ -165,7 +165,7 @@ export function GetQueryValue(name: string) {
   return null;
 }
 
-/* Get an array[] with all query params that match the name (?name=value&name=otherValue) from the current url*/
+/** Get an array[] with all query params that match the name (?name=value&name=otherValue) from the current url*/
 export function GetQueryValues(name: string) {
   const reg: PageRegister = (window as any).__$HFX__Register;
   if (reg) {

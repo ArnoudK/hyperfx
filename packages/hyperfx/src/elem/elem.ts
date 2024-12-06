@@ -1,10 +1,14 @@
 import type { GlobalAttr, HtmlAtrribute } from "./attr";
 
-type BodyChild = HTMLDivElement | HTMLSpanElement | HTMLParagraphElement;
+export type HtmlElement_Or_Text_Children_Or_Undefined =
+  | readonly (Element | Text)[]
+  | undefined;
+
+export type TextChildren_Or_Undefined = readonly Element[] | undefined;
 
 export const Div = (
   attributes: GlobalAttr,
-  ...children: readonly BodyChild[]
+  children?: HtmlElement_Or_Text_Children_Or_Undefined
 ) => createE("div", attributes, children);
 
 /** Render text (the text content inside a tag): */
@@ -12,22 +16,26 @@ export const t = (t: string) => document.createTextNode(t);
 
 export const RenderToBody = (el: HTMLElement) => document.body.appendChild(el);
 
-export function addAttr(el: Element, attributes: object) {
+export const addAttr = (el: Element, attributes: object) => {
   const attrs = Object.keys(attributes);
   for (const attr of attrs) {
     el.setAttribute(attr, (attributes as any)[attr]);
   }
-}
+};
 
-export function addChildren(e: Element, children: readonly (Element | Text)[]) {
-  for (const c of children) {
-    e.appendChild(c);
-  }
-}
+export const addChildren = (
+  e: Element,
+  children?: HtmlElement_Or_Text_Children_Or_Undefined
+) => {
+  if (children)
+    for (const c of children) {
+      e.appendChild(c);
+    }
+};
 
-export function createS<K extends keyof HTMLElementTagNameMap>(
+export const createS = function <K extends keyof HTMLElementTagNameMap>(
   name: K,
-  attributes: object,
+  attributes: object
 ) {
   const el = document.createElement(name);
   const attrs = Object.keys(attributes);
@@ -35,20 +43,22 @@ export function createS<K extends keyof HTMLElementTagNameMap>(
     el.setAttribute(attr, (attributes as any)[attr]);
   }
   return el;
-}
+};
 
-export function createE<K extends keyof HTMLElementTagNameMap>(
+export const createE = function <K extends keyof HTMLElementTagNameMap>(
   name: K,
   attributes: object,
-  children: readonly (Text | Element)[],
+  children?: HtmlElement_Or_Text_Children_Or_Undefined
 ) {
   const el = document.createElement(name);
   const attrs = Object.keys(attributes);
   for (const attr of attrs) {
     el.setAttribute(attr, (attributes as any)[attr]);
   }
-  for (const c of children) {
-    el.appendChild(c);
+  if (children) {
+    for (const c of children) {
+      el.appendChild(c);
+    }
   }
   return el;
-}
+};

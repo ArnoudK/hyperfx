@@ -1,3 +1,4 @@
+
 // we need to load the stuff in order or JSDOM global types are not set
 import("jsdom").then(async (jsdom) => {
   const { JSDOM } = jsdom;
@@ -13,6 +14,7 @@ import("jsdom").then(async (jsdom) => {
   global.HTMLElement = window.HTMLElement;
   global.Document = window.Document;
   global.Node = window.Node;
+  global.Text = window.Text;
   global.HTMLHeadElement = window.HTMLHeadElement;
   global.HTMLInputElement = window.HTMLInputElement;
   global.HTMLOptionElement = window.HTMLOptionElement;
@@ -29,8 +31,10 @@ import("jsdom").then(async (jsdom) => {
     t,
     Span,
     Img,
-    WithEventListener,
     A,
+    elementToHFXObject,
+    nodeToHFXObject,
+    HFXObjectToElement
   } = await import("../src/index");
 
   const equal = (await import("assert")).equal;
@@ -59,7 +63,7 @@ import("jsdom").then(async (jsdom) => {
             style: "width: 100px; height: 100%",
           })
         ),
-        WithEventListener(A({ href: "kek" }, t(d.kek)), "click", (e) => {})
+        A({ href: "kek" }, t(d.kek))
       );
     });
     parentNode.appendChild(c.currentRender!);
@@ -79,10 +83,19 @@ import("jsdom").then(async (jsdom) => {
   // });
 
   // value the P test should be equal to
+  const div_test_res = document.createElement("div");
   const P_testO = document.createElement("p");
   const P_test_Text = document.createTextNode("p text");
   P_testO.appendChild(P_test_Text);
   P_testO.setAttribute("class", "class_text");
+
+  div_test_res.appendChild(P_testO);
+
+  const div_test_res_HFXO = nodeToHFXObject(div_test_res);
+  const elem = HFXObjectToElement(div_test_res_HFXO);
+
+  const div_text = JSON.stringify(div_test_res_HFXO);
+  const div_text_from_elem = JSON.stringify(nodeToHFXObject(elem));
 
   async function Tests() {
     equal(
@@ -97,7 +110,9 @@ import("jsdom").then(async (jsdom) => {
       '<div class="kekw"><p class="text-xl">(Text from T)<span> -SPAN- </span>(more T text)</p><article class="kek"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/330px-Firefox_logo%2C_2019.svg.png" alt="Firefox logo" style="width: 100px; height: 100%"></article><a href="kek">kekw</a></div>',
       "Test simple html"
     );
+    equal(div_text,div_text_from_elem);
   }
+  
   Tests().then(() => {
     console.log("Testing simple Html passed");
     console.log(`\nall test finished after: ${Date.now() - start}ms`);

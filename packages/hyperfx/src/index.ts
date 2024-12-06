@@ -1,15 +1,28 @@
-import { RenderToBody, Div, t } from "./elem/elem";
-import { P, Span, A, Abbr, B, Bdi, Bdo, Cite, I } from "./elem/text";
+import { Div, RenderToBody, t } from "./elem/elem";
 import { H1, H2, H3, H4, H5, H6 } from "./elem/headings";
-import { Hr, Br } from "./elem/style";
 import { Img } from "./elem/img";
 import { Input, Label } from "./elem/input";
+import { Br, Hr } from "./elem/style";
+import {
+  A,
+  Abbr,
+  B,
+  Bdi,
+  Bdo,
+  Cite,
+  I,
+  P,
+  Span,
+  Code,
+  BlockQuote,
+} from "./elem/text";
 
-import { Title, MetaDescription } from "./elem/head";
+import { MetaDescription, Title, Base } from "./elem/head";
 
 import {
   Table,
   TableBody,
+  TableCaption,
   TableData,
   TableFoot,
   TableHead,
@@ -21,33 +34,39 @@ import {
   Th,
   Thead,
   Tr,
-  TableCaption,
 } from "./elem/table";
 
 import {
-  Article,
   Address,
+  Article,
   Aside,
   Button,
-  Nav,
-  Main,
   Footer,
+  Main,
+  Output,
+  Pre,
+  Nav,
 } from "./elem/semantic";
 
-import { Component, RootComponent, PageComponent } from "./reactive/component";
-
-import { WithEventListener } from "./reactive/event";
+import { Component, PageComponent, RootComponent } from "./reactive/component";
 
 import { navigateTo } from "./pages/navigate";
 
 import {
-  RouteRegister,
   GetParamValue,
   GetQueryValue,
   GetQueryValues,
+  RouteRegister,
 } from "./pages/register";
 
 import { fetcher } from "./fetcher";
+
+import {
+  elementToHFXObject,
+  nodeToHFXObject,
+  HFXObjectToElement,
+} from "./json_representation/hfx_object";
+import type { HFXObject } from "./json_representation/hfx_object";
 
 /* Extension methods */
 
@@ -55,7 +74,7 @@ Object.defineProperty(HTMLElement.prototype, "WithEvent$HFX", {
   value: function <T extends HTMLElement, K extends keyof HTMLElementEventMap>(
     this: T,
     eventtype: K,
-    listener: (ev: HTMLElementEventMap[keyof HTMLElementEventMap]) => void,
+    listener: (ev: HTMLElementEventMap[K]) => void
   ) {
     this.addEventListener(eventtype, listener);
     return this;
@@ -74,7 +93,7 @@ declare global {
     /** Add an event listener and return the Element */
     WithEvent$HFX<K extends keyof HTMLElementEventMap>(
       eventtype: K,
-      listener: (ev: HTMLElementEventMap[keyof HTMLElementEventMap]) => void,
+      listener: (ev: HTMLElementEventMap[K]) => void
     ): this;
   }
   interface Object {
@@ -90,13 +109,23 @@ export {
   Article,
   Aside,
   B,
+  Base,
   Bdi,
   Bdo,
-  Button,
   Br,
+  BlockQuote,
+  Button,
   Cite,
+  Code,
+  /* Components */
+  Component,
   Div,
+  /* fetcher */
+  fetcher,
   Footer,
+  GetParamValue,
+  GetQueryValue,
+  GetQueryValues,
   H1,
   H2,
   H3,
@@ -109,14 +138,24 @@ export {
   Input,
   Label,
   Main,
+  MetaDescription,
   Nav,
+  /* Routing */
+  navigateTo,
   P,
-  t,
+  PageComponent,
+  Pre,
+  Output,
+  /* Other DOM stuff */
+  RenderToBody,
+  RootComponent,
+  RouteRegister,
   Span,
-
+  t,
   /* Table stuff */
   Table,
   TableBody,
+  TableCaption,
   TableData,
   TableFoot,
   TableHead,
@@ -127,27 +166,12 @@ export {
   Tfoot,
   Th,
   Thead,
-  Tr,
-  TableCaption,
-
-  /* Other DOM stuff */
-  RenderToBody,
   Title,
-  MetaDescription,
-  /* Reactive stuff */
-  WithEventListener,
-
-  /* Components */
-  Component,
-  RootComponent,
-  PageComponent,
-
-  /* Routing */
-  navigateTo,
-  RouteRegister,
-  GetParamValue,
-  GetQueryValue,
-  GetQueryValues,
-  /* fetcher */
-  fetcher,
+  Tr,
+  // json_representation
+  elementToHFXObject,
+  nodeToHFXObject,
+  HFXObjectToElement,
 };
+
+export type { HFXObject };

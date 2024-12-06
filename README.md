@@ -18,31 +18,31 @@ _index.html_
 ```html
 <!doctype html>
 <html lang="en">
-	<head>
-		<script type="module" src="/src/main.ts" defer async></script>
-		<style>
-			.red {
-				color: red;
-				font-size: 1.2rem;
-				padding: 0.5rem;
-				font-weight: bolder;
-				border: 0.15rem solid red;
-				border-radius: 0.5rem;
-			}
-		</style>
-	</head>
-	<body>
-		<div id="deez"></div>
-	</body>
+  <head>
+    <script type="module" src="/src/main.ts" defer async></script>
+    <style>
+      .red {
+        color: red;
+        font-size: 1.2rem;
+        padding: 0.5rem;
+        font-weight: bolder;
+        border: 0.15rem solid red;
+        border-radius: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="deez"></div>
+  </body>
 </html>
 ```
 
 _src/main.ts_
 
 ```ts
-import { P, t } from 'hyperfx';
-const myDiv = document.getElementById('deez')!;
-const newP = P({ class: 'red' }, [t('This is a red paragraph')]);
+import { P, t } from "hyperfx";
+const myDiv = document.getElementById("deez")!;
+const newP = P({ class: "red" }, [t("This is a red paragraph")]);
 myDiv.appendChild(newP);
 ```
 
