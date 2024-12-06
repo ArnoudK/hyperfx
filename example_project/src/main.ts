@@ -54,7 +54,8 @@ RouteRegister(document.getElementById("deez")!)
 
       () => {
         const val = +(GetQueryValue("val") || 0);
-        const content: HTMLElement[] = [
+
+        return Div({}, [
           Navbar(),
           myComp.Render(),
           P({}, [t("main page")]),
@@ -62,8 +63,7 @@ RouteRegister(document.getElementById("deez")!)
           A({ class: "underline text-blue-500", href: `/?val=${val + 1}` }, [
             t(`Incr I ${val}`),
           ]),
-        ];
-        return Div({}, content);
+        ]);
       },
       () => {}
     )
