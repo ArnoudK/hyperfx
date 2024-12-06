@@ -2,7 +2,9 @@
 
 HyperFX makes manipulating DOM elements easier.
 
-Most of HyperFX is a wrapper around creating DOM elements is TypeScript/JavaScript. Unlike the default that's provided by MDN wrappers HyperFX tries to extend it with more type safety (luckely html5 standard are quite forgiving).
+Docs: https://ArnoudK.github.io/hyperfx/
+
+Most of HyperFX is a wrapper around creating DOM elements in TypeScript/JavaScript. HyperFX tries to make composing websites easy with functional like programming functions.
 
 ## Get started
 

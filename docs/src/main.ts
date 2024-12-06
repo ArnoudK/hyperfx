@@ -144,18 +144,18 @@ RouteRegister(md_space)
       root_comp,
       undefined,
       () => {
-        return Div({ class: "flex flex-col" }, [
+        return Div({ class: "flex flex-col p-4 max-w-[80vw] mx-auto" }, [
           Div({ class: "p-2" }, [
-            P({}, [
+            P({ class: "mx-auto" }, [
               t("This is the code used to create the editor."),
               Span({ class: "text-purple-500/80" }, [
                 t(
-                  " (The editor is far from done but it is still cool IMO. (The web standards for creating a editor with 'contenteditable' is still not done, especially the `selector` thing is annoying. (uhm i need to seperate a lot stuff into easier functions and stuff) ))"
+                  " (The editor is far from done but it is still cool IMO. (The web standards for creating a editor with 'contenteditable' is still kinda rough, especially the `selector` thing is annoying (and I have skill issues/(not enough times)). (uhm i need to seperate a lot stuff into easier functions and stuff) ))"
                 ),
               ]),
             ]),
-            Div({ class: "overflow-y-scroll overflow-x-scroll" }, [
-              Pre({ class: "!max-w-full max-h-[50vw]" }, [
+            Div({ class: " px-4 overflow-y-scroll overflow-x-scroll" }, [
+              Pre({ class: "mx-auto !max-w-[70vw] max-h-[50vw]" }, [
                 Code({}, [t(editor_code)]),
               ]),
             ]).With$HFX((div) => {

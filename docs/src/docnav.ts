@@ -14,8 +14,8 @@ export function DocNav() {
 
 export const SideNavComp = Component(
   RootComponent(),
-  { phoneExpand: false },
-  (expand, c) =>
+  { expand: false },
+  (data, c) =>
     Aside(
       {
         class:
@@ -29,10 +29,10 @@ export const SideNavComp = Component(
           []
         )
           .WithEvent$HFX("click", () => {
-            c.Update({ phoneExpand: !c.data.phoneExpand });
+            c.Update({ expand: !c.data.expand });
           })
           .With$HFX((e) => {
-            if (expand.phoneExpand) {
+            if (data.expand) {
               e.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="m18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5" /></svg`;
             } else {
               e.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="m5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" /></svg>`;
@@ -41,7 +41,7 @@ export const SideNavComp = Component(
         Nav(
           {
             class: "flex-col flex-auto flex-grow",
-            style: c.data.phoneExpand ? "display:flex" : "display:none",
+            style: c.data.expand ? "display:flex" : "display:none",
           },
           docsMD.map((a) => {
             return A(
