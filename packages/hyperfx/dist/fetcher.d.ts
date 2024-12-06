@@ -6,7 +6,7 @@ export declare const fetcher: {
     get: typeof get;
 };
 interface FetchResult<T, K extends boolean> {
-    succes: boolean;
+    succes: K;
     result: K extends true ? T : undefined;
     /**
      * Status will be 0 if err is caused by an exception

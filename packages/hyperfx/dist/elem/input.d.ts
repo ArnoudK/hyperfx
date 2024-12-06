@@ -1,4 +1,5 @@
 import type { GlobalAttr, targetValues } from "./attr";
+import { type HtmlElement_Or_Text_Children_Or_Undefined } from "./elem";
 declare const inputTypes: readonly ["button", "checkbox", "color", "date", "datetime-local", "email", "file", "hidden", "image", "month", "password", "radio", "range", "reset", "search", "submit", "tel", "text", "time", "url", "week"];
 type inputType = (typeof inputTypes)[number];
 type SteppableAttr = {
@@ -59,7 +60,7 @@ type InputAttr<inputType> = {
     formenctype?: "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain";
     formmethod?: "get" | "post" | "dialog";
     formnovalidate?: "formnovalidate";
-    formtarget: targetValues;
+    formtarget?: targetValues;
 } : inputType extends "month" ? {
     type: "month";
     readonly?: "readonly";
@@ -136,6 +137,15 @@ export declare const Input: (attrs: InputAttr<inputType>) => HTMLInputElement;
 type LabelAttr = GlobalAttr & {
     for: string;
 };
-export declare const Label: (attrs: LabelAttr, ...children: readonly (HTMLElement | Text)[]) => HTMLLabelElement;
+export declare const Label: (attrs: LabelAttr, children?: HtmlElement_Or_Text_Children_Or_Undefined) => HTMLLabelElement;
+export declare const TextArea: (attrs: GlobalAttr & Partial<LengthAble> & Partial<{
+    cols: number;
+    rows: number;
+    required: "required";
+}> & Partial<{
+    name: string;
+    id: string;
+    value: string;
+}>) => void;
 export {};
 //# sourceMappingURL=input.d.ts.map

@@ -6,7 +6,7 @@ class Comp<K extends any> {
   render: (data: K, comp: Comp<K>) => HTMLElement;
   childComps: WhateverComponent[] = [];
   protected parent: WhateverComponent;
-  protected data: K;
+  public data: K;
   protected changed = true;
   public getParent() {
     return this.parent;
@@ -23,7 +23,7 @@ class Comp<K extends any> {
   public Update(newData: K) {
     this.data = newData;
     this.changed = true;
-    this.Render();
+    this.Render(true);
   }
 
   /** The current dom element*/

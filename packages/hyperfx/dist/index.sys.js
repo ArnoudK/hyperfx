@@ -5,49 +5,75 @@ System.register([], (function (exports) {
 
             exports({
                 A: A,
+                Base: Base,
                 Component: Component,
                 GetParamValue: GetParamValue,
                 GetQueryValue: GetQueryValue,
                 GetQueryValues: GetQueryValues,
+                HFXObjectToElement: HFXObjectToElement,
                 MetaDescription: MetaDescription,
                 PageComponent: PageComponent,
                 RootComponent: RootComponent,
                 RouteRegister: RouteRegister,
                 Span: Span,
-                Title: Title,
-                WithEventListener: WithEventListener,
-                navigateTo: navigateTo
+                elementToHFXObject: elementToHFXObject,
+                navigateTo: navigateTo,
+                nodeToHFXObject: nodeToHFXObject
             });
 
-            const Div = exports("Div", (attributes, ...children) => createE("div", attributes, children));
+            const Div = exports("Div", (attributes, children) => createE("div", attributes, children));
             /** Render text (the text content inside a tag): */
             const t = exports("t", (t) => document.createTextNode(t));
             const RenderToBody = exports("RenderToBody", (el) => document.body.appendChild(el));
-            function addAttr(el, attributes) {
+            const addAttr = (el, attributes) => {
                 const attrs = Object.keys(attributes);
                 for (const attr of attrs) {
                     el.setAttribute(attr, attributes[attr]);
                 }
-            }
-            function createS(name, attributes) {
+            };
+            const addChildren = (e, children) => {
+                if (children)
+                    for (const c of children) {
+                        e.appendChild(c);
+                    }
+            };
+            const createS = function (name, attributes) {
                 const el = document.createElement(name);
                 const attrs = Object.keys(attributes);
                 for (const attr of attrs) {
                     el.setAttribute(attr, attributes[attr]);
                 }
                 return el;
-            }
-            function createE(name, attributes, children) {
+            };
+            const createE = function (name, attributes, children) {
                 const el = document.createElement(name);
                 const attrs = Object.keys(attributes);
                 for (const attr of attrs) {
                     el.setAttribute(attr, attributes[attr]);
                 }
-                for (const c of children) {
-                    el.appendChild(c);
+                if (children) {
+                    for (const c of children) {
+                        el.appendChild(c);
+                    }
                 }
                 return el;
-            }
+            };
+
+            const Head = (t, attributes, children) => createE(t, attributes, children);
+            const H1 = exports("H1", (attributes, children) => Head("h1", attributes, children));
+            const H2 = exports("H2", (attributes, children) => Head("h2", attributes, children));
+            const H3 = exports("H3", (attributes, children) => Head("h3", attributes, children));
+            const H4 = exports("H4", (attributes, children) => Head("h4", attributes, children));
+            const H5 = exports("H5", (attributes, children) => Head("h5", attributes, children));
+            const H6 = exports("H6", (attributes, children) => Head("h6", attributes, children));
+
+            const Img = exports("Img", (attrs) => createS("img", attrs));
+
+            const Input = exports("Input", (attrs) => createS("input", attrs));
+            const Label = exports("Label", (attrs, children) => createE("label", attrs, children));
+
+            const Br = exports("Br", (attributes) => createS("br", attributes));
+            const Hr = exports("Hr", (attributes) => createS("hr", attributes));
 
             /**
              * Navigate to a url by pushing it and popstate this allows for soft navigation using HyperFX
@@ -63,15 +89,20 @@ System.register([], (function (exports) {
                 * Phrasing context:  https://developer.mozilla.org/en-US/docs/Web/HTML/Content_categories#phrasing_content
                 But only the ones that are not just semantic divs
                 */
-            function Span(attributes, text) {
+            function Span(attributes, childOrText) {
                 const res = document.createElement("span");
                 addAttr(res, attributes);
-                res.appendChild(t(text));
+                if (typeof childOrText === "string") {
+                    res.appendChild(t(childOrText));
+                }
+                else {
+                    addChildren(res, childOrText);
+                }
                 return res;
             }
-            const P = exports("P", (attributes, ...children) => createE("p", attributes, children));
-            const Abbr = exports("Abbr", (attributes, ...children) => createE("abbr", attributes, children));
-            function A(attributes, ...children) {
+            const P = exports("P", (attributes, children) => createE("p", attributes, children));
+            const Abbr = exports("Abbr", (attributes, children) => createE("abbr", attributes, children));
+            function A(attributes, children) {
                 const res = createE("a", attributes, children);
                 if (attributes.href[0] == "/") {
                     res.addEventListener("click", (ev) => {
@@ -82,29 +113,31 @@ System.register([], (function (exports) {
                 }
                 return res;
             }
-            const B = exports("B", (attributes, ...children) => createE("b", attributes, children));
-            const Bdi = exports("Bdi", (attributes, ...children) => createE("bdi", attributes, children));
-            const Bdo = exports("Bdo", (attributes, ...children) => createE("bdo", attributes, children));
-            const I = exports("I", (attributes, ...children) => createE("i", attributes, children));
-            const Cite = exports("Cite", (attributes, ...children) => createE("cite", attributes, children));
-
-            const Head = (t, attributes, ...children) => createE(t, attributes, children);
-            const H1 = exports("H1", (attributes, ...children) => Head("h1", attributes, ...children));
-            const H2 = exports("H2", (attributes, ...children) => Head("h2", attributes, ...children));
-            const H3 = exports("H3", (attributes, ...children) => Head("h3", attributes, ...children));
-            const H4 = exports("H4", (attributes, ...children) => Head("h4", attributes, ...children));
-            const H5 = exports("H5", (attributes, ...children) => Head("h5", attributes, ...children));
-            const H6 = exports("H6", (attributes, ...children) => Head("h6", attributes, ...children));
-
-            const Br = exports("Br", (attributes) => createS("br", attributes));
-            const Hr = exports("Hr", (attributes) => createS("hr", attributes));
-
-            const Img = exports("Img", (attrs) => createS("img", attrs));
-
-            const Input = exports("Input", (attrs) => createS("input", attrs));
-            const Label = exports("Label", (attrs, ...children) => createE("label", attrs, children));
+            const B = exports("B", (attributes, children) => createE("b", attributes, children));
+            const Bdi = exports("Bdi", (attributes, children) => createE("bdi", attributes, children));
+            const Bdo = exports("Bdo", (attributes, children) => createE("bdo", attributes, children));
+            const I = exports("I", (attributes, children) => createE("i", attributes, children));
+            const Cite = exports("Cite", (attributes, children) => createE("cite", attributes, children));
+            const Code = exports("Code", (attributes, children) => createE("code", attributes, children));
+            const BlockQuote = exports("BlockQuote", (attributes, children) => createE("blockquote", attributes, children));
 
             /* Elements that should be inside the head */
+            /**
+             * Must be inside <head>
+             * If used there should only be 1 inside the document
+             * See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+             * The <base> HTML element specifies the base URL to use for all relative URLs in a document. There can be only one <base> element in a document.
+             *
+             *A document's used base URL can be accessed by scripts with Node.baseURI. If the document has no <base> elements, then baseURI defaults to location.href.
+             */
+            function Base(attr) {
+                const b = document.createElement("base");
+                if (attr.href)
+                    b.setAttribute("href", attr.href);
+                if (attr.target)
+                    b.setAttribute("target", attr.target);
+                return b;
+            }
             /**
              * Sets or updates the meta description in the head
              */
@@ -120,35 +153,35 @@ System.register([], (function (exports) {
             /**
              * Sets or updates the document title (this is a void function use it above the return in your render)
              */
-            function Title(title) {
-                document.title = title;
-            }
+            const Title = exports("Title", (title) => (document.title = title));
 
-            const Table = exports("Table", (attributes, ...children) => createE("table", attributes, children));
-            const TableHead = exports("TableHead", (attributes, ...children) => createE("thead", attributes, children));
+            const Table = exports("Table", (attributes, children) => createE("table", attributes, children));
+            const TableHead = exports("TableHead", (attributes, children) => createE("thead", attributes, children));
             const Thead = exports("Thead", TableHead);
-            const TableBody = exports("TableBody", (attributes, ...children) => createE("tbody", attributes, children));
+            const TableBody = exports("TableBody", (attributes, children) => createE("tbody", attributes, children));
             const Tbody = exports("Tbody", TableBody);
-            const TableFoot = exports("TableFoot", (attributes, ...children) => createE("tfoot", attributes, children));
+            const TableFoot = exports("TableFoot", (attributes, children) => createE("tfoot", attributes, children));
             const Tfoot = exports("Tfoot", TableFoot);
-            const TableRow = exports("TableRow", (attributes, ...children) => createE("tr", attributes, children));
+            const TableRow = exports("TableRow", (attributes, children) => createE("tr", attributes, children));
             const Tr = exports("Tr", TableRow);
-            const TableData = exports("TableData", (attributes, ...children) => createE("td", attributes, children));
+            const TableData = exports("TableData", (attributes, children) => createE("td", attributes, children));
             const Td = exports("Td", TableData);
-            const TableHeader = exports("TableHeader", (attributes, ...children) => createE("th", attributes, children));
+            const TableHeader = exports("TableHeader", (attributes, children) => createE("th", attributes, children));
             const Th = exports("Th", TableHeader);
             /* Caption for tables */
-            const TableCaption = exports("TableCaption", (attributes, ...children) => createE("caption", attributes, children));
+            const TableCaption = exports("TableCaption", (attributes, children) => createE("caption", attributes, children));
 
-            const Address = exports("Address", (attributes, ...children) => createE("address", attributes, children));
-            const Nav = exports("Nav", (attributes, ...children) => createE("nav", attributes, children));
+            const Address = exports("Address", (attributes, children) => createE("address", attributes, children));
+            const Nav = exports("Nav", (attributes, children) => createE("nav", attributes, children));
+            const Pre = exports("Pre", (attributes, children) => createE("pre", attributes, children));
+            const Output = exports("Output", (attributes, children) => createE("output", attributes, children));
             /** https://developer.mozilla.org/en-US/docs/Web/HTML/Element/article */
-            const Article = exports("Article", (attributes, ...children) => createE("article", attributes, children));
+            const Article = exports("Article", (attributes, children) => createE("article", attributes, children));
             /** https://developer.mozilla.org/en-US/docs/Web/HTML/Element/aside */
-            const Aside = exports("Aside", (attributes, ...children) => createE("aside", attributes, children));
-            const Main = exports("Main", (attributes, ...children) => createE("main", attributes, children));
-            const Button = exports("Button", (attributes, ...children) => createE("button", attributes, children));
-            const Footer = exports("Footer", (attributes, ...children) => createE("footer", attributes, children));
+            const Aside = exports("Aside", (attributes, children) => createE("aside", attributes, children));
+            const Main = exports("Main", (attributes, children) => createE("main", attributes, children));
+            const Button = exports("Button", (attributes, children) => createE("button", attributes, children));
+            const Footer = exports("Footer", (attributes, children) => createE("footer", attributes, children));
 
             /* TODO Strip all the unneccesary stuff out. And transform it into typescript
              *
@@ -239,8 +272,8 @@ System.register([], (function (exports) {
                     // into either side of the best match
                     const bestMatch = findBestNodeMatch(normalizedNewContent, oldNode, ctx);
                     // stash the siblings that will need to be inserted on either side of the best match
-                    const previousSibling = bestMatch === null || bestMatch === void 0 ? void 0 : bestMatch.previousSibling;
-                    const nextSibling = bestMatch === null || bestMatch === void 0 ? void 0 : bestMatch.nextSibling;
+                    const previousSibling = bestMatch?.previousSibling;
+                    const nextSibling = bestMatch?.nextSibling;
                     // morph it
                     const morphedNode = morphOldNodeTo(oldNode, bestMatch, ctx);
                     if (bestMatch) {
@@ -818,7 +851,7 @@ System.register([], (function (exports) {
                 Update(newData) {
                     this.data = newData;
                     this.changed = true;
-                    this.Render();
+                    this.Render(true);
                 }
                 /** Get a (shallow) copy of the array of children */
                 getChildren() {
@@ -895,11 +928,6 @@ System.register([], (function (exports) {
             }
             function PageComponent(parent, data, render, onPageLoad) {
                 return new PageComp(parent, data, render, onPageLoad);
-            }
-
-            function WithEventListener(el, eventtype, listener) {
-                el.addEventListener(eventtype, listener);
-                return el;
             }
 
             class PageRegister {
@@ -1013,7 +1041,7 @@ System.register([], (function (exports) {
                 }
                 navigateTo(`/404?page=${url}`);
             }
-            /* Get a param value from the current Route */
+            /** Get a param value from the current Route */
             function GetParamValue(name) {
                 const reg = window.__$HFX__Register;
                 if (reg) {
@@ -1021,7 +1049,7 @@ System.register([], (function (exports) {
                 }
                 return undefined;
             }
-            /* Get a query param (?name=value) value from the current url */
+            /** Get a query param (?name=value) value from the current url */
             function GetQueryValue(name) {
                 const reg = window.__$HFX__Register;
                 if (reg) {
@@ -1029,7 +1057,7 @@ System.register([], (function (exports) {
                 }
                 return null;
             }
-            /* Get an array[] with all query params that match the name (?name=value&name=otherValue) from the current url*/
+            /** Get an array[] with all query params that match the name (?name=value&name=otherValue) from the current url*/
             function GetQueryValues(name) {
                 const reg = window.__$HFX__Register;
                 if (reg) {
@@ -1037,38 +1065,6 @@ System.register([], (function (exports) {
                 }
                 return [];
             }
-
-            /******************************************************************************
-            Copyright (c) Microsoft Corporation.
-
-            Permission to use, copy, modify, and/or distribute this software for any
-            purpose with or without fee is hereby granted.
-
-            THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-            REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-            AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-            INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-            LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-            OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-            PERFORMANCE OF THIS SOFTWARE.
-            ***************************************************************************** */
-            /* global Reflect, Promise, SuppressedError, Symbol */
-
-
-            function __awaiter(thisArg, _arguments, P, generator) {
-                function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-                return new (P || (P = Promise))(function (resolve, reject) {
-                    function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-                    function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-                    function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-                    step((generator = generator.apply(thisArg, _arguments || [])).next());
-                });
-            }
-
-            typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-                var e = new Error(message);
-                return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-            };
 
             /**
              * Fetch JSON
@@ -1084,47 +1080,45 @@ System.register([], (function (exports) {
              * @param requestInit modify all the request init params. {method} will always be post. If {headers} is specified it will override the {requestInit})
              * @returns {result} is successful otherwise {{error}}
              */
-            function get(url, headers, requestInit) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (!requestInit)
-                        requestInit = {};
-                    requestInit.method = "GET";
-                    if (headers) {
-                        requestInit.headers = headers;
+            async function get(url, headers, requestInit) {
+                if (!requestInit)
+                    requestInit = {};
+                requestInit.method = "GET";
+                if (headers) {
+                    requestInit.headers = headers;
+                }
+                try {
+                    const fetch_result = await fetch(url, requestInit);
+                    if (fetch_result.ok &&
+                        fetch_result.status >= 200 &&
+                        fetch_result.status <= 299) {
+                        return {
+                            succes: true,
+                            err: undefined,
+                            result: await fetch_result.json(),
+                        };
                     }
-                    try {
-                        const fetch_result = yield fetch(url, requestInit);
-                        if (fetch_result.ok &&
-                            fetch_result.status >= 200 &&
-                            fetch_result.status <= 299) {
-                            return {
-                                succes: true,
-                                err: undefined,
-                                result: yield fetch_result.json(),
-                            };
-                        }
-                        else {
-                            return {
-                                succes: false,
-                                result: undefined,
-                                err: {
-                                    name: `Status: ${fetch_result.status} => ${fetch_result.statusText}`,
-                                    cause: "Request did not succees!",
-                                    status: fetch_result.status,
-                                },
-                            };
-                        }
-                    }
-                    catch (e) {
-                        const res = {
-                            err: e,
+                    else {
+                        return {
                             succes: false,
                             result: undefined,
+                            err: {
+                                name: `Status: ${fetch_result.status} => ${fetch_result.statusText}`,
+                                cause: "Request did not succees!",
+                                status: fetch_result.status,
+                            },
                         };
-                        res.err.status = 0;
-                        return res;
                     }
-                });
+                }
+                catch (e) {
+                    const res = {
+                        err: e,
+                        succes: false,
+                        result: undefined,
+                    };
+                    res.err.status = 0;
+                    return res;
+                }
             }
             /**
              *
@@ -1134,48 +1128,101 @@ System.register([], (function (exports) {
              * @param requestInit modify all the request init params. {method} will always be post. If {body} or {headers} is specified it will override the {requestInit})
              * @returns {result} is successful otherwise {{error}}
              */
-            function post(url, body, headers, requestInit) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (!requestInit)
-                        requestInit = {};
-                    requestInit.method = "POST";
-                    if (body) {
-                        requestInit.body = body;
+            async function post(url, body, headers, requestInit) {
+                if (!requestInit)
+                    requestInit = {};
+                requestInit.method = "POST";
+                if (body) {
+                    requestInit.body = body;
+                }
+                if (headers) {
+                    requestInit.headers = headers;
+                }
+                try {
+                    const val = await fetch(url, requestInit);
+                    if (val.ok && val.status >= 200 && val.status <= 299) {
+                        return {
+                            succes: true,
+                            err: undefined,
+                            result: await val.json(),
+                        };
                     }
-                    if (headers) {
-                        requestInit.headers = headers;
-                    }
-                    try {
-                        const val = yield fetch(url, requestInit);
-                        if (val.ok && val.status >= 200 && val.status <= 299) {
-                            return {
-                                succes: true,
-                                err: undefined,
-                                result: yield val.json(),
-                            };
-                        }
-                        else {
-                            return {
-                                succes: false,
-                                result: undefined,
-                                err: {
-                                    name: `Status: ${val.status} => ${val.statusText}`,
-                                    cause: "Request did not succees!",
-                                    status: val.status,
-                                },
-                            };
-                        }
-                    }
-                    catch (e) {
-                        const res = {
-                            err: e,
+                    else {
+                        return {
                             succes: false,
                             result: undefined,
+                            err: {
+                                name: `Status: ${val.status} => ${val.statusText}`,
+                                cause: "Request did not succees!",
+                                status: val.status,
+                            },
                         };
-                        res.err.status = 0;
-                        return res;
                     }
-                });
+                }
+                catch (e) {
+                    const res = {
+                        err: e,
+                        succes: false,
+                        result: undefined,
+                    };
+                    res.err.status = 0;
+                    return res;
+                }
+            }
+
+            /**
+             * convert an Element to a HFXObject
+             * this object can be turned into a JSON-string
+             * and be turned into a Element again
+             * (note: it stores the current state and not stuff like
+             * listeners )
+             */
+            function elementToHFXObject(el) {
+                const tag = el.tagName;
+                const attrs = {};
+                const children = [];
+                const cNodes = el.childNodes;
+                const elAttrs = el.attributes;
+                for (const a of elAttrs) {
+                    const aname = a.name;
+                    const value = a.value;
+                    attrs[aname] = value;
+                }
+                for (const c of cNodes) {
+                    children.push(nodeToHFXObject(c));
+                }
+                return { tag: tag, attrs: attrs, children: children };
+            }
+            /**
+             * @see elementToHFXObject
+             *
+             * Parse stuff from the dom to simple JS object
+             * mainly for json parsing.
+             */
+            function nodeToHFXObject(node) {
+                if (node instanceof Text) {
+                    return node.textContent ?? "";
+                }
+                else {
+                    // we assert that this should work because
+                    // we shouldn't really deal with strange fragments
+                    // other other shenigans.
+                    return elementToHFXObject(node);
+                }
+            }
+            function HFXObjectToElement(hfx_object) {
+                if (typeof hfx_object == "string") {
+                    return document.createTextNode(hfx_object);
+                }
+                const el = document.createElement(hfx_object.tag);
+                for (const c of hfx_object.children) {
+                    el.appendChild(HFXObjectToElement(c));
+                }
+                const akeys = Object.keys(hfx_object.attrs);
+                for (const a of akeys) {
+                    el.setAttribute(a, hfx_object.attrs[a]);
+                }
+                return el;
             }
 
             /* Extension methods */

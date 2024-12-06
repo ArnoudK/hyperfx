@@ -3,7 +3,7 @@ declare class Comp<K extends any> {
     render: (data: K, comp: Comp<K>) => HTMLElement;
     childComps: WhateverComponent[];
     protected parent: WhateverComponent;
-    protected data: K;
+    data: K;
     protected changed: boolean;
     getParent(): WhateverComponent;
     /**

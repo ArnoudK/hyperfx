@@ -15,6 +15,7 @@ export default defineConfig({
       output: {
         preserveModules: false,
         esModule: false,
+        dynamicImportInCjs: true,
         inlineDynamicImports: true,
         generatedCode: {
           arrowFunctions: true,
@@ -23,8 +24,9 @@ export default defineConfig({
           symbols: true,
         },
         minifyInternalExports: true,
+        //        sourcemap: true,
         compact: true,
-        format: "iife",
+        format: "esm",
       },
     },
   },

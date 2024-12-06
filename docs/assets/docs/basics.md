@@ -13,10 +13,11 @@ Text can be added by import the `t` function which creates a TextNode.
 
 ```typescript
 P(
-  {},
-  t("This is basic text with a "),
-  Span({ style: "font-weight: bold;" }, "bold"),
-  t(" text in the middle."),
+  {}, [
+    t("This is basic text with a "),
+    Span({ style: "font-weight: bold;" }, "bold"),
+    t(" text in the middle."),
+  ]
 );
 ```
 

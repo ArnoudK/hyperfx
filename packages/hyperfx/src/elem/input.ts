@@ -1,5 +1,9 @@
 import type { GlobalAttr, targetValues } from "./attr";
-import { addAttr, addChildren, createE, createS } from "./elem";
+import {
+  createE,
+  createS,
+  type HtmlElement_Or_Text_Children_Or_Undefined,
+} from "./elem";
 
 type inputRequired = {
   type:
@@ -122,7 +126,7 @@ type InputAttr<inputType> = {
                           | "text/plain";
                         formmethod?: "get" | "post" | "dialog";
                         formnovalidate?: "formnovalidate";
-                        formtarget: targetValues;
+                        formtarget?: targetValues;
                       }
                     : inputType extends "month"
                       ? {
@@ -237,5 +241,14 @@ type LabelAttr = GlobalAttr & { for: string };
 
 export const Label = (
   attrs: LabelAttr,
-  ...children: readonly (HTMLElement | Text)[]
+  children?: HtmlElement_Or_Text_Children_Or_Undefined
 ) => createE("label", attrs, children);
+
+export const TextArea = (
+  attrs: GlobalAttr &
+    Partial<LengthAble> &
+    Partial<{ cols: number; rows: number; required: "required" }> &
+    Partial<{ name: string; id: string; value: string }>
+) => {
+  createS("textarea", attrs);
+};

@@ -1,5 +1,8 @@
 import type { GlobalAttr } from "./attr";
-import { createE } from "./elem";
+import {
+  createE,
+  type HtmlElement_Or_Text_Children_Or_Undefined,
+} from "./elem";
 
 /** <caption> <thead> <tbody> <tfooter>
  * also accepts <tr> directly
@@ -12,26 +15,26 @@ type tableChild =
 
 export const Table = (
   attributes: GlobalAttr,
-  ...children: readonly tableChild[]
+  children?: readonly tableChild[]
 ) => createE("table", attributes, children);
 
 export const TableHead = (
   attributes: GlobalAttr,
-  ...children: readonly HTMLTableRowElement[]
+  children?: readonly HTMLTableRowElement[]
 ) => createE("thead", attributes, children);
 
 export const Thead = TableHead;
 
 export const TableBody = (
   attributes: GlobalAttr,
-  ...children: readonly HTMLTableRowElement[]
+  children?: readonly HTMLTableRowElement[]
 ) => createE("tbody", attributes, children);
 
 export const Tbody = TableBody;
 
 export const TableFoot = (
   attributes: GlobalAttr,
-  ...children: readonly HTMLTableRowElement[]
+  children?: readonly HTMLTableRowElement[]
 ) => createE("tfoot", attributes, children);
 
 export const Tfoot = TableFoot;
@@ -41,14 +44,14 @@ type tableRowChild = HTMLTableCellElement;
 
 export const TableRow = (
   attributes: GlobalAttr,
-  ...children: readonly tableRowChild[]
+  children?: readonly tableRowChild[]
 ) => createE("tr", attributes, children);
 
 export const Tr = TableRow;
 
 export const TableData = (
   attributes: GlobalAttr,
-  ...children: readonly (HTMLElement | Text)[]
+  children?: HtmlElement_Or_Text_Children_Or_Undefined
 ) => createE("td", attributes, children);
 
 export const Td = TableData;
@@ -64,7 +67,7 @@ type tableHeaderAttributes = GlobalAttr & {
 
 export const TableHeader = (
   attributes: tableHeaderAttributes,
-  ...children: readonly (Text | HTMLElement)[]
+  children?: HtmlElement_Or_Text_Children_Or_Undefined
 ) => createE("th", attributes, children);
 
 export const Th = TableHeader;
@@ -72,5 +75,5 @@ export const Th = TableHeader;
 /* Caption for tables */
 export const TableCaption = (
   attributes: GlobalAttr,
-  ...children: readonly (Text | HTMLElement)[]
+  children?: HtmlElement_Or_Text_Children_Or_Undefined
 ) => createE("caption", attributes, children);
