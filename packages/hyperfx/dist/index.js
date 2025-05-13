@@ -2,7 +2,25 @@
 
 const Div = (attributes, children) => createE("div", attributes, children);
 /** Render text (the text content inside a tag): */
-const t = (t) => document.createTextNode(t);
+function t(text, ...values) {
+    let result = "";
+    if (typeof text === "string") {
+        // If the input is a string, just return it
+        result = text;
+    }
+    else {
+        // Iterate through the static strings and interleave them with the values
+        for (let i = 0; i < values.length; i++) {
+            result += text[i]; // Append the static string part
+            result += String(values[i]); // Append the stringified value
+        }
+        // Append the last static string part
+        // (there's always one more string part than there are values)
+        result += text[values.length];
+    }
+    return document.createTextNode(result);
+}
+t `kek`;
 const RenderToBody = (el) => document.body.appendChild(el);
 const addAttr = (el, attributes) => {
     const attrs = Object.keys(attributes);

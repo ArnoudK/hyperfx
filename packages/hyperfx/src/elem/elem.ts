@@ -12,7 +12,24 @@ export const Div = (
 ) => createE("div", attributes, children);
 
 /** Render text (the text content inside a tag): */
-export const t = (t: string) => document.createTextNode(t);
+export function t(text: TemplateStringsArray | string, ...values: ((string[]))) {
+  let result = "";
+  if (typeof text === "string") {
+    // If the input is a string, just return it
+    result = text;
+  } else {
+    // Iterate through the static strings and interleave them with the values
+    for (let i = 0; i < values.length; i++) {
+      result += text[i]; // Append the static string part
+      result += String(values[i]); // Append the stringified value
+    }
+    // Append the last static string part
+    // (there's always one more string part than there are values)
+    result += text[values.length];
+  }
+  return document.createTextNode(result);
+}
+const a = t`kek`
 
 export const RenderToBody = (el: HTMLElement) => document.body.appendChild(el);
 

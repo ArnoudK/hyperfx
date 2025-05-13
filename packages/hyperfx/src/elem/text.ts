@@ -28,6 +28,9 @@ export function Span(
   return res;
 }
 
+
+
+
 export const P = (
   attributes: GlobalAttr,
   children?: HtmlElement_Or_Text_Children_Or_Undefined
@@ -44,14 +47,14 @@ type anchorAttr = Partial<GlobalAttr> & {
   hreflang?: string;
   ping?: string;
   referrerpolicy?:
-    | "no-referrer"
-    | "no-referrer-when-downgrade"
-    | "origin"
-    | "origin-when-cross-origin"
-    | "same-origin"
-    | "strict-origin"
-    | "strict-origin-when-cross-origin"
-    | "unsafe-url";
+  | "no-referrer"
+  | "no-referrer-when-downgrade"
+  | "origin"
+  | "origin-when-cross-origin"
+  | "same-origin"
+  | "strict-origin"
+  | "strict-origin-when-cross-origin"
+  | "unsafe-url";
   rel?: string;
 };
 

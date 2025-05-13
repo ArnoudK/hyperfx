@@ -48,30 +48,30 @@ import("jsdom").then(async (jsdom) => {
     const parentNode = document.createElement("div");
     const c = Component(root, data, (d: testType) => {
       return Div(
-        { class: "kekw" },
+        { class: "kekw" }, [
         P(
-          { class: "text-xl" },
+          { class: "text-xl" }, [
           t("(Text from T)"),
           Span({}, " -SPAN- "),
-          t("(more T text)")
+          t("(more T text)")]
         ),
         Article(
-          { class: "kek" },
+          { class: "kek" }, [
           Img({
             src: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/330px-Firefox_logo%2C_2019.svg.png",
             alt: "Firefox logo",
-            style: "width: 100px; height: 100%",
-          })
+            style: "width: 100px; height: 100%"
+          })]
         ),
-        A({ href: "kek" }, t(d.kek))
-      );
+        A({ href: "kek" }, [t(d.kek)])
+      ]);
     });
     parentNode.appendChild(c.currentRender!);
 
     c.Update({ kek: "kekw" });
     // we need to get to the end of the microqueue
     // because we use an effect
-    await setTimeout(() => {}, 1);
+    await setTimeout(() => { }, 1);
 
     return c.currentRender!.outerHTML;
   }
@@ -99,7 +99,7 @@ import("jsdom").then(async (jsdom) => {
 
   async function Tests() {
     equal(
-      P({ class: "class_text" }, t("p text")).outerHTML,
+      P({ class: "class_text" }, [t("p text")]).outerHTML,
       P_testO.outerHTML,
       "test if P works"
     );
@@ -110,9 +110,9 @@ import("jsdom").then(async (jsdom) => {
       '<div class="kekw"><p class="text-xl">(Text from T)<span> -SPAN- </span>(more T text)</p><article class="kek"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/330px-Firefox_logo%2C_2019.svg.png" alt="Firefox logo" style="width: 100px; height: 100%"></article><a href="kek">kekw</a></div>',
       "Test simple html"
     );
-    equal(div_text,div_text_from_elem);
+    equal(div_text, div_text_from_elem);
   }
-  
+
   Tests().then(() => {
     console.log("Testing simple Html passed");
     console.log(`\nall test finished after: ${Date.now() - start}ms`);

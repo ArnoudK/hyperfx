@@ -21,6 +21,7 @@ import {
 
 import { parse } from "marked";
 
+const myStr = "Hello, world!";
 import index_md from "../assets/index.md?raw";
 
 import { DocNav, SideNavComp } from "./docnav";
@@ -120,9 +121,21 @@ RouteRegister(md_space)
           MetaDescription("Learn HyperFX todo and 'Read The Friendly Manual'!");
 
           return Div({}, [
+
             Article({ class: "p-4 mx-auto" }, []).With$HFX((a) => {
               a.innerHTML = hello_text;
             }),
+            Div({ class: 'p-2 bg-red-950 text-white' }, [
+              P({ class: "text-xl" }, [
+                t`This is a work in progress!`,
+              ]),
+              P({ class: "text-xl" }, [
+                t`The docs are not finished yet!`,
+              ]),
+              P({ class: "text-xl" }, [
+                t`Does ${myStr} template to textnode even work?`,
+              ]),
+            ])
           ]);
         } else Title(`Doc '${doc}' not found :( | HyperFX`);
         MetaDescription(`This docs for '${doc}' does not exist!`);
@@ -135,7 +148,7 @@ RouteRegister(md_space)
           ]),
         ]);
       },
-      () => {}
+      () => { }
     )
   )
   .registerRoute(
@@ -165,7 +178,7 @@ RouteRegister(md_space)
           editor(),
         ]);
       },
-      () => {}
+      () => { }
     )
   )
   .enable();
