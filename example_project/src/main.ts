@@ -32,7 +32,7 @@ const myComp = Component(root, { a: "" }, (d, c) => {
       t(" text in the middle."),
     ]),
     Input({
-      class: "border-2 rounded-xl p-2 ",
+      class: "border-2 rounded-xl p-2 text-black",
       name: "live_type",
       id: "live_type_input",
       type: "text",
@@ -74,7 +74,7 @@ RouteRegister(document.getElementById("deez")!)
       root,
       null,
       () => {
-        const amount = 1e5 as const;
+        const amount = 1e4 as const;
         const a = [
           Navbar(),
           myComp.Render(),
