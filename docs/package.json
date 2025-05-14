@@ -16,19 +16,19 @@
   "license": "MIT",
   "dependencies": {
     "@vite-pwa/assets-generator": "^0.2.6",
-    "highlight.js": "^11.10.0",
+    "highlight.js": "^11.11.1",
     "hyperfx": "workspace:*",
-    "marked": "^13.0.3",
-    "vite-plugin-pwa": "^0.20.5"
+    "marked": "^15.0.11",
+    "vite-plugin-pwa": "^1.0.0"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
     "postcss-load-config": "^6.0.1",
-    "tailwindcss": "^3.4.16",
-    "typescript": "^5.7.2",
-    "vite": "^5.4.11",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
     "vite-plugin-compression": "^0.5.1",
-    "vite-plugin-singlefile": "^2.0.3"
+    "vite-plugin-singlefile": "^2.2.0"
   }
 }
