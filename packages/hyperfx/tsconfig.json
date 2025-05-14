@@ -9,20 +9,24 @@
 		"esModuleInterop": true,
 		// Bundler Stuff
 		"moduleResolution": "Bundler",
-		"verbatimModuleSyntax": true,
 
 		"strict": true,
 		"skipLibCheck": true,
 		"noFallthroughCasesInSwitch": true,
-		"noEmit": true,
 		"rootDir": "src",
 		"noUncheckedIndexedAccess": true,
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"strictNullChecks": true,
 		"noPropertyAccessFromIndexSignature": false,
-		"allowSyntheticDefaultImports": true
-	},
+		"allowSyntheticDefaultImports": true,
+		 "emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"outDir": "dist",
+		"tsBuildInfoFile": "dist/.tsbuildinfo",
+		"declaration": true,
+		"sourceMap": true
+		},
 	"exclude": [
 		"**/*.config.*s",
 		"build",

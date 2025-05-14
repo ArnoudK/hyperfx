@@ -1,10 +1,10 @@
-import { type WhateverPageComponent } from "../reactive/component";
+import { PageCompType } from "../reactive/component";
 import { navigateTo } from "./navigate";
 
 type routeItem = {
   path: string;
   route: RegExp;
-  comp: WhateverPageComponent;
+  comp: PageCompType;
   params: paramItem[];
 };
 
@@ -18,7 +18,7 @@ export class PageRegister {
   public Anchor: HTMLElement;
   public routes: routeItem[];
 
-  public currentPage: WhateverPageComponent | undefined;
+  public currentPage: PageCompType | undefined;
   public currentRoute: routeItem | undefined;
 
   public queryParams: URLSearchParams;
@@ -26,7 +26,7 @@ export class PageRegister {
    * Add a route with a custom component. Those will be loaded on page load or a softnavigate with navigateTo.
    * params can be added with [name] e.g.: '/mypage/[myparam]/info'
    */
-  public registerRoute(route: string, comp: WhateverPageComponent) {
+  public registerRoute(route: string, comp: PageCompType) {
     const routesplit = route.split("/");
     let resultStr = "";
 

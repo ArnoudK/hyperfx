@@ -12,7 +12,7 @@ export const Div = (
 ) => createE("div", attributes, children);
 
 /** Render text (the text content inside a tag): */
-export function t(text: TemplateStringsArray | string, ...values: ((string[]))) {
+export function t(text: TemplateStringsArray | string, ...values: (((string|unknown)[]))) {
   let result = "";
   if (typeof text === "string") {
     // If the input is a string, just return it
