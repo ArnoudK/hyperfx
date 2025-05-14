@@ -3,4 +3,3 @@
  * The URL must be registered in the PageRegister!!!
  */
 export declare function navigateTo(href: string): void;
-//# sourceMappingURL=navigate.d.ts.map

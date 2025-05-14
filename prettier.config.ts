@@ -12,4 +12,5 @@ export default {
   plugins: ["prettier-plugin-tailwindcss"],
   tailwindConfig: "./example_project/tailwind.config.ts",
   tailwindAttributes: ["class: "],
+  
 } satisfies Config;

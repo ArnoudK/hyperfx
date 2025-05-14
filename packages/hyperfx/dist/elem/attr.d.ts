@@ -59,4 +59,3 @@ type globalAttrs = {
 };
 export type GlobalAttr = Partial<globalAttrs>;
 export {};
-//# sourceMappingURL=attr.d.ts.map

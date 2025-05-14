@@ -4,7 +4,6 @@ import {
   P,
   RootComponent,
   t,
-  Input,
   Div,
   RouteRegister,
   PageComponent,
@@ -13,34 +12,35 @@ import {
   GetParamValue,
   GetQueryValue,
   Main,
+  Pre,
 } from "hyperfx";
 
 import { Navbar } from "./components/nav";
+import { TextArea } from "hyperfx/dist/elem/input";
 
 const root = RootComponent();
-
-const myComp = Component(root, { a: "" }, (d, c) => {
-  return Div({ class: " p-2" }, [
-    P({ class: "text-2xl text-red-500" }, [
-      Span({ class: "font-semibold" }, "Text: "),
-      t(d.a),
+let initData = { text: "Hello, world!" };
+const myComp = Component(root, { ...initData }, (data, component) => {
+  console.log("myComp", data);
+  return Div({ class: "bg-gray-800 rounded-lg shadow-lg p-6 max-w-2xl mx-auto my-4 border border-gray-700" }, [
+    P({ class: "text-3xl font-bold text-gray-100 mb-4" }, [
+      Span({ class: "text-purple-400" }, "Text: "),
+      Pre({}, [t(data.text)]),
     ]),
-    Label({ for: "live_type" }, [t("live update ")]),
-    P({}, [
-      t("This is basic text with a "),
-      Span({ style: "font-weight: bold;" }, "bold"),
-      t(" text in the middle."),
+    Label({ for: "live_type", class: "block text-sm font-medium text-gray-300 mb-2" }, [t("Live Update")]),
+    P({ class: "text-gray-400 mb-4" }, [
+      t`This is basic text with a `,
+      Span({ class: "font-bold text-purple-400" }, "bold"),
+      t` text in the middle.`,
     ]),
-    Input({
-      class: "border-2 rounded-xl p-2 text-black",
+    TextArea({
+      class: "w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors",
       name: "live_type",
       id: "live_type_input",
-      type: "text",
-      value: d.a,
+      value: data.text,
     }).WithEvent$HFX("input", (e) => {
-      //@ts-expect-error (.value is not implented/documented by the MDN types reference)
-      const nval = e.target!.value;
-      c.Update({ a: nval });
+      const target = e.target as HTMLTextAreaElement;
+      component.Update({ text: target.value });
     }),
   ]);
 });
@@ -51,21 +51,20 @@ RouteRegister(document.getElementById("deez")!)
     PageComponent(
       root,
       null,
-
       () => {
         const val = +(GetQueryValue("val") || 0);
 
-        return Div({}, [
+        return Div({ class: 'min-h-screen bg-gray-900 container mx-auto px-4 py-8' }, [
           Navbar(),
           myComp.Render(),
-          P({}, [t("main page")]),
-          P({ class: "text-red-500" }, [t("This is a red paragraph")]),
-          A({ class: "underline text-blue-500", href: `/?val=${val + 1}` }, [
-            t(`Incr I ${val}`),
+          P({ class: "text-xl font-semibold text-gray-200 mb-4" }, [t`Main Page`]),
+          P({ class: "text-red-400 font-medium mb-4" }, [t`This is a red paragraph`]),
+          A({ class: "inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors", href: `/?val=${val + 1}` }, [
+            t`Increment (${val})`,
           ]),
         ]);
       },
-      () => {}
+      () => { }
     )
   )
   .registerRoute(
@@ -78,15 +77,15 @@ RouteRegister(document.getElementById("deez")!)
         const a = [
           Navbar(),
           myComp.Render(),
-          P({}, [t("DEEZ IS ALSO WORKING")]),
-          P({}, [t(`Rendering with: ${amount}`)]),
+          P({ class: "text-2xl font-bold text-gray-100 mb-4" }, [t`DEEZ IS ALSO WORKING`]),
+          P({ class: "text-lg text-gray-400 mb-6" }, [t`Rendering with: ${amount}`]),
         ];
         for (let i = 0; i < amount; i++) {
-          a.push(P({ class: "p-2 " }, [t(`paragraph: ${i}`)]));
+          a.push(P({ class: "p-3 bg-gray-800 rounded-md mb-2 hover:bg-gray-700 transition-colors text-gray-300" }, [t`paragraph: ${i}`]));
         }
-        return Div({}, a);
+        return Div({ class: "min-h-screen bg-gray-900 container mx-auto px-4 py-8" }, a);
       },
-      () => {}
+      () => { }
     )
   )
   .registerRoute(
@@ -95,16 +94,17 @@ RouteRegister(document.getElementById("deez")!)
       root,
       null,
       () => {
-        return Div({}, [
+        return Div({ class: "min-h-screen bg-gray-900 container mx-auto px-4 py-8" }, [
           Navbar(),
-          Main({ class: "p-4" }, [
-            P({}, [
-              t(`myparam value: ${GetParamValue("myparam") ?? "undefined"}`),
+          Main({ class: "bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700" }, [
+            P({ class: "text-xl text-gray-200" }, [
+              t`Parameter value: `,
+              Span({ class: "font-semibold text-purple-400" }, [t`${GetParamValue("myparam") ?? "undefined"}`]),
             ]),
           ]),
         ]);
       },
-      () => {}
+      () => { }
     )
   )
   .enable();

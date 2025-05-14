@@ -19,4 +19,3 @@ type optionImgAttr = {
 type imageAttr = requiredImgAttr & GlobalAttr & Partial<optionImgAttr>;
 export declare const Img: (attrs: imageAttr) => HTMLImageElement;
 export {};
-//# sourceMappingURL=img.d.ts.map

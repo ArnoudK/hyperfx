@@ -146,6 +146,5 @@ export declare const TextArea: (attrs: GlobalAttr & Partial<LengthAble> & Partia
     name: string;
     id: string;
     value: string;
-}>) => void;
+}>) => HTMLTextAreaElement;
 export {};
-//# sourceMappingURL=input.d.ts.map

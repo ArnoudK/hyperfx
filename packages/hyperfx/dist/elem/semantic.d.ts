@@ -14,4 +14,3 @@ export declare const Aside: (attributes: GlobalAttr, children?: HtmlElement_Or_T
 export declare const Main: (attributes: GlobalAttr, children?: HtmlElement_Or_Text_Children_Or_Undefined) => HTMLElement;
 export declare const Button: (attributes: GlobalAttr, children?: HtmlElement_Or_Text_Children_Or_Undefined) => HTMLButtonElement;
 export declare const Footer: (attributes: GlobalAttr, children?: HtmlElement_Or_Text_Children_Or_Undefined) => HTMLElement;
-//# sourceMappingURL=semantic.d.ts.map

@@ -1,8 +1,8 @@
-import { type WhateverPageComponent } from "../reactive/component";
+import { PageCompType } from "../reactive/component";
 type routeItem = {
     path: string;
     route: RegExp;
-    comp: WhateverPageComponent;
+    comp: PageCompType;
     params: paramItem[];
 };
 type paramItem = {
@@ -13,14 +13,14 @@ type paramItem = {
 export declare class PageRegister {
     Anchor: HTMLElement;
     routes: routeItem[];
-    currentPage: WhateverPageComponent | undefined;
+    currentPage: PageCompType | undefined;
     currentRoute: routeItem | undefined;
     queryParams: URLSearchParams;
     /**
      * Add a route with a custom component. Those will be loaded on page load or a softnavigate with navigateTo.
      * params can be added with [name] e.g.: '/mypage/[myparam]/info'
      */
-    registerRoute(route: string, comp: WhateverPageComponent): this;
+    registerRoute(route: string, comp: PageCompType): this;
     getParamValue(name: string): string | undefined;
     enable(): this;
     constructor(anchor: HTMLElement);
@@ -37,4 +37,3 @@ export declare function GetQueryValue(name: string): string | null;
 /** Get an array[] with all query params that match the name (?name=value&name=otherValue) from the current url*/
 export declare function GetQueryValues(name: string): string[];
 export {};
-//# sourceMappingURL=register.d.ts.map

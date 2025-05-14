@@ -5,4 +5,3 @@ export declare const H3: (attributes: GlobalAttr, children?: readonly Text[]) =>
 export declare const H4: (attributes: GlobalAttr, children?: readonly Text[]) => HTMLHeadingElement;
 export declare const H5: (attributes: GlobalAttr, children?: readonly Text[]) => HTMLHeadingElement;
 export declare const H6: (attributes: GlobalAttr, children?: readonly Text[]) => HTMLHeadingElement;
-//# sourceMappingURL=headings.d.ts.map

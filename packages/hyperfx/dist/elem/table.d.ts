@@ -30,4 +30,3 @@ export declare const TableHeader: (attributes: tableHeaderAttributes, children?:
 export declare const Th: (attributes: tableHeaderAttributes, children?: HtmlElement_Or_Text_Children_Or_Undefined) => HTMLTableCellElement;
 export declare const TableCaption: (attributes: GlobalAttr, children?: HtmlElement_Or_Text_Children_Or_Undefined) => HTMLTableCaptionElement;
 export {};
-//# sourceMappingURL=table.d.ts.map

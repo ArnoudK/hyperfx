@@ -25,4 +25,3 @@ type MorphEl = Element & {
 };
 export declare function morph(oldNode: MorphNode | MorphEl, newContent: MorphNode | MorphEl | string | null, config?: Partial<contextType>): HTMLCollection | (MorphEl | undefined)[] | undefined;
 export {};
-//# sourceMappingURL=morphing.d.ts.map

@@ -22,4 +22,3 @@ export declare function MetaDescription(description: string): void;
  */
 export declare const Title: (title: string) => string;
 export {};
-//# sourceMappingURL=head.d.ts.map

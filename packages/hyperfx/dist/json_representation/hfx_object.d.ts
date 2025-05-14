@@ -21,4 +21,3 @@ export declare function elementToHFXObject(el: Element): HFXObject;
 export declare function nodeToHFXObject(node: Node): HFXObject;
 export declare function HFXObjectToElement(hfx_object: HFXObject): Text | Element;
 export {};
-//# sourceMappingURL=hfx_object.d.ts.map

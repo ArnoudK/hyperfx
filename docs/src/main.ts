@@ -45,7 +45,7 @@ const app_root = document.getElementById("app");
 if (!app_root) {
   throw "ERROR: app root not found??";
 }
-const root_comp = RootComponent();
+
 
 const hello_text = parse(index_md) as string;
 
@@ -78,8 +78,8 @@ RouteRegister(md_space)
   .registerRoute(
     "/",
     PageComponent(
-      root_comp,
-      null,
+      RootComponent(),
+      null,  // Changed from '' to null to be more explicit about no data needed
       () => {
         return Article({}, [P({}, [t("Could not load??")])]);
       },
@@ -91,8 +91,8 @@ RouteRegister(md_space)
   .registerRoute(
     "/hyperfx",
     PageComponent(
-      root_comp,
-      null,
+      RootComponent(),
+      null,  // Changed from 1 to null since we're not using the data
       () => {
         const doc = GetQueryValue("doc") || "main";
         const md_doc = docsMD.find((a) => a.route_name == doc);
@@ -154,8 +154,8 @@ RouteRegister(md_space)
   .registerRoute(
     "editor",
     PageComponent(
-      root_comp,
-      undefined,
+      RootComponent(),
+      null,  // Changed from undefined to null to match ComponentData type
       () => {
         return Div({ class: "flex flex-col p-4 max-w-[80vw] mx-auto" }, [
           Div({ class: "p-2" }, [

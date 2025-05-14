@@ -36,4 +36,3 @@ declare function get<T>(url: string, headers: {} | undefined | undefined, reques
  */
 declare function post<T>(url: string, body: string | null | undefined, headers: {} | undefined | undefined, requestInit: Partial<RequestInit> | null | undefined): Promise<FetchResult<T, boolean>>;
 export {};
-//# sourceMappingURL=fetcher.d.ts.map

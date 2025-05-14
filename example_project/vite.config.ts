@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import viteCompression from "vite-plugin-compression";
+import  tailwindcss  from "@tailwindcss/vite";
 export default defineConfig({
   appType: "spa",
   build: {
@@ -16,7 +16,6 @@ export default defineConfig({
   },
 
   plugins: [
-    viteCompression({ algorithm: "brotliCompress" }),
-    viteCompression({ algorithm: "gzip" }),
+    tailwindcss()
   ],
 });

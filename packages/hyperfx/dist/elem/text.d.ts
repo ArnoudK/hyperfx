@@ -27,4 +27,3 @@ export declare const Cite: (attributes: GlobalAttr, children?: HtmlElement_Or_Te
 export declare const Code: (attributes: GlobalAttr, children?: HtmlElement_Or_Text_Children_Or_Undefined) => HTMLElement;
 export declare const BlockQuote: (attributes: GlobalAttr, children?: HtmlElement_Or_Text_Children_Or_Undefined) => HTMLQuoteElement;
 export {};
-//# sourceMappingURL=text.d.ts.map
