@@ -1,82 +1,72 @@
 # Components
 
-Just blocks that hold state.
+Components in HyperFX are just functions that return JSX elements. They can use signals for reactive state management.
 
-```ts
-import {
-  Div,
-  P,
-  Pre,
-  RootComponent,
-  RouteRegister,
-  Span,
-  Title,
-  navigateTo,
-  t,
-} from "hyperfx";
+```tsx
+import { createSignal } from "hyperfx";
 
-// TODO set parent / children for efficient state management / make hooks/refs
-// on a page you can pass the PageComponent as parent
-const root = RootComponent();
+// Simple component function
+function MyComponent() {
+  const [text, setText] = createSignal("");
 
-// creates a component
-const myComp = Component(
-  root, // the parent
-  { a: "" }, //state
-  (data, comp) => {
-    // render data=state comp = this comp
-    return Div({ class: "p-2" }, [
-      P({ class: "text-2xl text-red-500" }, [
-        Span({ class: "font-semibold" }, "Text: "),
-        t(data.a),
-      ]),
-      Label({ for: "live_type" }, [t("live update ")]),
-      P({}, [
-        t("This is basic text with a "),
-        Span({ style: "font-weight: bold;" }, "bold"),
-        t(" text in the middle."),
-      ]),
-      Input({
-        class: "border-2 rounded-xl p-2 ",
-        name: "live_type",
-        id: "live_type_input",
-        type: "text",
-        value: data.a,
-      }).WithEvent$HFX("input", (e) => {
-        // bind a event on the Input you can chain them
-        //@ts-expect-error (.value is not implented/documented by the MDN types reference) or typescript bugs and doesn't map it to InputEvent?
-        const nval = e.target!.value;
-        // we update and rerender this comp with new state
-        // this goes smoothly inside the Input because we use a
-        // semi smart morphing algorithm
-        comp.Update({ a: nval });
-      }),
-    ]);
-  }
-);
+  return (
+    <div class="p-2">
+      <p class="text-2xl text-red-500">
+        <span class="font-semibold">Text: </span>
+        {text}
+      </p>
+      <label for="live_type">live update </label>
+      <p>
+        This is basic text with a{" "}
+        <span style="font-weight: bold;">bold</span>{" "}
+        text in the middle.
+      </p>
+      <input
+        class="border-2 rounded-xl p-2"
+        name="live_type"
+        id="live_type_input"
+        type="text"
+        value={text()}
+        onInput={(e) => {
+          setText((e.target as HTMLInputElement).value);
+        }}
+      />
+    </div>
+  );
+}
+
+// Usage
+const myComponent = <MyComponent />;
+document.body.appendChild(myComponent);
 ```
 
 ## Should you use them?
 
-Instead of using components everywhere more often than not you can just use functions, since Tag functions return HTMLElements.
-So you can just create a function and pass state into the function and return your HTMLElement with the children you need, or spread them using the ... operator if you need to return a [].
+Yes! Components are the recommended way to structure your HyperFX applications. They provide clean separation of concerns and work seamlessly with the signal-based reactivity system.
+
+Since components are just functions that return JSX elements, you can:
+- Pass props as function parameters
+- Use signals for internal state
+- Compose them easily
+- Return arrays of elements when needed
 
 Example:
 
-```ts
-function json_representation(prev: Element) {
-  return Div(
-    {
-      id: "my_id",
-      class: "bg-black/20 p-2 border-2 border-gray-500 rounded-md",
-    },
-    [
-      Output({ name: "json_output", for: my_other_id }, [
-        Pre({ class: "overflow-x-scroll" }, [
-          t(JSON.stringify(elementToHFXObject(prev), null, "  ")),
-        ]),
-      ]),
-    ]
+```tsx
+import { elementToHFXObject } from "hyperfx";
+
+function JsonRepresentation({ element }: { element: Element }) {
+  return (
+    <div
+      id="my_id"
+      class="bg-black/20 p-2 border-2 border-gray-500 rounded-md"
+    >
+      <output name="json_output">
+        <pre class="overflow-x-scroll">
+          {JSON.stringify(elementToHFXObject(element), null, "  ")}
+        </pre>
+      </output>
+    </div>
   );
 }
 ```

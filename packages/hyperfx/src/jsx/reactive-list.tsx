@@ -1,4 +1,4 @@
-// ReactiveList component for handling dynamic lists in JSX
+// ReactiveList component for handling dynamic lists in JSX with improved types
 import { VNode } from '../elem/elem';
 import { createEffect, ReactiveSignal } from '../reactive/state';
 
@@ -8,6 +8,14 @@ export interface ReactiveListProps<T> {
   keyExtractor?: (item: T, index: number) => string | number;
   className?: string;
   id?: string;
+  key?: string | number; // Key for the ReactiveList component itself
+}
+
+// Enhanced VNode with reactive list data for hydration
+interface ReactiveListVNode extends VNode {
+  __reactiveListItems?: ReactiveSignal<any[]>;
+  __renderItem?: (item: any, index: number) => VNode;
+  __keyExtractor?: (item: any, index: number) => string | number;
 }
 
 /**
@@ -18,7 +26,7 @@ export function ReactiveList<T>(props: ReactiveListProps<T>): VNode {
   const { items, renderItem, keyExtractor, className, id } = props;
   
   // Create a container that will be updated reactively
-  const container: VNode = {
+  const container: ReactiveListVNode = {
     tag: 'div',
     props: { 
       class: className || '',
@@ -26,6 +34,10 @@ export function ReactiveList<T>(props: ReactiveListProps<T>): VNode {
       'data-reactive-list': 'true'
     },
     children: [],
+    // Store reactive data for hydration
+    __reactiveListItems: items,
+    __renderItem: renderItem,
+    __keyExtractor: keyExtractor,
   };
 
   // Set up reactive effect to update the container when items change
@@ -37,6 +49,8 @@ export function ReactiveList<T>(props: ReactiveListProps<T>): VNode {
         const vnode = renderItem(item, index);
         if (keyExtractor) {
           vnode.key = keyExtractor(item, index);
+        } else {
+          vnode.key = `item-${index}`;
         }
         return vnode;
       });
@@ -51,7 +65,7 @@ export function ReactiveList<T>(props: ReactiveListProps<T>): VNode {
         
         // Mount new children
         newChildren.forEach(child => {
-          if (typeof child === 'object' && child.tag) {
+          if (typeof child === 'object' && 'tag' in child) {
             // Use dynamic import to avoid circular dependency
             import('../elem/elem').then(({ mount }) => {
               mount(child, container.dom as HTMLElement);
@@ -67,6 +81,8 @@ export function ReactiveList<T>(props: ReactiveListProps<T>): VNode {
       const vnode = renderItem(item, index);
       if (keyExtractor) {
         vnode.key = keyExtractor(item, index);
+      } else {
+        vnode.key = `item-${index}`;
       }
       return vnode;
     });

@@ -1,11 +1,11 @@
 {
   "virtual:$vinxi/handler/client": {
-    "file": "assets/client-ZRovaTyh.js",
+    "file": "assets/client-CAUNe0Fj.js",
     "name": "client",
     "src": "virtual:$vinxi/handler/client",
     "isEntry": true,
     "css": [
-      "assets/client-5B0n6Ny9.css"
+      "assets/client-D_nSAaa6.css"
     ]
   }
 }

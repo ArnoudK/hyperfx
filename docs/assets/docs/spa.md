@@ -1,106 +1,114 @@
-# spa
+# SPA (Single Page Application)
 
-single page application
+Build single page applications with HyperFX routing.
 
-## spa status
+## SPA Status
 
-far from done...
-most important: routes are not registered so page refresh will result in a: not found on this page :|
+The routing system is functional but still evolving. Page refresh handling and server-side routing registration are ongoing improvements.
 
 ## Behavior
 
-The A function from hyperfx will haijack all hrefs that go to your current website if a pageregister is active.
+The routing system automatically intercepts navigation for internal links when a route register is active.
 
-## Current usage
+## Current Usage
 
-```ts
-import {
-  RouteRegister,
-  PageComponent,
-  RootComponent,
-  t,
-  Article,
-  P,
-} from "hyperfx";
+```tsx
+import { RouteRegister, createSignal } from "hyperfx";
 
-// page_space is een element in which the page renders are dumped
-RouteRegister(page_space)
-  // builder pattern call to add pages
+// Create a container element for page content
+const pageSpace = document.getElementById('page-space')!;
+
+// Register routes using JSX components
+RouteRegister(pageSpace)
   .registerRoute(
-    "/", // route name
-    PageComponent(
-      // component that holds the page logic / render
-      root_comp, // parent (you can import rootcomp from hyperfx)
-      null, // state, you can use null if you don't need it
-      (state, my_comp) => {
-        // render, you can get the state and the current component as parameters (typesafe)
-        // in this case state will always be null
-        return Article({}, [P({}, [t("My article")])]);
-      },
-
-      (_state, _my_comp) => {
-        // additional logic to use that only loads on page load, but not on rerenders.
-      }
-    )
+    "/", // route path
+    () => {
+      // Component function for this route
+      return (
+        <article>
+          <p>Welcome to the home page!</p>
+        </article>
+      );
+    }
   )
-  .enable(); // start using the registered routs
+  .registerRoute(
+    "/about",
+    () => {
+      const [count, setCount] = createSignal(0);
+      
+      return (
+        <article>
+          <h1>About Page</h1>
+          <p>Counter: {count}</p>
+          <button onClick={() => setCount(count() + 1)}>
+            Increment
+          </button>
+        </article>
+      );
+    }
+  )
+  .enable(); // Start the routing system
 ```
 
-### hack to work around not reloading :)
+### Dynamic Content with Query Parameters
 
-Just put everything in the query params :)
-We use an hopefully 'old' version of the docs.
+You can create dynamic routes that respond to query parameters:
 
-```ts
-.registerRoute(
-    "/hyperfx",
-    PageComponent(
-      root_comp,
-      null,
-      () => { // at render get query value 'doc' or fallback to main
-        const doc = GetQueryValue("doc") || "main";
-        const md_doc = docsMD.find((a) => a.route_name == doc);
+```tsx
+import { GetQueryValue, createSignal, createComputed } from "hyperfx";
 
-        if (md_doc) {
-          const doc_element = Div({ class: "flex flex-auto " }, [
-            SideNavComp.currentRender,
-            Article({
-              class: "p-4 flex flex-col overflow-auto mx-auto",
-            }).With$HFX((e) => {
-              e.innerHTML = parse(md_doc.data) as string;
-            }),
-          ]);
+RouteRegister(pageSpace)
+  .registerRoute(
+    "/docs",
+    () => {
+      const [currentDoc, setCurrentDoc] = createSignal(
+        GetQueryValue("doc") || "main"
+      );
+      
+      // Computed content based on the current doc
+      const docContent = createComputed(() => {
+        const doc = currentDoc();
+        const mdDoc = docsMD.find((d) => d.route_name === doc);
+        
+        if (mdDoc) {
+          return mdDoc.data;
+        } else if (doc === "main") {
+          return "Welcome to HyperFX documentation!";
+        } else {
+          return `Documentation for '${doc}' not found.`;
+        }
+      });
 
-          const code_blocks = doc_element.querySelectorAll("pre code");
-
-          for (const code_block of code_blocks) {
-            hljs.highlightElement(code_block as HTMLElement);
-          }
-          Title(`${md_doc.title} | HyperFX`);
-          MetaDescription(`HyperFX docs about ${md_doc.title}.`);
-
-          return doc_element;
-        } else if (doc == "main") {
-          Title("HyperFX docs");
-          MetaDescription("Learn HyperFX todo and 'Read The Friendly Manual'!");
-
-          return Div({}, [
-            Article({ class: "p-4 mx-auto" }, []).With$HFX((a) => {
-              a.innerHTML = hello_text;
-            }),
-          ]);
-        } else Title(`Doc '${doc}' not found :( | HyperFX`);
-        MetaDescription(`This docs for '${doc}' does not exist!`);
-
-        return Div({ class: "text-xl p-4" }, [
-          P({}, [t(`The docs for '${doc}' could not be found : (`)]),
-          Br({}),
-          A({ href: "/hyperfx", class: "underline text-blue-400" }, [
-            t("Go back"),
-          ]),
-        ]);
-      },
-      () => {} // we rerender on route changes so we don't need additional load logic
-    )
+      return (
+        <div class="flex flex-auto">
+          <aside class="navigation">
+            {/* Navigation sidebar */}
+          </aside>
+          <article 
+            class="p-4 flex flex-col overflow-auto mx-auto"
+            innerHTML={docContent}
+          />
+        </div>
+      );
+    }
   )
+  .enable();
+```
+
+### Navigation
+
+Use regular anchor tags for navigation. The router will automatically handle internal links:
+
+```tsx
+function Navigation() {
+  return (
+    <nav>
+      <a href="/" class="nav-link">Home</a>
+      <a href="/about" class="nav-link">About</a>
+      <a href="/docs?doc=getting-started" class="nav-link">
+        Getting Started
+      </a>
+    </nav>
+  );
+}
 ```

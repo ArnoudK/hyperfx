@@ -584,7 +584,7 @@ const defuFn = createDefu((object, key, currentValue) => {
   }
 });
 
-function o(n){throw new Error(`${n} is not implemented yet!`)}let i$1 = class i extends EventEmitter{__unenv__={};readableEncoding=null;readableEnded=true;readableFlowing=false;readableHighWaterMark=0;readableLength=0;readableObjectMode=false;readableAborted=false;readableDidRead=false;closed=false;errored=null;readable=false;destroyed=false;static from(e,t){return new i(t)}constructor(e){super();}_read(e){}read(e){}setEncoding(e){return this}pause(){return this}resume(){return this}isPaused(){return  true}unpipe(e){return this}unshift(e,t){}wrap(e){return this}push(e,t){return  false}_destroy(e,t){this.removeAllListeners();}destroy(e){return this.destroyed=true,this._destroy(e),this}pipe(e,t){return {}}compose(e,t){throw new Error("Method not implemented.")}[Symbol.asyncDispose](){return this.destroy(),Promise.resolve()}async*[Symbol.asyncIterator](){throw o("Readable.asyncIterator")}iterator(e){throw o("Readable.iterator")}map(e,t){throw o("Readable.map")}filter(e,t){throw o("Readable.filter")}forEach(e,t){throw o("Readable.forEach")}reduce(e,t,r){throw o("Readable.reduce")}find(e,t){throw o("Readable.find")}findIndex(e,t){throw o("Readable.findIndex")}some(e,t){throw o("Readable.some")}toArray(e){throw o("Readable.toArray")}every(e,t){throw o("Readable.every")}flatMap(e,t){throw o("Readable.flatMap")}drop(e,t){throw o("Readable.drop")}take(e,t){throw o("Readable.take")}asIndexedPairs(e){throw o("Readable.asIndexedPairs")}};let l$1 = class l extends EventEmitter{__unenv__={};writable=true;writableEnded=false;writableFinished=false;writableHighWaterMark=0;writableLength=0;writableObjectMode=false;writableCorked=0;closed=false;errored=null;writableNeedDrain=false;destroyed=false;_data;_encoding="utf8";constructor(e){super();}pipe(e,t){return {}}_write(e,t,r){if(this.writableEnded){r&&r();return}if(this._data===void 0)this._data=e;else {const s=typeof this._data=="string"?Buffer$1.from(this._data,this._encoding||t||"utf8"):this._data,a=typeof e=="string"?Buffer$1.from(e,t||this._encoding||"utf8"):e;this._data=Buffer$1.concat([s,a]);}this._encoding=t,r&&r();}_writev(e,t){}_destroy(e,t){}_final(e){}write(e,t,r){const s=typeof t=="string"?this._encoding:"utf8",a=typeof t=="function"?t:typeof r=="function"?r:void 0;return this._write(e,s,a),true}setDefaultEncoding(e){return this}end(e,t,r){const s=typeof e=="function"?e:typeof t=="function"?t:typeof r=="function"?r:void 0;if(this.writableEnded)return s&&s(),this;const a=e===s?void 0:e;if(a){const u=t===s?void 0:t;this.write(a,u,s);}return this.writableEnded=true,this.writableFinished=true,this.emit("close"),this.emit("finish"),this}cork(){}uncork(){}destroy(e){return this.destroyed=true,delete this._data,this.removeAllListeners(),this}compose(e,t){throw new Error("Method not implemented.")}};const c$1=class c{allowHalfOpen=true;_destroy;constructor(e=new i$1,t=new l$1){Object.assign(this,e),Object.assign(this,t),this._destroy=g(e._destroy,t._destroy);}};function _$1(){return Object.assign(c$1.prototype,i$1.prototype),Object.assign(c$1.prototype,l$1.prototype),c$1}function g(...n){return function(...e){for(const t of n)t(...e);}}const m$1=_$1();let A$1 = class A extends m$1{__unenv__={};bufferSize=0;bytesRead=0;bytesWritten=0;connecting=false;destroyed=false;pending=false;localAddress="";localPort=0;remoteAddress="";remoteFamily="";remotePort=0;autoSelectFamilyAttemptedAddresses=[];readyState="readOnly";constructor(e){super();}write(e,t,r){return  false}connect(e,t,r){return this}end(e,t,r){return this}setEncoding(e){return this}pause(){return this}resume(){return this}setTimeout(e,t){return this}setNoDelay(e){return this}setKeepAlive(e,t){return this}address(){return {}}unref(){return this}ref(){return this}destroySoon(){this.destroy();}resetAndDestroy(){const e=new Error("ERR_SOCKET_CLOSED");return e.code="ERR_SOCKET_CLOSED",this.destroy(e),this}};class y extends i$1{aborted=false;httpVersion="1.1";httpVersionMajor=1;httpVersionMinor=1;complete=true;connection;socket;headers={};trailers={};method="GET";url="/";statusCode=200;statusMessage="";closed=false;errored=null;readable=false;constructor(e){super(),this.socket=this.connection=e||new A$1;}get rawHeaders(){const e=this.headers,t=[];for(const r in e)if(Array.isArray(e[r]))for(const s of e[r])t.push(r,s);else t.push(r,e[r]);return t}get rawTrailers(){return []}setTimeout(e,t){return this}get headersDistinct(){return p(this.headers)}get trailersDistinct(){return p(this.trailers)}}function p(n){const e={};for(const[t,r]of Object.entries(n))t&&(e[t]=(Array.isArray(r)?r:[r]).filter(Boolean));return e}let w$1 = class w extends l$1{statusCode=200;statusMessage="";upgrading=false;chunkedEncoding=false;shouldKeepAlive=false;useChunkedEncodingByDefault=false;sendDate=false;finished=false;headersSent=false;strictContentLength=false;connection=null;socket=null;req;_headers={};constructor(e){super(),this.req=e;}assignSocket(e){e._httpMessage=this,this.socket=e,this.connection=e,this.emit("socket",e),this._flush();}_flush(){this.flushHeaders();}detachSocket(e){}writeContinue(e){}writeHead(e,t,r){e&&(this.statusCode=e),typeof t=="string"&&(this.statusMessage=t,t=void 0);const s=r||t;if(s&&!Array.isArray(s))for(const a in s)this.setHeader(a,s[a]);return this.headersSent=true,this}writeProcessing(){}setTimeout(e,t){return this}appendHeader(e,t){e=e.toLowerCase();const r=this._headers[e],s=[...Array.isArray(r)?r:[r],...Array.isArray(t)?t:[t]].filter(Boolean);return this._headers[e]=s.length>1?s:s[0],this}setHeader(e,t){return this._headers[e.toLowerCase()]=t,this}setHeaders(e){for(const[t,r]of Object.entries(e))this.setHeader(t,r);return this}getHeader(e){return this._headers[e.toLowerCase()]}getHeaders(){return this._headers}getHeaderNames(){return Object.keys(this._headers)}hasHeader(e){return e.toLowerCase()in this._headers}removeHeader(e){delete this._headers[e.toLowerCase()];}addTrailers(e){}flushHeaders(){}writeEarlyHints(e,t){typeof t=="function"&&t();}};const E=(()=>{const n=function(){};return n.prototype=Object.create(null),n})();function R$1(n={}){const e=new E,t=Array.isArray(n)||H(n)?n:Object.entries(n);for(const[r,s]of t)if(s){if(e[r]===void 0){e[r]=s;continue}e[r]=[...Array.isArray(e[r])?e[r]:[e[r]],...Array.isArray(s)?s:[s]];}return e}function H(n){return typeof n?.entries=="function"}function S(n={}){if(n instanceof Headers)return n;const e=new Headers;for(const[t,r]of Object.entries(n))if(r!==void 0){if(Array.isArray(r)){for(const s of r)e.append(t,String(s));continue}e.set(t,String(r));}return e}const C$1=new Set([101,204,205,304]);async function b(n,e){const t=new y,r=new w$1(t);t.url=e.url?.toString()||"/";let s;if(!t.url.startsWith("/")){const d=new URL(t.url);s=d.host,t.url=d.pathname+d.search+d.hash;}t.method=e.method||"GET",t.headers=R$1(e.headers||{}),t.headers.host||(t.headers.host=e.host||s||"localhost"),t.connection.encrypted=t.connection.encrypted||e.protocol==="https",t.body=e.body||null,t.__unenv__=e.context,await n(t,r);let a=r._data;(C$1.has(r.statusCode)||t.method.toUpperCase()==="HEAD")&&(a=null,delete r._headers["content-length"]);const u={status:r.statusCode,statusText:r.statusMessage,headers:r._headers,body:a};return t.destroy(),r.destroy(),u}async function O$1(n,e,t={}){try{const r=await b(n,{url:e,...t});return new Response(r.body,{status:r.status,statusText:r.statusText,headers:S(r.headers)})}catch(r){return new Response(r.toString(),{status:Number.parseInt(r.statusCode||r.code)||500,statusText:r.statusText})}}
+function o(n){throw new Error(`${n} is not implemented yet!`)}let i$1 = class i extends EventEmitter{__unenv__={};readableEncoding=null;readableEnded=true;readableFlowing=false;readableHighWaterMark=0;readableLength=0;readableObjectMode=false;readableAborted=false;readableDidRead=false;closed=false;errored=null;readable=false;destroyed=false;static from(e,t){return new i(t)}constructor(e){super();}_read(e){}read(e){}setEncoding(e){return this}pause(){return this}resume(){return this}isPaused(){return  true}unpipe(e){return this}unshift(e,t){}wrap(e){return this}push(e,t){return  false}_destroy(e,t){this.removeAllListeners();}destroy(e){return this.destroyed=true,this._destroy(e),this}pipe(e,t){return {}}compose(e,t){throw new Error("Method not implemented.")}[Symbol.asyncDispose](){return this.destroy(),Promise.resolve()}async*[Symbol.asyncIterator](){throw o("Readable.asyncIterator")}iterator(e){throw o("Readable.iterator")}map(e,t){throw o("Readable.map")}filter(e,t){throw o("Readable.filter")}forEach(e,t){throw o("Readable.forEach")}reduce(e,t,r){throw o("Readable.reduce")}find(e,t){throw o("Readable.find")}findIndex(e,t){throw o("Readable.findIndex")}some(e,t){throw o("Readable.some")}toArray(e){throw o("Readable.toArray")}every(e,t){throw o("Readable.every")}flatMap(e,t){throw o("Readable.flatMap")}drop(e,t){throw o("Readable.drop")}take(e,t){throw o("Readable.take")}asIndexedPairs(e){throw o("Readable.asIndexedPairs")}};let l$1 = class l extends EventEmitter{__unenv__={};writable=true;writableEnded=false;writableFinished=false;writableHighWaterMark=0;writableLength=0;writableObjectMode=false;writableCorked=0;closed=false;errored=null;writableNeedDrain=false;destroyed=false;_data;_encoding="utf8";constructor(e){super();}pipe(e,t){return {}}_write(e,t,r){if(this.writableEnded){r&&r();return}if(this._data===void 0)this._data=e;else {const s=typeof this._data=="string"?Buffer$1.from(this._data,this._encoding||t||"utf8"):this._data,a=typeof e=="string"?Buffer$1.from(e,t||this._encoding||"utf8"):e;this._data=Buffer$1.concat([s,a]);}this._encoding=t,r&&r();}_writev(e,t){}_destroy(e,t){}_final(e){}write(e,t,r){const s=typeof t=="string"?this._encoding:"utf8",a=typeof t=="function"?t:typeof r=="function"?r:void 0;return this._write(e,s,a),true}setDefaultEncoding(e){return this}end(e,t,r){const s=typeof e=="function"?e:typeof t=="function"?t:typeof r=="function"?r:void 0;if(this.writableEnded)return s&&s(),this;const a=e===s?void 0:e;if(a){const u=t===s?void 0:t;this.write(a,u,s);}return this.writableEnded=true,this.writableFinished=true,this.emit("close"),this.emit("finish"),this}cork(){}uncork(){}destroy(e){return this.destroyed=true,delete this._data,this.removeAllListeners(),this}compose(e,t){throw new Error("Method not implemented.")}};const c=class{allowHalfOpen=true;_destroy;constructor(e=new i$1,t=new l$1){Object.assign(this,e),Object.assign(this,t),this._destroy=g(e._destroy,t._destroy);}};function _$1(){return Object.assign(c.prototype,i$1.prototype),Object.assign(c.prototype,l$1.prototype),c}function g(...n){return function(...e){for(const t of n)t(...e);}}const m=_$1();let A$1 = class A extends m{__unenv__={};bufferSize=0;bytesRead=0;bytesWritten=0;connecting=false;destroyed=false;pending=false;localAddress="";localPort=0;remoteAddress="";remoteFamily="";remotePort=0;autoSelectFamilyAttemptedAddresses=[];readyState="readOnly";constructor(e){super();}write(e,t,r){return  false}connect(e,t,r){return this}end(e,t,r){return this}setEncoding(e){return this}pause(){return this}resume(){return this}setTimeout(e,t){return this}setNoDelay(e){return this}setKeepAlive(e,t){return this}address(){return {}}unref(){return this}ref(){return this}destroySoon(){this.destroy();}resetAndDestroy(){const e=new Error("ERR_SOCKET_CLOSED");return e.code="ERR_SOCKET_CLOSED",this.destroy(e),this}};class y extends i$1{aborted=false;httpVersion="1.1";httpVersionMajor=1;httpVersionMinor=1;complete=true;connection;socket;headers={};trailers={};method="GET";url="/";statusCode=200;statusMessage="";closed=false;errored=null;readable=false;constructor(e){super(),this.socket=this.connection=e||new A$1;}get rawHeaders(){const e=this.headers,t=[];for(const r in e)if(Array.isArray(e[r]))for(const s of e[r])t.push(r,s);else t.push(r,e[r]);return t}get rawTrailers(){return []}setTimeout(e,t){return this}get headersDistinct(){return p(this.headers)}get trailersDistinct(){return p(this.trailers)}}function p(n){const e={};for(const[t,r]of Object.entries(n))t&&(e[t]=(Array.isArray(r)?r:[r]).filter(Boolean));return e}class w extends l$1{statusCode=200;statusMessage="";upgrading=false;chunkedEncoding=false;shouldKeepAlive=false;useChunkedEncodingByDefault=false;sendDate=false;finished=false;headersSent=false;strictContentLength=false;connection=null;socket=null;req;_headers={};constructor(e){super(),this.req=e;}assignSocket(e){e._httpMessage=this,this.socket=e,this.connection=e,this.emit("socket",e),this._flush();}_flush(){this.flushHeaders();}detachSocket(e){}writeContinue(e){}writeHead(e,t,r){e&&(this.statusCode=e),typeof t=="string"&&(this.statusMessage=t,t=void 0);const s=r||t;if(s&&!Array.isArray(s))for(const a in s)this.setHeader(a,s[a]);return this.headersSent=true,this}writeProcessing(){}setTimeout(e,t){return this}appendHeader(e,t){e=e.toLowerCase();const r=this._headers[e],s=[...Array.isArray(r)?r:[r],...Array.isArray(t)?t:[t]].filter(Boolean);return this._headers[e]=s.length>1?s:s[0],this}setHeader(e,t){return this._headers[e.toLowerCase()]=t,this}setHeaders(e){for(const[t,r]of Object.entries(e))this.setHeader(t,r);return this}getHeader(e){return this._headers[e.toLowerCase()]}getHeaders(){return this._headers}getHeaderNames(){return Object.keys(this._headers)}hasHeader(e){return e.toLowerCase()in this._headers}removeHeader(e){delete this._headers[e.toLowerCase()];}addTrailers(e){}flushHeaders(){}writeEarlyHints(e,t){typeof t=="function"&&t();}}const E$1=(()=>{const n=function(){};return n.prototype=Object.create(null),n})();function R$1(n={}){const e=new E$1,t=Array.isArray(n)||H$1(n)?n:Object.entries(n);for(const[r,s]of t)if(s){if(e[r]===void 0){e[r]=s;continue}e[r]=[...Array.isArray(e[r])?e[r]:[e[r]],...Array.isArray(s)?s:[s]];}return e}function H$1(n){return typeof n?.entries=="function"}function S$1(n={}){if(n instanceof Headers)return n;const e=new Headers;for(const[t,r]of Object.entries(n))if(r!==void 0){if(Array.isArray(r)){for(const s of r)e.append(t,String(s));continue}e.set(t,String(r));}return e}const C=new Set([101,204,205,304]);async function b(n,e){const t=new y,r=new w(t);t.url=e.url?.toString()||"/";let s;if(!t.url.startsWith("/")){const d=new URL(t.url);s=d.host,t.url=d.pathname+d.search+d.hash;}t.method=e.method||"GET",t.headers=R$1(e.headers||{}),t.headers.host||(t.headers.host=e.host||s||"localhost"),t.connection.encrypted=t.connection.encrypted||e.protocol==="https",t.body=e.body||null,t.__unenv__=e.context,await n(t,r);let a=r._data;(C.has(r.statusCode)||t.method.toUpperCase()==="HEAD")&&(a=null,delete r._headers["content-length"]);const u={status:r.statusCode,statusText:r.statusMessage,headers:r._headers,body:a};return t.destroy(),r.destroy(),u}async function O$1(n,e,t={}){try{const r=await b(n,{url:e,...t});return new Response(r.body,{status:r.status,statusText:r.statusText,headers:S$1(r.headers)})}catch(r){return new Response(r.toString(),{status:Number.parseInt(r.statusCode||r.code)||500,statusText:r.statusText})}}
 
 function hasProp(obj, prop) {
   try {
@@ -4247,7 +4247,7 @@ async function errorHandler(error, event) {
 }
 
 const appConfig = {"name":"vinxi","routers":[{"name":"public","type":"static","dir":"./public","base":"/","root":"/home/du/Code/hyperfx/ssr-example","order":0,"outDir":"/home/du/Code/hyperfx/ssr-example/.vinxi/build/public"},{"name":"client","type":"client","handler":"src/client.ts","target":"browser","base":"/_build","root":"/home/du/Code/hyperfx/ssr-example","outDir":"/home/du/Code/hyperfx/ssr-example/.vinxi/build/client","order":1},{"name":"ssr","type":"http","handler":"src/server.ts","target":"server","base":"/","root":"/home/du/Code/hyperfx/ssr-example","outDir":"/home/du/Code/hyperfx/ssr-example/.vinxi/build/ssr","order":2}],"server":{"routeRules":{"/src/**/*.ts":{"headers":{"content-type":"application/javascript; charset=utf-8","x-content-type-options":"nosniff"}},"/src/**/*.tsx":{"headers":{"content-type":"application/javascript; charset=utf-8","x-content-type-options":"nosniff"}},"/_build/**":{"headers":{"cache-control":"public, max-age=31536000","x-content-type-options":"nosniff"}}}},"root":"/home/du/Code/hyperfx/ssr-example"};
-					const buildManifest = {"client":{"virtual:$vinxi/handler/client":{"file":"assets/client-ZRovaTyh.js","name":"client","src":"virtual:$vinxi/handler/client","isEntry":true,"css":["assets/client-5B0n6Ny9.css"]}},"ssr":{"virtual:$vinxi/handler/ssr":{"file":"ssr.js","name":"ssr","src":"virtual:$vinxi/handler/ssr","isEntry":true}}};
+					const buildManifest = {"client":{"virtual:$vinxi/handler/client":{"file":"assets/client-CAUNe0Fj.js","name":"client","src":"virtual:$vinxi/handler/client","isEntry":true,"css":["assets/client-D_nSAaa6.css"]}},"ssr":{"virtual:$vinxi/handler/ssr":{"file":"ssr.js","name":"ssr","src":"virtual:$vinxi/handler/ssr","isEntry":true}}};
 
 					const routeManifest = {};
 
@@ -4509,30 +4509,30 @@ const assets = {
   "/style.css": {
     "type": "text/css; charset=utf-8",
     "etag": "\"17-JNp3LsxU6kzN3nYbbCu3gNWXXI4\"",
-    "mtime": "2025-06-15T14:07:33.882Z",
+    "mtime": "2025-06-16T11:23:13.301Z",
     "size": 23,
     "path": "../public/style.css"
   },
   "/_build/.vite/manifest.json": {
     "type": "application/json",
-    "etag": "\"e2-6Mm6hJpDX9jWXAHoSFR6IEZUJRQ\"",
-    "mtime": "2025-06-15T14:07:33.884Z",
+    "etag": "\"e2-PXyIX6b/ynPF5U0xnOvXKSrYM1k\"",
+    "mtime": "2025-06-16T11:23:13.303Z",
     "size": 226,
     "path": "../public/_build/.vite/manifest.json"
   },
-  "/_build/assets/client-5B0n6Ny9.css": {
-    "type": "text/css; charset=utf-8",
-    "etag": "\"3de6-NtyJtUvAz9N+qU7M5LjfUwYS0qs\"",
-    "mtime": "2025-06-15T14:07:33.891Z",
-    "size": 15846,
-    "path": "../public/_build/assets/client-5B0n6Ny9.css"
-  },
-  "/_build/assets/client-ZRovaTyh.js": {
+  "/_build/assets/client-CAUNe0Fj.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": "\"7f0a-c5ubMJkXr+mNgww0wrK4IACJS2k\"",
-    "mtime": "2025-06-15T14:07:33.891Z",
-    "size": 32522,
-    "path": "../public/_build/assets/client-ZRovaTyh.js"
+    "etag": "\"bdb5-qNu/va8bBRo4/IfPY9kJwF2uArM\"",
+    "mtime": "2025-06-16T11:23:13.310Z",
+    "size": 48565,
+    "path": "../public/_build/assets/client-CAUNe0Fj.js"
+  },
+  "/_build/assets/client-D_nSAaa6.css": {
+    "type": "text/css; charset=utf-8",
+    "etag": "\"b76e-fqsNMytDJ954FCQzpJ8mMgXG53Y\"",
+    "mtime": "2025-06-16T11:23:13.310Z",
+    "size": 46958,
+    "path": "../public/_build/assets/client-D_nSAaa6.css"
   }
 };
 
@@ -4726,43 +4726,43 @@ const _DCUJxM = eventHandler((event) => {
   return readAsset(id);
 });
 
-function Ne(e) {
+function Pe(e) {
   return globalThis.MANIFEST[e];
 }
-const Ce = /* @__PURE__ */ new Set(["allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer", "disabled", "formnovalidate", "hidden", "inert", "ismap", "itemscope", "loop", "multiple", "muted", "novalidate", "open", "readonly", "required", "reversed", "selected"]);
-var re;
+const He = /* @__PURE__ */ new Set(["allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer", "disabled", "formnovalidate", "hidden", "inert", "ismap", "itemscope", "loop", "multiple", "muted", "novalidate", "open", "readonly", "required", "reversed", "selected"]);
+var fe;
 (function(e) {
   e[e.None = 0] = "None", e[e.Mutable = 1] = "Mutable", e[e.Watching = 2] = "Watching", e[e.RecursedCheck = 4] = "RecursedCheck", e[e.Recursed = 8] = "Recursed", e[e.Dirty = 16] = "Dirty", e[e.Pending = 32] = "Pending";
-})(re || (re = {}));
-function Te({ update: e, notify: t, unwatched: n }) {
-  return { link: r, unlink: i, propagate: a, checkDirty: g, endTracking: d, startTracking: o, shallowPropagate: b };
-  function r(s, u) {
-    const h = u.depsTail;
-    if (h !== void 0 && h.dep === s) return;
-    let l;
-    const f = u.flags & 4;
-    if (f && (l = h !== void 0 ? h.nextDep : u.deps, l !== void 0 && l.dep === s)) {
-      u.depsTail = l;
+})(fe || (fe = {}));
+function Me({ update: e, notify: r, unwatched: t }) {
+  return { link: n, unlink: o, propagate: c, checkDirty: h, endTracking: l, startTracking: i, shallowPropagate: b };
+  function n(s, u) {
+    const p = u.depsTail;
+    if (p !== void 0 && p.dep === s) return;
+    let m;
+    const g = u.flags & 4;
+    if (g && (m = p !== void 0 ? p.nextDep : u.deps, m !== void 0 && m.dep === s)) {
+      u.depsTail = m;
       return;
     }
-    const p = s.subsTail;
-    if (p !== void 0 && p.sub === u && (!f || x(p, u))) return;
-    const y = u.depsTail = s.subsTail = { dep: s, sub: u, prevDep: h, nextDep: l, prevSub: p, nextSub: void 0 };
-    l !== void 0 && (l.prevDep = y), h !== void 0 ? h.nextDep = y : u.deps = y, p !== void 0 ? p.nextSub = y : s.subs = y;
+    const f = s.subsTail;
+    if (f !== void 0 && f.sub === u && (!g || v(f, u))) return;
+    const y = u.depsTail = s.subsTail = { dep: s, sub: u, prevDep: p, nextDep: m, prevSub: f, nextSub: void 0 };
+    m !== void 0 && (m.prevDep = y), p !== void 0 ? p.nextDep = y : u.deps = y, f !== void 0 ? f.nextSub = y : s.subs = y;
   }
-  function i(s, u = s.sub) {
-    const h = s.dep, l = s.prevDep, f = s.nextDep, p = s.nextSub, y = s.prevSub;
-    return f !== void 0 ? f.prevDep = l : u.depsTail = l, l !== void 0 ? l.nextDep = f : u.deps = f, p !== void 0 ? p.prevSub = y : h.subsTail = y, y !== void 0 ? y.nextSub = p : (h.subs = p) === void 0 && n(h), f;
+  function o(s, u = s.sub) {
+    const p = s.dep, m = s.prevDep, g = s.nextDep, f = s.nextSub, y = s.prevSub;
+    return g !== void 0 ? g.prevDep = m : u.depsTail = m, m !== void 0 ? m.nextDep = g : u.deps = g, f !== void 0 ? f.prevSub = y : p.subsTail = y, y !== void 0 ? y.nextSub = f : (p.subs = f) === void 0 && t(p), g;
   }
-  function a(s) {
-    let u = s.nextSub, h;
+  function c(s) {
+    let u = s.nextSub, p;
     e: do {
-      const l = s.sub;
-      let f = l.flags;
-      if (f & 3 && (f & 60 ? f & 12 ? f & 4 ? !(f & 48) && x(s, l) ? (l.flags = f | 40, f &= 1) : f = 0 : l.flags = f & -9 | 32 : f = 0 : l.flags = f | 32, f & 2 && t(l), f & 1)) {
-        const p = l.subs;
-        if (p !== void 0) {
-          s = p, p.nextSub !== void 0 && (h = { value: u, prev: h }, u = s.nextSub);
+      const m = s.sub;
+      let g = m.flags;
+      if (g & 3 && (g & 60 ? g & 12 ? g & 4 ? !(g & 48) && v(s, m) ? (m.flags = g | 40, g &= 1) : g = 0 : m.flags = g & -9 | 32 : g = 0 : m.flags = g | 32, g & 2 && r(m), g & 1)) {
+        const f = m.subs;
+        if (f !== void 0) {
+          s = f, f.nextSub !== void 0 && (p = { value: u, prev: p }, u = s.nextSub);
           continue;
         }
       }
@@ -4770,47 +4770,47 @@ function Te({ update: e, notify: t, unwatched: n }) {
         u = s.nextSub;
         continue;
       }
-      for (; h !== void 0; ) if (s = h.value, h = h.prev, s !== void 0) {
+      for (; p !== void 0; ) if (s = p.value, p = p.prev, s !== void 0) {
         u = s.nextSub;
         continue e;
       }
       break;
     } while (true);
   }
-  function o(s) {
+  function i(s) {
     s.depsTail = void 0, s.flags = s.flags & -57 | 4;
   }
-  function d(s) {
+  function l(s) {
     const u = s.depsTail;
-    let h = u !== void 0 ? u.nextDep : s.deps;
-    for (; h !== void 0; ) h = i(h, s);
+    let p = u !== void 0 ? u.nextDep : s.deps;
+    for (; p !== void 0; ) p = o(p, s);
     s.flags &= -5;
   }
-  function g(s, u) {
-    let h, l = 0;
+  function h(s, u) {
+    let p, m = 0;
     e: do {
-      const f = s.dep, p = f.flags;
+      const g = s.dep, f = g.flags;
       let y = false;
       if (u.flags & 16) y = true;
-      else if ((p & 17) === 17) {
-        if (e(f)) {
-          const S = f.subs;
-          S.nextSub !== void 0 && b(S), y = true;
+      else if ((f & 17) === 17) {
+        if (e(g)) {
+          const x = g.subs;
+          x.nextSub !== void 0 && b(x), y = true;
         }
-      } else if ((p & 33) === 33) {
-        (s.nextSub !== void 0 || s.prevSub !== void 0) && (h = { value: s, prev: h }), s = f.deps, u = f, ++l;
+      } else if ((f & 33) === 33) {
+        (s.nextSub !== void 0 || s.prevSub !== void 0) && (p = { value: s, prev: p }), s = g.deps, u = g, ++m;
         continue;
       }
       if (!y && s.nextDep !== void 0) {
         s = s.nextDep;
         continue;
       }
-      for (; l; ) {
-        --l;
-        const S = u.subs, v = S.nextSub !== void 0;
-        if (v ? (s = h.value, h = h.prev) : s = S, y) {
+      for (; m; ) {
+        --m;
+        const x = u.subs, w = x.nextSub !== void 0;
+        if (w ? (s = p.value, p = p.prev) : s = x, y) {
           if (e(u)) {
-            v && b(S), u = s.sub;
+            w && b(x), u = s.sub;
             continue;
           }
         } else u.flags &= -33;
@@ -4825,146 +4825,146 @@ function Te({ update: e, notify: t, unwatched: n }) {
   }
   function b(s) {
     do {
-      const u = s.sub, h = s.nextSub, l = u.flags;
-      (l & 48) === 32 && (u.flags = l | 16, l & 2 && t(u)), s = h;
+      const u = s.sub, p = s.nextSub, m = u.flags;
+      (m & 48) === 32 && (u.flags = m | 16, m & 2 && r(u)), s = p;
     } while (s !== void 0);
   }
-  function x(s, u) {
-    const h = u.depsTail;
-    if (h !== void 0) {
-      let l = u.deps;
+  function v(s, u) {
+    const p = u.depsTail;
+    if (p !== void 0) {
+      let m = u.deps;
       do {
-        if (l === s) return true;
-        if (l === h) break;
-        l = l.nextDep;
-      } while (l !== void 0);
+        if (m === s) return true;
+        if (m === p) break;
+        m = m.nextDep;
+      } while (m !== void 0);
     }
     return false;
   }
 }
-const W = [], { link: K, unlink: U, propagate: _e, checkDirty: se, endTracking: ae, startTracking: ce, shallowPropagate: le } = Te({ update(e) {
-  return "getter" in e ? de(e) : ue(e, e.value);
-}, notify: fe, unwatched(e) {
+const G = [], { link: oe, unlink: K, propagate: De, checkDirty: he, endTracking: be, startTracking: ye, shallowPropagate: xe } = Me({ update(e) {
+  return "getter" in e ? ve(e) : we(e, e.value);
+}, notify: Ne, unwatched(e) {
   if ("getter" in e) {
-    let t = e.deps;
-    if (t !== void 0) {
+    let r = e.deps;
+    if (r !== void 0) {
       e.flags = 17;
       do
-        t = U(t, e);
-      while (t !== void 0);
+        r = K(r, e);
+      while (r !== void 0);
     }
-  } else "previousValue" in e || pe.call(e);
+  } else "previousValue" in e || Ce.call(e);
 } });
-let k = 0, B = 0, C;
-function R(e) {
-  const t = C;
-  return C = e, t;
+let O = 0, Q = 0, E;
+function H(e) {
+  const r = E;
+  return E = e, r;
 }
-function $e(e) {
-  return He.bind({ previousValue: e, value: e, subs: void 0, subsTail: void 0, flags: 1 });
+function je(e) {
+  return Xe.bind({ previousValue: e, value: e, subs: void 0, subsTail: void 0, flags: 1 });
 }
-function Ee(e) {
-  return Fe.bind({ value: void 0, subs: void 0, subsTail: void 0, deps: void 0, depsTail: void 0, flags: 17, getter: e });
+function Ie(e) {
+  return Ve.bind({ value: void 0, subs: void 0, subsTail: void 0, deps: void 0, depsTail: void 0, flags: 17, getter: e });
 }
-function Ae(e) {
-  const t = { fn: e, subs: void 0, subsTail: void 0, deps: void 0, depsTail: void 0, flags: 2 };
-  C !== void 0 && K(t, C);
-  const n = R(t);
+function Oe(e) {
+  const r = { fn: e, subs: void 0, subsTail: void 0, deps: void 0, depsTail: void 0, flags: 2 };
+  E !== void 0 && oe(r, E);
+  const t = H(r);
   try {
-    t.fn();
+    r.fn();
   } finally {
-    R(n);
+    H(t);
   }
-  return pe.bind(t);
+  return Ce.bind(r);
 }
-function de(e) {
-  const t = R(e);
-  ce(e);
+function ve(e) {
+  const r = H(e);
+  ye(e);
   try {
-    const n = e.value;
-    return n !== (e.value = e.getter(n));
+    const t = e.value;
+    return t !== (e.value = e.getter(t));
   } finally {
-    R(t), ae(e);
+    H(r), be(e);
   }
 }
-function ue(e, t) {
-  return e.flags = 1, e.previousValue !== (e.previousValue = t);
+function we(e, r) {
+  return e.flags = 1, e.previousValue !== (e.previousValue = r);
 }
-function fe(e) {
-  const t = e.flags;
-  if (!(t & 64)) {
-    e.flags = t | 64;
-    const n = e.subs;
-    n !== void 0 ? fe(n.sub) : W[B++] = e;
+function Ne(e) {
+  const r = e.flags;
+  if (!(r & 64)) {
+    e.flags = r | 64;
+    const t = e.subs;
+    t !== void 0 ? Ne(t.sub) : G[Q++] = e;
   }
 }
-function he(e, t) {
-  if (t & 16 || t & 32 && se(e.deps, e)) {
-    const r = R(e);
-    ce(e);
+function Se(e, r) {
+  if (r & 16 || r & 32 && he(e.deps, e)) {
+    const n = H(e);
+    ye(e);
     try {
       e.fn();
     } finally {
-      R(r), ae(e);
+      H(n), be(e);
     }
     return;
-  } else t & 32 && (e.flags = t & -33);
-  let n = e.deps;
-  for (; n !== void 0; ) {
-    const r = n.dep, i = r.flags;
-    i & 64 && he(r, r.flags = i & -65), n = n.nextDep;
+  } else r & 32 && (e.flags = r & -33);
+  let t = e.deps;
+  for (; t !== void 0; ) {
+    const n = t.dep, o = n.flags;
+    o & 64 && Se(n, n.flags = o & -65), t = t.nextDep;
   }
 }
-function Re() {
-  for (; k < B; ) {
-    const e = W[k];
-    W[k++] = void 0, he(e, e.flags &= -65);
+function Le() {
+  for (; O < Q; ) {
+    const e = G[O];
+    G[O++] = void 0, Se(e, e.flags &= -65);
   }
-  k = 0, B = 0;
+  O = 0, Q = 0;
 }
-function Fe() {
+function Ve() {
   const e = this.flags;
-  if (e & 16 || e & 32 && se(this.deps, this)) {
-    if (de(this)) {
-      const t = this.subs;
-      t !== void 0 && le(t);
+  if (e & 16 || e & 32 && he(this.deps, this)) {
+    if (ve(this)) {
+      const r = this.subs;
+      r !== void 0 && xe(r);
     }
   } else e & 32 && (this.flags = e & -33);
-  return C !== void 0 && K(this, C), this.value;
+  return E !== void 0 && oe(this, E), this.value;
 }
-function He(...e) {
+function Xe(...e) {
   if (e.length) {
-    const t = e[0];
-    if (this.value !== (this.value = t)) {
+    const r = e[0];
+    if (this.value !== (this.value = r)) {
       this.flags = 17;
-      const n = this.subs;
-      n !== void 0 && (_e(n), Re());
+      const t = this.subs;
+      t !== void 0 && (De(t), Le());
     }
   } else {
-    const t = this.value;
-    if (this.flags & 16 && ue(this, t)) {
-      const n = this.subs;
-      n !== void 0 && le(n);
+    const r = this.value;
+    if (this.flags & 16 && we(this, r)) {
+      const t = this.subs;
+      t !== void 0 && xe(t);
     }
-    return C !== void 0 && K(this, C), t;
+    return E !== void 0 && oe(this, E), r;
   }
 }
-function pe() {
+function Ce() {
   let e = this.deps;
-  for (; e !== void 0; ) e = U(e, this);
-  const t = this.subs;
-  t !== void 0 && U(t), this.flags = 0;
+  for (; e !== void 0; ) e = K(e, this);
+  const r = this.subs;
+  r !== void 0 && K(r), this.flags = 0;
 }
-function I(e) {
-  return $e(e);
+function q(e) {
+  return je(e);
 }
-function Q(e) {
-  return Ee(e);
+function $(e) {
+  return Ie(e);
 }
-function A(e) {
-  return Ae(e);
+function S(e) {
+  return Oe(e);
 }
-function me(e) {
+function Te(e) {
   if (typeof e == "function") try {
     return e();
   } catch {
@@ -4972,288 +4972,428 @@ function me(e) {
   }
   return e;
 }
-const O = (e, t = {}, n) => ke(e, t, n), Me = (e = {}, t) => O("div", e, t);
-function X(e, ...t) {
-  let n = "";
-  if (typeof e == "string") n = e;
+const U = (e, r = {}, t) => We(e, r, t), qe = (e = {}, r) => U("div", e, r);
+function B(e, ...r) {
+  let t = "";
+  if (typeof e == "string") t = e;
   else {
-    for (let r = 0; r < t.length; r++) n += e[r], n += String(t[r]);
-    n += e[t.length];
+    for (let n = 0; n < r.length; n++) t += e[n], t += String(r[n]);
+    t += e[r.length];
   }
-  return n;
+  return t;
 }
-const _ = Symbol("HyperFX.Fragment"), Pe = (e, t) => {
-  for (const [n, r] of Object.entries(t)) if (r != null) {
-    if (n.startsWith("on") && typeof r == "function") {
-      const i = n.slice(2).toLowerCase();
-      e.addEventListener(i, r);
+const k = Symbol("HyperFX.Fragment"), Ue = (e, r) => {
+  for (const [t, n] of Object.entries(r)) if (n != null) {
+    if (t.startsWith("on") && typeof n == "function") {
+      const o = t.slice(2).toLowerCase();
+      e.addEventListener(o, n);
       continue;
     }
-    if (Ce.has(n)) {
-      r === true || r === "" ? e.setAttribute(n, "") : e.removeAttribute(n);
+    if (He.has(t)) {
+      n === true || n === "" ? e.setAttribute(t, "") : e.removeAttribute(t);
       continue;
     }
-    e.setAttribute(n, String(r));
+    e.setAttribute(t, String(n));
   }
-}, ke = function(e, t, n) {
-  return { tag: e, props: t, children: n ? [...n] : [] };
+}, We = function(e, r, t) {
+  return { tag: e, props: r, children: t ? [...t] : [] };
 };
-function M(e, t, n = null) {
+function M(e, r, t = null) {
   if (typeof e == "function") {
-    const o = e, d = document.createTextNode(o());
-    return A(() => {
-      d.textContent = o();
-    }), t.insertBefore(d, n), d;
+    const i = e, l = document.createTextNode(i());
+    return S(() => {
+      l.textContent = i();
+    }), r.insertBefore(l, t), l;
   }
   if (typeof e == "string") {
-    const o = document.createTextNode(e);
-    return t.insertBefore(o, n), o;
+    const i = document.createTextNode(e);
+    return r.insertBefore(i, t), i;
   }
-  let r;
-  if (e.tag === _) return r = document.createComment("fragment"), e.dom = r, t.insertBefore(r, n), e.children.forEach((o) => M(o, t, n)), r;
-  const i = document.createElement(e.tag);
-  return r = i, e.dom = i, Pe(i, e.props), e.reactiveProps && (e.effects = e.effects || [], Object.entries(e.reactiveProps).forEach(([o, d]) => {
-    const g = A(() => {
-      const b = d();
-      if (o === "textContent") i.textContent = String(b);
-      else if (o.startsWith("on") && typeof b == "function") {
-        const x = o.slice(2).toLowerCase(), s = i[`__${o}`];
-        s && i.removeEventListener(x, s), i.addEventListener(x, b), i[`__${o}`] = b;
-      } else i.setAttribute(o, String(b));
+  let n;
+  if (e.tag === k) return n = document.createComment("fragment"), e.dom = n, r.insertBefore(n, t), e.children.forEach((i) => M(i, r, t)), n;
+  const o = document.createElement(e.tag);
+  return n = o, e.dom = o, Ue(o, e.props), e.reactiveProps && (e.effects = e.effects || [], Object.entries(e.reactiveProps).forEach(([i, l]) => {
+    const h = S(() => {
+      const b = l();
+      if (i === "textContent") o.textContent = String(b);
+      else if (i.startsWith("on") && typeof b == "function") {
+        const v = i.slice(2).toLowerCase(), s = o[`__${i}`];
+        s && o.removeEventListener(v, s), o.addEventListener(v, b), o[`__${i}`] = b;
+      } else i === "disabled" ? b ? o.setAttribute("disabled", "") : o.removeAttribute("disabled") : i === "checked" ? (b ? o.setAttribute("checked", "") : o.removeAttribute("checked"), o.checked = !!b) : o.setAttribute(i, String(b));
     });
-    e.effects.push(g);
-  })), (e.children || []).forEach((o) => M(o, i)), t.insertBefore(i, n), i;
+    e.effects.push(h);
+  })), (e.children || []).forEach((i) => M(i, o)), r.insertBefore(o, t), o;
 }
-const De = (e, t = {}, n) => O(e, t, n), je = (e = {}, t) => De("h1", e, t);
-function Ie(e) {
-  history.pushState({}, "", e), window.dispatchEvent(new Event("popstate"));
-}
-const Oe = (e = {}, t) => O("p", e, t);
-function Le(e, t) {
-  const n = { ...e };
-  return e.href && e.href[0] === "/" && (n.onclick = (r) => (r.target instanceof HTMLAnchorElement && Ie(r.target.href), r.preventDefault(), false)), O("a", n, t);
-}
-function Xe(e, t = document.body) {
-  var _a;
-  const n = !window.__hyperfx_client_navigated__ && t.firstChild;
-  window.__hyperfx_client_navigated__ = true;
-  const r = e();
-  if (n) {
-    let i = t;
-    if (t.tagName === "BODY") {
-      const a = (_a = r.props) == null ? void 0 : _a.class;
-      if (a) {
-        const o = t.querySelector(`div.${a.split(" ")[0]}`);
-        o && (i = o, console.log("\u{1F3AF} Found actual container:", i.tagName, i.className));
+function ze(e, r, t) {
+  if (!(typeof e == "function")) {
+    const i = e ? r : t;
+    return typeof i == "function" ? i() : i || { tag: "span", props: { style: "display: none" }, children: [] };
+  }
+  const o = e, c = { tag: "span", props: {}, children: [], reactiveProps: {} };
+  return S(() => {
+    var _a;
+    const i = o();
+    if (c.dom) {
+      for (; c.dom.firstChild; ) c.dom.removeChild(c.dom.firstChild);
+      if (i) {
+        const l = r, h = typeof l == "function" ? l() : l;
+        h && !(h.tag === "span" && ((_a = h.props) == null ? void 0 : _a.style) === "display: none") && M(h, c.dom);
       }
     }
-    Ve(r, i), J(r, i), z(r);
-  } else t.innerHTML = "", M(r, t), z(r);
+  }), c;
 }
-function Ve(e, t) {
-  const n = Array.from(t.querySelectorAll("[data-hyperfx-hydrate]")), r = /* @__PURE__ */ new Map();
-  let i = 0;
-  function a(o) {
-    if (!(typeof o == "string" || typeof o == "function") && typeof o == "object" && o !== null && "tag" in o && typeof o.tag == "string") {
-      const d = o, g = d.props || {}, b = Object.keys(g).some((u) => u.startsWith("on") && typeof g[u] == "function"), x = !!d.reactiveProps;
-      (b || x) && (r.set(i, d), i++), d.children && Array.isArray(d.children) && d.children.forEach((u) => {
-        typeof u == "object" && u && "tag" in u && a(u);
+const Be = (e, r = {}, t) => U(e, r, t), Je = (e = {}, r) => Be("h1", e, r);
+function Ye(e) {
+  history.pushState({}, "", e), window.dispatchEvent(new Event("popstate"));
+}
+const Ge = (e = {}, r) => U("p", e, r);
+function Ke(e, r) {
+  const t = { ...e };
+  return e.href && e.href[0] === "/" && (t.onclick = (n) => (n.target instanceof HTMLAnchorElement && Ye(n.target.href), n.preventDefault(), false)), U("a", t, r);
+}
+function $e(e) {
+  if (!e || typeof e != "object") return false;
+  for (const r in e) {
+    const t = e[r];
+    if (typeof t == "function" || typeof t == "object" && t !== null && $e(t)) return true;
+  }
+  return false;
+}
+function Qe(e, r = document.body) {
+  var _a;
+  const t = !window.__hyperfx_client_navigated__ && r.firstChild;
+  window.__hyperfx_client_navigated__ = true;
+  const n = e();
+  if (t) {
+    let o = r;
+    if (r.tagName === "BODY") {
+      const c = (_a = n.props) == null ? void 0 : _a.class;
+      if (c) {
+        const i = r.querySelector(`div.${c.split(" ")[0]}`);
+        i && (o = i);
+      }
+    }
+    Ze(n, o), Z(n, o), ee(n);
+  } else r.innerHTML = "", M(n, r), ee(n);
+}
+function Ze(e, r) {
+  const t = Array.from(r.querySelectorAll("[data-hyperfx-hydrate]")), n = /* @__PURE__ */ new Map();
+  let o = 0;
+  function c(i) {
+    if (!(typeof i == "string" || typeof i == "function") && typeof i == "object" && i !== null && "tag" in i && typeof i.tag == "string") {
+      const l = i, h = l.props || {}, b = Object.keys(h).some((u) => u.startsWith("on") && typeof h[u] == "function"), v = !!l.reactiveProps || $e(h);
+      (b || v) && (n.set(o, l), o++), l.children && Array.isArray(l.children) && l.children.forEach((u) => {
+        typeof u == "object" && u && "tag" in u && c(u);
       });
     }
   }
-  a(e), n.forEach((o) => {
+  c(e), t.forEach((i) => {
     var _a;
-    const d = o.getAttribute("data-hyperfx-hydrate");
-    if (!d) return;
-    const g = parseInt(d, 10), b = r.get(g);
+    const l = i.getAttribute("data-hyperfx-hydrate");
+    if (!l) return;
+    const h = parseInt(l, 10), b = n.get(h);
     if (b && b.props) {
-      const x = b.props;
-      Object.entries(x).forEach(([s, u]) => {
+      const v = b.props;
+      Object.entries(v).forEach(([s, u]) => {
         if (s.startsWith("on") && typeof u == "function") {
-          const h = s.slice(2).toLowerCase(), l = o[`__event_${h}`];
-          l && o.removeEventListener(h, l), o.addEventListener(h, u), o[`__event_${h}`] = u;
+          const p = s.slice(2).toLowerCase(), m = i[`__event_${p}`];
+          m && i.removeEventListener(p, m), i.addEventListener(p, u), i[`__event_${p}`] = u;
         }
-      }), o.removeAttribute("data-hyperfx-hydrate"), b.dom = o;
-    } else console.warn("\u274C No VNode found for hydration index:", g, "Element:", o.tagName, (_a = o.textContent) == null ? void 0 : _a.trim());
+      }), b.reactiveProps && (console.log("\u{1F527} Setting up reactive props during hydration for element:", i.tagName, "props:", Object.keys(b.reactiveProps)), b.effects = b.effects || [], Object.entries(b.reactiveProps).forEach(([s, u]) => {
+        console.log("\uFFFD Setting up reactive prop during hydration:", s, "initial value:", u());
+        const p = S(() => {
+          const m = u();
+          console.log("\u{1F504} Updating reactive prop during hydration:", s, "to:", m), te(i, s, m);
+        });
+        b.effects.push(p);
+      })), i.removeAttribute("data-hyperfx-hydrate"), b.dom = i;
+    } else console.warn("\u274C No VNode found for hydration index:", h, "Element:", i.tagName, (_a = i.textContent) == null ? void 0 : _a.trim());
   });
 }
-function J(e, t) {
-  if (e.tag === _) {
+function Z(e, r) {
+  if (e.tag === k) {
     if (e.children) {
-      let n = 0;
-      const r = Array.from(t.children).filter((i) => i instanceof HTMLElement);
-      e.children.forEach((i, a) => {
-        if (typeof i == "object" && i && "tag" in i && n < r.length) {
-          const o = r[n];
-          o && J(i, o), n++;
+      let t = 0;
+      const n = Array.from(r.children).filter((o) => o instanceof HTMLElement);
+      e.children.forEach((o, c) => {
+        if (typeof o == "object" && o && "tag" in o && t < n.length) {
+          const i = n[t];
+          i && Z(o, i), t++;
         }
       });
     }
     return;
   }
-  if (typeof e.tag == "string" && (e.dom = t, e.children)) {
-    let n = 0;
-    const r = Array.from(t.children).filter((i) => i instanceof HTMLElement);
-    e.children.forEach((i, a) => {
-      if (typeof i == "object" && i && "tag" in i && n < r.length) {
-        const o = r[n];
-        o && J(i, o), n++;
+  if (typeof e.tag == "string" && (e.dom = r, e.children)) {
+    let t = 0;
+    const n = Array.from(r.children).filter((o) => o instanceof HTMLElement);
+    e.children.forEach((o, c) => {
+      if (typeof o == "object" && o && "tag" in o && t < n.length) {
+        const i = n[t];
+        i && Z(o, i), t++;
       }
     });
   }
 }
-function z(e, t) {
-  var _a, _b;
+function ee(e, r) {
+  var _a, _b, _c, _d;
   if (!(typeof e == "string" || typeof e == "function" && !e.__isReactiveComponent && !e.__isReactiveExpression) && typeof e == "object" && e !== null && "tag" in e && typeof e.tag == "string") {
-    const n = e;
-    if (((_a = n.props) == null ? void 0 : _a["data-reactive-for"]) === "true" && n.__reactiveArrayFn && n.__renderFn) {
-      const r = n.props["data-reactive-id"], i = document.querySelector(`[data-reactive-id="${r}"]`);
-      if (i) {
-        const a = n.__reactiveArrayFn, o = n.__renderFn, d = n.__fallback;
-        let g = /* @__PURE__ */ new Map();
-        A(() => {
-          try {
-            const b = a();
-            if (!Array.isArray(b)) return;
-            const x = [];
-            if (b.length === 0 && d) {
-              const l = typeof d == "function" ? d() : d;
-              l && l.key === void 0 && (l.key = "__fallback__"), l && x.push(l);
-            } else b.forEach((l, f) => {
-              const p = o(l, f);
-              p.key === void 0 && (l && typeof l == "object" && l !== null && "id" in l ? p.key = String(l.id) : p.key = `__index_${f}__`), x.push(p);
-            });
-            const s = /* @__PURE__ */ new Map();
-            x.forEach((l) => {
-              const f = l.key;
-              let p = g.get(f);
-              if (p) g.delete(f), We(p, l);
-              else {
-                const y = document.createElement("div");
-                if (M(l, y), !(l.dom instanceof HTMLElement)) return;
-                p = l.dom, p.dataset.key = String(f);
-              }
-              p && s.set(f, p);
-            });
-            const u = /* @__PURE__ */ new Set();
-            s.forEach((l, f) => u.add(String(f))), Array.from(i.children).forEach((l) => {
-              const f = l, p = f.dataset.key;
-              p && !u.has(p) && f.remove();
-            });
-            let h = null;
-            for (let l = x.length - 1; l >= 0; l--) {
-              const f = x[l];
-              if (!f) continue;
-              const p = f.key, y = s.get(p);
-              i.contains(y) ? y.nextSibling !== h && i.insertBefore(y, h) : i.insertBefore(y, h), h = y;
-            }
-            g = s;
-          } catch {
-          }
-        });
+    const t = e;
+    if (((_a = t.props) == null ? void 0 : _a["data-reactive-for"]) === "true" && t.__reactiveArrayFn && t.__renderFn) {
+      const n = t.props["data-reactive-id"];
+      let o = document.querySelector(`[data-reactive-id="${n}"]`);
+      if (o || (o = document.querySelector('[data-reactive-for="true"]'), o && o.setAttribute("data-reactive-id", n)), !o) {
+        console.error("\u274C For container not found! Reactive-id:", n);
+        return;
       }
-      return;
-    }
-    if (((_b = n.props) == null ? void 0 : _b["data-reactive-expr"]) === "true" && n.__reactiveExprFn) {
-      const r = n.props["data-reactive-id"], i = document.querySelector(`[data-reactive-id="${r}"]`), a = n.__reactiveExprFn;
-      i && A(() => {
+      const c = t.__reactiveArrayFn, i = t.__renderFn, l = t.__fallback;
+      let h = /* @__PURE__ */ new Map();
+      (() => {
         try {
-          const o = a(), d = Array.isArray(o) ? o : [String(o)];
-          ge(i, d);
+          const s = c();
+          if (Array.isArray(s)) {
+            const u = Array.from(o.children);
+            s.forEach((p, m) => {
+              let g;
+              if (p && typeof p == "object" && p !== null && "id" in p ? g = String(p.id) : g = `__index_${m}__`, m < u.length) {
+                const f = u[m];
+                f && (f.dataset.key = String(g), h.set(g, f));
+              }
+            });
+          }
+        } catch (s) {
+          console.error("\u274C Error initializing keyed elements:", s);
+        }
+      })(), console.log("\u{1F527} Creating reactive effect for For component"), console.log("\u{1F527} Reactive array function:", c), console.log("\u{1F527} Testing reactive array function call:", c());
+      const v = S(() => {
+        console.log("\u{1F504} For component reactive effect triggered - INSIDE EFFECT"), console.log("\u{1F3E0} For container:", o, "exists:", !!o), console.log("\u{1F4CA} Container children before update:", Array.from(o.children).map((s) => {
+          var _a2;
+          return (_a2 = s.textContent) == null ? void 0 : _a2.trim();
+        }));
+        try {
+          const s = c();
+          if (console.log("\u{1F4CA} Current array data in effect:", s, "length:", s == null ? void 0 : s.length), !Array.isArray(s)) {
+            console.log("\u274C Data is not an array");
+            return;
+          }
+          const u = [];
+          if (s.length === 0 && l) {
+            const f = typeof l == "function" ? l() : l;
+            f && f.key === void 0 && (f.key = "__fallback__"), f && u.push(f);
+          } else s.forEach((f, y) => {
+            const x = i(f, y);
+            x.key === void 0 && (f && typeof f == "object" && f !== null && "id" in f ? x.key = String(f.id) : x.key = `__index_${y}__`), u.push(x);
+          });
+          console.log("\u{1F504} Processing", u.length, "new VNodes"), console.log("\u{1F504} New VNodes keys:", u.map((f) => f.key));
+          const p = /* @__PURE__ */ new Map();
+          u.forEach((f) => {
+            const y = f.key;
+            console.log("\u{1F50D} Processing VNode with key:", y);
+            let x = h.get(y);
+            if (x) console.log("\u267B\uFE0F Reusing existing element for key:", y), h.delete(y), rt(x, f);
+            else {
+              console.log("\u{1F195} Creating new element for key:", y);
+              const w = document.createElement("div");
+              if (M(f, w), !(f.dom instanceof HTMLElement)) {
+                console.log("\u274C Failed to mount VNode for key:", y);
+                return;
+              }
+              x = f.dom, x.dataset.key = String(y);
+            }
+            x && p.set(y, x);
+          });
+          const m = /* @__PURE__ */ new Set();
+          p.forEach((f, y) => m.add(String(y))), console.log("\u{1F5D1}\uFE0F Removing unused elements"), Array.from(o.children).forEach((f) => {
+            const y = f, x = y.dataset.key;
+            x && !m.has(x) && (console.log("\u{1F5D1}\uFE0F Removing element with key:", x), y.remove());
+          }), console.log("\u{1F504} Reordering elements");
+          let g = null;
+          for (let f = u.length - 1; f >= 0; f--) {
+            const y = u[f];
+            if (!y) continue;
+            const x = y.key, w = p.get(x);
+            o.contains(w) ? w.nextSibling !== g && (console.log("\u{1F504} Moving element with key:", x), o.insertBefore(w, g)) : (console.log("\u{1F195} Inserting new element with key:", x), o.insertBefore(w, g)), g = w;
+          }
+          h = p, console.log("\u{1F4CA} Container children after update:", Array.from(o.children).map((f) => {
+            var _a2;
+            return (_a2 = f.textContent) == null ? void 0 : _a2.trim();
+          }));
+        } catch (s) {
+          console.error("\u274C Error in For component reactive effect:", s);
+        }
+      });
+      console.log("\u2705 Reactive effect created for For component"), t.effects || (t.effects = []), t.effects.push(v);
+    }
+    if (((_b = t.props) == null ? void 0 : _b["data-reactive-expr"]) === "true" && t.__reactiveExprFn) {
+      const n = t.props["data-reactive-id"], o = document.querySelector(`[data-reactive-id="${n}"]`), c = t.__reactiveExprFn;
+      o && S(() => {
+        try {
+          const i = c(), l = Array.isArray(i) ? i : [String(i)];
+          Ee(o, l);
         } catch {
         }
       });
       return;
     }
-    if (n.children && Array.isArray(n.children)) {
-      const r = n.dom;
-      n.children.forEach((i) => {
-        if (typeof i == "object" && i && "tag" in i) z(i);
-        else if (typeof i == "function") {
-          const a = i;
-          r && n.children.length === 1 ? A(() => {
-            r && (r.textContent = String(a()));
-          }) : console.warn(`[setupReactiveEffects] Could not set up reactive effect for signal in <${String(n.tag)}>. Element not found or signal not the only child. Consider wrapping the signal in its own element.`);
+    if (((_c = t.props) == null ? void 0 : _c["data-reactive-text"]) === "true" && t.__reactiveTextFn) {
+      const n = t.props["data-reactive-id"];
+      console.log("\u{1F50D} Setting up reactive text marker with ID:", n);
+      let o = document.querySelector(`[data-reactive-id="${n}"]`);
+      if (o || (console.log("\u{1F50D} Exact reactive text container not found, looking for any reactive text container"), o = document.querySelector('[data-reactive-text="true"]'), o && (console.log("\u2705 Found alternative reactive text container:", o), o.setAttribute("data-reactive-id", n))), o) {
+        console.log("\u2705 Found reactive text container:", o);
+        const c = t.__reactiveTextFn, i = S(() => {
+          console.log("\u{1F504} Reactive text effect triggered");
+          try {
+            const l = c(), h = String(l);
+            console.log("\u{1F4DD} Updating reactive text from", o.textContent, "to", h), o.textContent = h;
+          } catch (l) {
+            console.error("\u274C Error updating reactive text:", l);
+          }
+        });
+        t.effects || (t.effects = []), t.effects.push(i);
+      } else console.error("\u274C Reactive text container not found! Reactive-id:", n), console.log("\u{1F50D} Available reactive text elements:", Array.from(document.querySelectorAll("[data-reactive-text]")).map((c) => c.getAttribute("data-reactive-id")));
+    }
+    if (((_d = t.props) == null ? void 0 : _d["data-reactive-conditional"]) === "true" && t.__reactiveConditionalFn) {
+      const n = t.props["data-reactive-id"];
+      console.log("\u{1F50D} Setting up reactive conditional with ID:", n);
+      let o = document.querySelector(`[data-reactive-id="${n}"]`);
+      if (o) {
+        console.log("\u2705 Found reactive conditional container:", o);
+        const c = t.__reactiveConditionalFn, i = S(() => {
+          console.log("\u{1F504} Reactive conditional effect triggered");
+          try {
+            const l = c();
+            if (console.log("\u{1F504} Conditional result:", l), o.innerHTML = "", l && typeof l == "object" && l.tag) {
+              const { mount: h } = require("../elem/elem");
+              h(l, o);
+            } else if (Array.isArray(l)) {
+              const { mount: h } = require("../elem/elem");
+              l.forEach((b) => {
+                b && typeof b == "object" && b.tag && h(b, o);
+              });
+            }
+          } catch (l) {
+            console.error("\u274C Error updating reactive conditional:", l);
+          }
+        });
+        t.effects || (t.effects = []), t.effects.push(i);
+      } else console.error("\u274C Reactive conditional container not found! Reactive-id:", n);
+    }
+    if (t.children && Array.isArray(t.children)) {
+      const n = t.dom;
+      t.children.forEach((o, c) => {
+        if (typeof o == "object" && o && "tag" in o) ee(o);
+        else if (typeof o == "function") {
+          const i = o;
+          n && (t.children.length === 1 ? (console.log("\u{1F527} Setting up single reactive child for element:", n.tagName, "initial content:", n.textContent), S(() => {
+            const l = String(i());
+            console.log("\u{1F504} Updating single reactive child from", n.textContent, "to", l), n && (n.textContent = l);
+          })) : (console.log("\u{1F527} Setting up mixed text reactivity for element:", n.tagName), et(n, t.children, c, i)));
         }
       });
     }
   }
 }
-function qe(e, t) {
-  const n = t || {};
-  Array.from(e.attributes).map((i) => i.name).forEach((i) => {
-    if (i !== "data-key" && !i.startsWith("on") && i !== "style" && !(i in n)) {
-      if (i === "class" && "className" in n || i === "for" && "htmlFor" in n) return;
-      e.removeAttribute(i);
+function et(e, r, t, n) {
+  const o = () => r.map((c, i) => {
+    if (typeof c == "string") return c;
+    if (typeof c == "function" && i === t) return String(n());
+    if (typeof c == "function") try {
+      return String(c());
+    } catch {
+      return "";
     }
-  }), Object.entries(n).forEach(([i, a]) => {
-    if (!(i === "children" || i === "key" || i.startsWith("__") || i === "ref" || i === "innerHTML")) if (i.startsWith("on") && typeof a == "function") {
-      const o = i.slice(2).toLowerCase(), d = `__event_${o}`, g = e[d];
-      g !== a && (g && e.removeEventListener(o, g), e.addEventListener(o, a), e[d] = a);
-    } else if (i === "style" && typeof a == "object" && a !== null) {
-      const o = e.style;
-      for (let d = o.length - 1; d >= 0; d--) {
-        const g = o[d];
-        g && !(g in a) && o.removeProperty(g);
+    else return "";
+  }).join("");
+  S(() => {
+    e && (e.textContent = o());
+  });
+}
+function tt(e, r) {
+  const t = r || {};
+  Array.from(e.attributes).map((o) => o.name).forEach((o) => {
+    if (o !== "data-key" && !o.startsWith("on") && o !== "style" && !(o in t)) {
+      if (o === "class" && "className" in t || o === "for" && "htmlFor" in t) return;
+      e.removeAttribute(o);
+    }
+  }), Object.entries(t).forEach(([o, c]) => {
+    if (!(o === "children" || o === "key" || o.startsWith("__") || o === "ref" || o === "innerHTML")) if (o.startsWith("on") && typeof c == "function") {
+      const i = o.slice(2).toLowerCase(), l = `__event_${i}`, h = e[l];
+      h !== c && (h && e.removeEventListener(i, h), e.addEventListener(i, c), e[l] = c);
+    } else typeof c == "function" ? (console.log("\u{1F527} Setting up reactive prop:", o, "for element:", e.tagName), S(() => {
+      try {
+        const i = c();
+        console.log("\u{1F504} Updating reactive prop:", o, "to:", i), te(e, o, i);
+      } catch (i) {
+        console.error("\u274C Error updating reactive prop:", o, i);
       }
-      Object.entries(a).forEach(([d, g]) => {
-        e.style[d] !== g && (e.style[d] = g);
-      });
-    } else if (i === "className") e.className !== String(a) && (e.className = String(a));
-    else if (i === "value" || i === "checked" || i === "selected") {
-      const o = e;
-      i === "value" ? o.value !== a && (o.value = a) : i === "checked" && "checked" in o ? o.checked !== a && (o.checked = a) : i === "selected" && "selected" in o && o.selected !== a && (o.selected = a), typeof a == "boolean" ? a ? e.setAttribute(i, "") : e.removeAttribute(i) : e.getAttribute(i) !== String(a) && e.setAttribute(i, String(a));
-    } else a === false || a === null || a === void 0 ? e.removeAttribute(i) : a === true ? e.setAttribute(i, "") : e.getAttribute(i) !== String(a) && e.setAttribute(i, String(a));
+    })) : te(e, o, c);
   });
 }
-function ge(e, t) {
+function te(e, r, t) {
+  if (r === "style" && typeof t == "object" && t !== null) {
+    const n = e.style;
+    for (let o = n.length - 1; o >= 0; o--) {
+      const c = n[o];
+      c && !(c in t) && n.removeProperty(c);
+    }
+    Object.entries(t).forEach(([o, c]) => {
+      e.style[o] !== c && (e.style[o] = c);
+    });
+  } else if (r === "className") e.className !== String(t) && (e.className = String(t));
+  else if (r === "value" || r === "checked" || r === "selected") {
+    const n = e;
+    r === "value" ? n.value !== t && (n.value = t) : r === "checked" && "checked" in n ? n.checked !== t && (n.checked = t) : r === "selected" && "selected" in n && n.selected !== t && (n.selected = t), typeof t == "boolean" ? t ? e.setAttribute(r, "") : e.removeAttribute(r) : e.getAttribute(r) !== String(t) && e.setAttribute(r, String(t));
+  } else t === false || t === null || t === void 0 ? e.removeAttribute(r) : t === true ? e.setAttribute(r, "") : e.getAttribute(r) !== String(t) && e.setAttribute(r, String(t));
+}
+function Ee(e, r) {
   for (; e.firstChild; ) e.removeChild(e.firstChild);
-  t.forEach((n) => {
-    if (typeof n == "string") e.appendChild(document.createTextNode(n));
-    else if (typeof n == "object" && n && "tag" in n) M(n, e);
-    else if (typeof n == "function") {
-      const r = n, i = document.createTextNode("");
-      e.appendChild(i), A(() => {
-        i.textContent = String(r());
+  r.forEach((t) => {
+    if (typeof t == "string") e.appendChild(document.createTextNode(t));
+    else if (typeof t == "object" && t && "tag" in t) M(t, e);
+    else if (typeof t == "function") {
+      const n = t, o = document.createTextNode("");
+      e.appendChild(o), S(() => {
+        o.textContent = String(n());
       });
     }
   });
 }
-function We(e, t) {
-  qe(e, t.props), ge(e, t.children), t.dom = e;
+function rt(e, r) {
+  tt(e, r.props), Ee(e, r.children), r.dom = e;
 }
-class Ue {
-  constructor(t = {}) {
-    this.routes = /* @__PURE__ */ new Map(), this.currentRoute = "", this.isInitialized = false, this.container = t.container || document.body, this.baseUrl = t.baseUrl || "", this.mode = t.mode || "history";
+class nt {
+  constructor(r = {}) {
+    this.routes = /* @__PURE__ */ new Map(), this.currentRoute = "", this.isInitialized = false, this.container = r.container || document.body, this.baseUrl = r.baseUrl || "", this.mode = r.mode || "history";
   }
-  addRoute(t, n, r) {
-    this.routes.set(t, { path: t, component: n, title: r });
+  addRoute(r, t, n) {
+    this.routes.set(r, { path: r, component: t, title: n });
   }
   init() {
     if (this.isInitialized) return;
-    this.isInitialized = true, window.addEventListener("popstate", (n) => {
-      const r = this.getCurrentPath();
-      this.navigate(r, false);
+    this.isInitialized = true, window.addEventListener("popstate", (t) => {
+      const n = this.getCurrentPath();
+      this.navigate(n, false);
     });
-    const t = this.getCurrentPath();
-    this.navigate(t, false);
+    const r = this.getCurrentPath();
+    this.navigate(r, false);
   }
-  async navigate(t, n = true) {
-    const r = this.routes.get(t);
-    if (!r) {
-      console.warn(`Route not found: ${t}`);
+  async navigate(r, t = true) {
+    const n = this.routes.get(r);
+    if (!n) {
+      console.warn(`Route not found: ${r}`);
       return;
     }
-    if (n && t !== this.currentRoute) {
-      const i = this.baseUrl + t;
-      window.history.pushState({ path: t }, r.title || "", i);
+    if (t && r !== this.currentRoute) {
+      const o = this.baseUrl + r;
+      window.history.pushState({ path: r }, n.title || "", o);
     }
-    r.title && (document.title = r.title);
+    n.title && (document.title = n.title);
     try {
-      const i = this.currentRoute === "" && t === this.getCurrentPath();
-      console.log(i ? "\u{1F504} Initial load/hydration attempt for:" : "\u{1F504} Client-side navigation, preparing to render/hydrate:", t), Xe(r.component, this.container), this.currentRoute = t, (!i || this.container.innerHTML === "") && window.scrollTo(0, 0);
-    } catch (i) {
-      console.error("Error navigating to route:", t, i);
+      const o = this.currentRoute === "" && r === this.getCurrentPath();
+      Qe(n.component, this.container), this.currentRoute = r, (!o || this.container.innerHTML === "") && window.scrollTo(0, 0);
+    } catch (o) {
+      console.error("Error navigating to route:", r, o);
     }
   }
   getCurrentPath() {
@@ -5263,126 +5403,114 @@ class Ue {
     return this.currentRoute;
   }
 }
-let V = null;
-function Be(e) {
-  return V || (V = new Ue(e)), V;
+let J = null;
+function ot(e) {
+  return J || (J = new nt(e)), J;
 }
-const be = /* @__PURE__ */ new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]), Qe = /* @__PURE__ */ new Set(["autofocus", "autoplay", "async", "checked", "controls", "defer", "disabled", "hidden", "loop", "multiple", "muted", "open", "readonly", "required", "reversed", "selected"]);
-function Y(e) {
+const _e = /* @__PURE__ */ new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]), dt = /* @__PURE__ */ new Set(["autofocus", "autoplay", "async", "checked", "controls", "defer", "disabled", "hidden", "loop", "multiple", "muted", "open", "readonly", "required", "reversed", "selected"]);
+function re(e) {
   return e.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
-function D(e) {
+function L(e) {
   return e.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
-function T(e) {
-  const t = [];
-  for (const [n, r] of Object.entries(e)) {
-    if (n.startsWith("on") || n === "key" || n === "ref") continue;
-    const i = me(r);
-    if (Qe.has(n)) {
-      (i === true || i === "" || i === n) && t.push(n);
+function A(e) {
+  const r = [];
+  for (const [t, n] of Object.entries(e)) {
+    if (t.startsWith("on") || t === "key" || t === "ref") continue;
+    const o = Te(n);
+    if (dt.has(t)) {
+      (o === true || o === "" || o === t) && r.push(t);
       continue;
     }
-    if (i != null && i !== false) {
-      const a = String(i);
-      t.push(`${n}="${D(a)}"`);
+    if (o != null && o !== false) {
+      const c = String(o);
+      r.push(`${t}="${L(c)}"`);
     }
   }
-  return t.length > 0 ? ` ${t.join(" ")}` : "";
+  return r.length > 0 ? ` ${r.join(" ")}` : "";
 }
-function ie(e) {
-  console.log("\u{1F3AF} SSR renderChildren - received children:", (e == null ? void 0 : e.length) || 0, "items"), e && e.length > 0 && console.log("\u{1F3AF} SSR renderChildren - first child:", e[0]);
-  const t = e.map((n, r) => {
-    console.log(`\u{1F3AF} SSR renderChildren - rendering child ${r}:`, n);
-    const i = L(n);
-    return console.log(`\u{1F3AF} SSR renderChildren - child ${r} rendered as:`, i), i;
-  }).join("");
-  return console.log("\u{1F3AF} SSR renderChildren - final result:", t), t;
+function pe(e) {
+  return e.map((t, n) => W(t)).join("");
 }
-function L(e) {
+function W(e) {
   if (typeof e == "function") {
-    const d = me(e);
-    return Y(String(d));
+    const l = Te(e);
+    return re(String(l));
   }
-  if (typeof e == "string") return Y(e);
-  const { tag: t, props: n, children: r } = e;
-  if (t === _) return ie(r);
-  const i = String(t), a = T(n), o = ie(r);
-  return be.has(i) ? `<${i}${a} />` : `<${i}${a}>${o}</${i}>`;
+  if (typeof e == "string") return re(e);
+  const { tag: r, props: t, children: n } = e;
+  if (r === k) return pe(n);
+  const o = String(r), c = A(t), i = pe(n);
+  return _e.has(o) ? `<${o}${c} />` : `<${o}${c}>${i}</${o}>`;
 }
-function Ze(e) {
-  return e.map((t) => L(t)).join("");
+function ut(e) {
+  return e.map((r) => W(r)).join("");
 }
-function et(e, t = {}) {
-  const { title: n = "HyperFX App", lang: r = "en", charset: i = "UTF-8", viewport: a = "width=device-width, initial-scale=1.0", description: o, stylesheets: d = [], scripts: g = [], inlineStyles: b, inlineScripts: x, bodyAttributes: s = {}, htmlAttributes: u = {} } = t, h = T(u), l = T(s), f = [`<meta charset="${i}">`, `<meta name="viewport" content="${a}">`, `<title>${Y(n)}</title>`, o ? `<meta name="description" content="${D(o)}">` : "", ...d.map((y) => `<link rel="stylesheet" href="${D(y)}">`), b ? `<style>${b}</style>` : "", ...g.map((y) => `<script src="${D(y)}"><\/script>`), x ? `<script>${x}<\/script>` : ""].filter(Boolean).join(`
-  `), p = Array.isArray(e) ? Ze(e) : L(e);
+function ft(e, r = {}) {
+  const { title: t = "HyperFX App", lang: n = "en", charset: o = "UTF-8", viewport: c = "width=device-width, initial-scale=1.0", description: i, stylesheets: l = [], scripts: h = [], inlineStyles: b, inlineScripts: v, bodyAttributes: s = {}, htmlAttributes: u = {} } = r, p = A(u), m = A(s), g = [`<meta charset="${o}">`, `<meta name="viewport" content="${c}">`, `<title>${re(t)}</title>`, i ? `<meta name="description" content="${L(i)}">` : "", ...l.map((y) => `<link rel="stylesheet" href="${L(y)}">`), b ? `<style>${b}</style>` : "", ...h.map((y) => `<script src="${L(y)}"><\/script>`), v ? `<script>${v}<\/script>` : ""].filter(Boolean).join(`
+  `), f = Array.isArray(e) ? ut(e) : W(e);
   return `<!DOCTYPE html>
-<html${h} lang="${r}">
+<html${p} lang="${n}">
 <head>
-  ${f}
+  ${g}
 </head>
-<body${l}>
-  ${p}
+<body${m}>
+  ${f}
 </body>
 </html>`;
 }
-function ye(e) {
-  const t = [];
-  let n = 0;
-  function r(o) {
-    const d = Object.keys(o.props).some((x) => x.startsWith("on")), g = !!o.reactiveProps;
-    if (d || g) {
-      const x = { index: n, tag: String(o.tag), props: o.props, hasReactiveProps: g, hasEventHandlers: d };
-      t.push(x);
-      const s = d ? `data-hyperfx-hydrate="${n}"` : "";
-      return n++, s;
+function Ae(e) {
+  const r = [];
+  let t = 0;
+  function n(i) {
+    const l = Object.keys(i.props).some((v) => v.startsWith("on")), h = !!i.reactiveProps;
+    if (l || h) {
+      const v = { index: t, tag: String(i.tag), props: i.props, hasReactiveProps: h, hasEventHandlers: l };
+      r.push(v);
+      const s = l ? `data-hyperfx-hydrate="${t}"` : "";
+      return t++, s;
     }
     return "";
   }
-  function i(o) {
-    if (typeof o == "string" || typeof o == "function") return L(o);
-    const { tag: d, props: g, children: b } = o;
-    if (d === _) return b.map((f) => i(f)).join("");
-    if (g && g["data-reactive-for"] === "true" && o.__reactiveArrayFn) {
-      const f = o.__reactiveArrayFn;
-      try {
-        const E = f();
-        if (Array.isArray(E)) {
-          const xe = E.map((Se) => i(Se)).join(""), ee = r(o), te = String(d), ne = T(g), ve = ee ? `${ne} ${ee}` : ne;
-          return `<${te}${ve}>${xe}</${te}>`;
-        }
-      } catch (E) {
-        console.warn("Error rendering reactive array during SSR:", E);
+  function o(i) {
+    if (typeof i == "string" || typeof i == "function") return W(i);
+    const { tag: l, props: h, children: b } = i;
+    if (l === k) return b.map((g) => o(g)).join("");
+    if (h && h["data-reactive-for"] === "true") {
+      if (b && Array.isArray(b)) {
+        const w = b.map((C) => o(C)).join(""), F = n(i), I = String(l), P = A(h), N = F ? `${P} ${F}` : P;
+        return `<${I}${N}>${w}</${I}>`;
       }
-      const p = r(o), y = String(d), S = T(g), v = p ? `${S} ${p}` : S;
-      return `<${y}${v}></${y}>`;
+      const g = n(i), f = String(l), y = A(h), x = g ? `${y} ${g}` : y;
+      return `<${f}${x}></${f}>`;
     }
-    if (g && g["data-reactive-expr"] === "true" && o.__reactiveExprFn) {
-      const f = r(o), p = String(d), y = T(g), S = f ? `${y} ${f}` : y, v = b.map((E) => i(E)).join("");
-      return `<${p}${S}>${v}</${p}>`;
+    if (h && h["data-reactive-expr"] === "true" && i.__reactiveExprFn) {
+      const g = n(i), f = String(l), y = A(h), x = g ? `${y} ${g}` : y, w = b.map((F) => o(F)).join("");
+      return `<${f}${x}>${w}</${f}>`;
     }
-    const x = r(o), s = String(d), u = T(g), h = x ? `${u} ${x}` : u, l = b.map((f) => i(f)).join("");
-    return be.has(s) ? `<${s}${h} />` : `<${s}${h}>${l}</${s}>`;
+    const v = n(i), s = String(l), u = A(h), p = v ? `${u} ${v}` : u, m = b.map((g) => o(g)).join("");
+    return _e.has(s) ? `<${s}${p} />` : `<${s}${p}>${m}</${s}>`;
   }
-  return { html: i(e), hydrationData: { markers: t, version: "1.0" } };
+  return { html: o(e), hydrationData: { markers: r, version: "1.0" } };
 }
-class oe {
-  constructor(t, n = {}) {
-    this.context = t, this.config = n;
+class ge {
+  constructor(r, t = {}) {
+    this.context = r, this.config = t;
   }
-  renderPage(t, n = {}) {
-    const r = { title: this.config.title || "HyperFX App", description: this.config.description, ...n, inlineStyles: [n.inlineStyles || "", this.generateCriticalCSS()].filter(Boolean).join(`
+  renderPage(r, t = {}) {
+    const n = { title: this.config.title || "HyperFX App", description: this.config.description, ...t, inlineStyles: [t.inlineStyles || "", this.generateCriticalCSS()].filter(Boolean).join(`
 `) };
-    let i = et(t, r);
-    return i = this.addSEOMetaTags(i), i;
+    let o = ft(r, n);
+    return o = this.addSEOMetaTags(o), o;
   }
-  renderWithHydration(t) {
-    const { html: n, hydrationData: r } = ye(t);
-    function i(d) {
-      return `<script type="application/json" id="__HYPERFX_HYDRATION_DATA__">${JSON.stringify(d)}<\/script>`;
+  renderWithHydration(r) {
+    const { html: t, hydrationData: n } = Ae(r);
+    function o(l) {
+      return `<script type="application/json" id="__HYPERFX_HYDRATION_DATA__">${JSON.stringify(l)}<\/script>`;
     }
-    const a = i(r), o = this.renderPage(t);
-    return { html: n, hydrationScript: a, fullDocument: o };
+    const c = o(n), i = this.renderPage(r);
+    return { html: t, hydrationScript: c, fullDocument: i };
   }
   generateCriticalCSS() {
     return `
@@ -5391,206 +5519,245 @@ class oe {
       [data-hyperfx-hydrate] { /* Hydration markers */ }
     `;
   }
-  addSEOMetaTags(t) {
+  addSEOMetaTags(r) {
     var _a;
-    const n = [];
-    if (((_a = this.config.keywords) == null ? void 0 : _a.length) && n.push(`<meta name="keywords" content="${this.config.keywords.join(", ")}">`), this.config.canonical && n.push(`<link rel="canonical" href="${this.config.canonical}">`), this.config.openGraph) {
-      const r = this.config.openGraph;
-      r.title && n.push(`<meta property="og:title" content="${r.title}">`), r.description && n.push(`<meta property="og:description" content="${r.description}">`), r.image && n.push(`<meta property="og:image" content="${r.image}">`), r.type && n.push(`<meta property="og:type" content="${r.type}">`), n.push(`<meta property="og:url" content="${this.context.url}">`);
+    const t = [];
+    if (((_a = this.config.keywords) == null ? void 0 : _a.length) && t.push(`<meta name="keywords" content="${this.config.keywords.join(", ")}">`), this.config.canonical && t.push(`<link rel="canonical" href="${this.config.canonical}">`), this.config.openGraph) {
+      const n = this.config.openGraph;
+      n.title && t.push(`<meta property="og:title" content="${n.title}">`), n.description && t.push(`<meta property="og:description" content="${n.description}">`), n.image && t.push(`<meta property="og:image" content="${n.image}">`), n.type && t.push(`<meta property="og:type" content="${n.type}">`), t.push(`<meta property="og:url" content="${this.context.url}">`);
     }
     if (this.config.twitter) {
-      const r = this.config.twitter;
-      r.card && n.push(`<meta name="twitter:card" content="${r.card}">`), r.title && n.push(`<meta name="twitter:title" content="${r.title}">`), r.description && n.push(`<meta name="twitter:description" content="${r.description}">`), r.image && n.push(`<meta name="twitter:image" content="${r.image}">`);
+      const n = this.config.twitter;
+      n.card && t.push(`<meta name="twitter:card" content="${n.card}">`), n.title && t.push(`<meta name="twitter:title" content="${n.title}">`), n.description && t.push(`<meta name="twitter:description" content="${n.description}">`), n.image && t.push(`<meta name="twitter:image" content="${n.image}">`);
     }
-    if (n.length > 0) {
-      const r = n.join(`
+    if (t.length > 0) {
+      const n = t.join(`
   `);
-      t = t.replace("</head>", `  ${r}
+      r = r.replace("</head>", `  ${n}
 </head>`);
     }
-    return t;
+    return r;
   }
-  static isBot(t) {
-    return [/googlebot/i, /bingbot/i, /slurp/i, /duckduckbot/i, /baiduspider/i, /yandexbot/i, /twitterbot/i, /facebookexternalhit/i, /linkedinbot/i, /whatsapp/i].some((r) => r.test(t));
+  static isBot(r) {
+    return [/googlebot/i, /bingbot/i, /slurp/i, /duckduckbot/i, /baiduspider/i, /yandexbot/i, /twitterbot/i, /facebookexternalhit/i, /linkedinbot/i, /whatsapp/i].some((n) => n.test(r));
   }
 }
-function tt(e) {
-  if (!e) return {};
-  const t = {}, n = {};
-  for (const [r, i] of Object.entries(e)) if (r !== "children") if (r === "className") t.class = i;
-  else if (r === "htmlFor") t.for = i;
-  else if (typeof i == "function") if (r.startsWith("on")) t[r] = i;
-  else try {
-    const a = i();
-    n[r] = i, t[r] = a;
-  } catch {
-    t[r] = i;
-  }
-  else t[r] = i;
-  return Object.keys(n).length > 0 && (t.__reactiveProps = n), t;
-}
-function G(e) {
-  if (!e) return [];
-  const t = [], n = (r) => {
-    if (Array.isArray(r)) r.forEach(n);
-    else if (r != null && r !== false && r !== true && r !== void 0) if (typeof r == "object" && r.tag) t.push(r);
-    else if (typeof r == "function") if (r.__isReactiveExpression) {
-      const i = nt(r);
-      t.push(i);
-    } else t.push(() => String(r()));
-    else t.push(String(r));
-  };
-  return Array.isArray(e) ? e.forEach(n) : n(e), t;
-}
-function nt(e) {
-  const t = `reactive-expr-${Math.random().toString(36).substr(2, 9)}`;
-  let n = [];
+function se(e) {
+  if (typeof e != "function") return false;
+  if (["bound signalOper", "bound computedOper", "signalOper", "computedOper"].includes(e.name)) return true;
   try {
-    const r = e();
-    Array.isArray(r) ? n = r : n = [String(r)];
-  } catch (r) {
-    console.warn("Failed to evaluate reactive expression:", r), n = [];
-  }
-  return { tag: "div", props: { "data-reactive-expr": "true", "data-reactive-id": t, style: "display: contents;" }, children: n, __reactiveExprFn: e };
-}
-function c(e, t, n) {
-  if (e === _ || e === rt) return { tag: _, props: {}, children: G(t == null ? void 0 : t.children), key: n };
-  if (typeof e == "function") return e(t);
-  const r = tt(t), i = G(t == null ? void 0 : t.children), a = r.__reactiveProps;
-  delete r.__reactiveProps;
-  const o = { tag: e, props: r, children: i, key: n };
-  return a && (o.reactiveProps = a), o;
-}
-function rt(e) {
-  return { tag: _, props: {}, children: G(e == null ? void 0 : e.children) };
-}
-const m = c;
-function it(e) {
-  const { each: t, children: n, fallback: r } = e, i = typeof t == "function";
-  let a;
-  if (i ? (t.__forId || (t.__forId = `for-${Math.random().toString(36).substr(2, 9)}`), a = t.__forId) : a = `for-static-${Math.random().toString(36).substr(2, 9)}`, i) {
-    const o = t;
-    let d = [];
-    try {
-      d = o();
-    } catch (b) {
-      console.warn("Failed to get initial value from reactive signal:", b), d = [];
+    const t = e();
+    if (typeof t == "string" || typeof t == "number" || typeof t == "boolean") {
+      const o = e.toString();
+      return /\w+\(\)/.test(o) || /signal|computed|createSignal|createComputed/.test(o) || /\$\{[^}]*\(\)[^}]*\}/.test(o);
     }
-    const g = d.length === 0 && r ? [r] : d.map((b, x) => {
-      console.log("\u{1F3AF} For component - rendering item during SSR:", b, "at index:", x);
-      const s = n(b, x);
-      return console.log("\u{1F3AF} For component - childVNode created:", s), s;
-    });
-    return console.log("\u{1F3AF} For component - initialChildren array:", g), { tag: "div", props: { "data-reactive-for": "true", "data-reactive-id": a, style: "display: contents;" }, children: g, __reactiveArrayFn: o, __renderFn: n, __fallback: r };
-  } else {
-    const o = t;
-    return o.length === 0 && r ? r : { tag: "div", props: { style: "display: contents;" }, children: o.map((d, g) => n(d, g)) };
+    return false;
+  } catch {
+    try {
+      const t = e.toString();
+      return /signal|computed|createSignal|createComputed/.test(t);
+    } catch {
+      return false;
+    }
   }
 }
-function ot(e) {
-  const t = e;
-  return t.__isReactiveExpression = true, t;
+function pt(e) {
+  if (!e) return {};
+  const r = {}, t = {};
+  for (const [n, o] of Object.entries(e)) n !== "children" && (n === "className" ? r.class = o : n === "htmlFor" ? r.for = o : typeof o == "function" ? n.startsWith("on") ? r[n] = o : se(o) ? (t[n] = o, r[n] = o()) : (r[n] = o, console.log("\u{1F50D} Regular function prop:", n, "name:", o.name)) : r[n] = o);
+  return Object.keys(t).length > 0 && (r.__reactiveProps = t), r;
 }
-function N(e) {
-  return c("a", { href: e.href, class: e.className, onclick: (t) => {
-    t.preventDefault(), Be().navigate(e.href);
-  }, children: e.children });
+function ne(e) {
+  if (!e) return [];
+  const r = [], t = (n) => {
+    if (Array.isArray(n)) n.forEach(t);
+    else if (n != null && n !== false && n !== true && n !== void 0) if (typeof n == "object" && n.tag) r.push(n);
+    else if (typeof n == "function") if (se(n)) r.push(n);
+    else try {
+      const o = n();
+      t(o);
+    } catch {
+      r.push(n);
+    }
+    else r.push(String(n));
+  };
+  return Array.isArray(e) ? e.forEach(t) : t(e), ht(r);
 }
-const F = I(0);
-function st() {
-  F(F() + 1);
-}
-function at() {
-  F(F() - 1);
-}
-function ct() {
-  F(0);
-}
-function lt() {
-  return m("div", { className: "min-h-screen bg-gray-900 text-white p-8", children: [m("nav", { className: "flex space-x-4 mb-8", children: [c(N, { href: "/", className: "text-blue-400 hover:text-blue-300 transition-colors font-bold", children: "Home" }), c(N, { href: "/about", className: "text-blue-400 hover:text-blue-300 transition-colors", children: "About" }), c(N, { href: "/products", className: "text-blue-400 hover:text-blue-300 transition-colors", children: "Products" })] }), c("h1", { className: "text-4xl font-bold mb-6", children: "\u{1F680} Welcome to HyperFX JSX" }), c("p", { className: "text-xl text-gray-300 mb-8", children: "A modern SSR framework with reactive JSX components" }), m("div", { className: "bg-gradient-to-r from-blue-900 to-purple-900 p-8 rounded-lg mb-8 border border-blue-700", children: [c("h2", { className: "text-2xl font-semibold mb-6 text-blue-300", children: "\u{1F9EE} Interactive Counter" }), m("div", { className: "text-center", children: [c("div", { className: "text-6xl font-bold mb-6 text-yellow-400", children: F }), m("div", { className: "flex justify-center space-x-4", children: [c("button", { className: "px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-lg font-semibold transition-colors", onclick: st, children: "\u2795 Increment" }), c("button", { className: "px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg text-lg font-semibold transition-colors", onclick: at, children: "\u2796 Decrement" }), c("button", { className: "px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg text-lg font-semibold transition-colors", onclick: ct, children: "\u{1F504} Reset" })] })] })] }), m("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8", children: [m("div", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-3 text-green-400", children: "\u26A1 Fast SSR" }), c("p", { className: "text-gray-300", children: "Server-side rendering with automatic hydration for optimal performance and SEO benefits." })] }), m("div", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-3 text-blue-400", children: "\u{1F504} Reactive" }), c("p", { className: "text-gray-300", children: "Fine-grained reactivity with signals that update only what's needed for maximum efficiency." })] }), m("div", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-3 text-purple-400", children: "\u{1F4F1} JSX" }), c("p", { className: "text-gray-300", children: "Familiar React-like JSX syntax with TypeScript support for a great developer experience." })] })] }), m("div", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-4 text-orange-400", children: "\u{1F680} Getting Started" }), c("p", { className: "text-gray-300 mb-4", children: "This counter demonstrates HyperFX's reactive capabilities. The count value is stored in a reactive signal that automatically updates the UI when changed." }), c("p", { className: "text-gray-300", children: "Try clicking the buttons above - the count updates instantly with no manual DOM manipulation required!" })] })] });
-}
-const $ = I(["SSR", "Hydration", "Routing", "Reactivity"]), P = I(""), dt = Q(() => $().length);
-function ut() {
-  const e = P().trim();
-  e && ($([...$(), e]), P(""));
-}
-function ft(e) {
-  const t = $();
-  $([...t.slice(0, e), ...t.slice(e + 1)]);
+let gt = 0;
+function mt(e) {
+  const r = `reactive-text-${++gt}`;
+  let t = "";
+  try {
+    const n = e();
+    t = String(n);
+  } catch (n) {
+    console.warn("Failed to evaluate reactive expression:", n), t = "";
+  }
+  return { tag: "span", props: { "data-reactive-text": "true", "data-reactive-id": r, style: "display: contents;" }, children: [t], __reactiveTextFn: e };
 }
 function ht(e) {
-  const t = e.target.value;
-  P(t);
-}
-function pt() {
-  $(["SSR", "Hydration", "Routing", "Reactivity"]), P("");
-}
-function mt() {
-  return m("div", { className: "min-h-screen bg-gray-900 text-white p-8", children: [m("nav", { className: "flex space-x-4 mb-8", children: [c(N, { href: "/", className: "text-blue-400 hover:text-blue-300 transition-colors", children: "Home" }), c(N, { href: "/about", className: "text-blue-400 hover:text-blue-300 transition-colors font-bold", children: "About" }), c(N, { href: "/products", className: "text-blue-400 hover:text-blue-300 transition-colors", children: "Products" })] }), c("h1", { className: "text-4xl font-bold mb-6", children: "\u{1F4D6} About HyperFX JSX" }), c("p", { className: "text-xl text-gray-300 mb-8", children: "Learn about our modern SSR framework with JSX support" }), m("div", { className: "bg-gradient-to-r from-purple-900 to-indigo-900 p-6 rounded-lg mb-8 border border-purple-700", children: [c("h2", { className: "text-2xl font-semibold mb-4 text-purple-300", children: "\u{1F680} Framework Features" }), m("div", { className: "mb-6", children: [m("h3", { className: "text-lg font-medium mb-3 text-yellow-400", children: ["Feature List (", dt, " items)"] }), c("div", { className: "space-y-2 mb-4", children: c(it, { each: $, children: (e, t) => m("div", { className: "flex items-center justify-between bg-gray-800 p-3 rounded-lg", children: [c("span", { className: "text-white", children: e }), c("button", { className: "px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors", onclick: () => ft(t), children: "Remove" })] }, t) }) }), m("div", { className: "flex space-x-2", children: [c("input", { type: "text", placeholder: "Add new feature...", className: "flex-1 px-4 py-2 bg-gray-800 text-white border border-gray-600 rounded focus:border-blue-500 focus:outline-none transition-colors", value: P(), oninput: ht }), c("button", { className: "px-6 py-2 bg-green-600 hover:bg-green-700 rounded transition-colors", onclick: ut, children: "Add" }), c("button", { className: "px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded transition-colors", onclick: pt, children: "Reset" })] })] })] }), m("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8", children: [m("div", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-4 text-green-400", children: "\u{1F527} Technical Stack" }), m("ul", { className: "space-y-2 text-gray-300", children: [m("li", { children: ["\u2022 ", c("strong", { children: "HyperFX:" }), " Reactive UI framework"] }), m("li", { children: ["\u2022 ", c("strong", { children: "Vinxi:" }), " Full-stack meta-framework"] }), m("li", { children: ["\u2022 ", c("strong", { children: "JSX:" }), " Familiar React-like syntax"] }), m("li", { children: ["\u2022 ", c("strong", { children: "Tailwind CSS v4:" }), " Modern styling"] }), m("li", { children: ["\u2022 ", c("strong", { children: "TypeScript:" }), " Type safety"] }), m("li", { children: ["\u2022 ", c("strong", { children: "Vite:" }), " Fast development"] })] })] }), m("div", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-4 text-blue-400", children: "\u26A1 Performance" }), m("ul", { className: "space-y-2 text-gray-300", children: [c("li", { children: "\u2022 Fast server-side rendering" }), c("li", { children: "\u2022 Progressive hydration" }), c("li", { children: "\u2022 Minimal JavaScript bundle" }), c("li", { children: "\u2022 Efficient client-side updates" }), c("li", { children: "\u2022 Smart caching strategies" }), c("li", { children: "\u2022 SEO-friendly architecture" })] })] })] }), m("div", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-4 text-orange-400", children: "\u{1F4AD} Philosophy" }), c("p", { className: "text-gray-300 mb-4", children: "HyperFX combines the best of both worlds: the familiar JSX syntax that developers love with the performance and simplicity of a lightweight framework." }), c("p", { className: "text-gray-300", children: "We believe in progressive enhancement, where your app works great even without JavaScript, but becomes more interactive as it loads. This ensures the best user experience across all devices and network conditions." })] })] });
-}
-const gt = [{ id: 1, name: "HyperFX Pro", price: 99, description: "Advanced reactive framework" }, { id: 2, name: "JSX Components", price: 49, description: "Pre-built component library" }, { id: 3, name: "SSR Toolkit", price: 79, description: "Server-side rendering tools" }, { id: 4, name: "Dev Tools", price: 29, description: "Development and debugging tools" }], w = I([]), bt = Q(() => w().reduce((e, t) => e + t.price, 0)), q = Q(() => w().length);
-function yt(e) {
-  const t = w();
-  t.find((n) => n.id === e.id) || w([...t, e]);
-}
-function xt(e) {
-  const t = w();
-  w(t.filter((n) => n.id !== e));
-}
-function vt() {
-  w([]);
-}
-function St() {
-  return m("div", { className: "min-h-screen bg-gray-900 text-white p-8", children: [m("nav", { className: "flex space-x-4 mb-8", children: [c(N, { href: "/", className: "text-blue-400 hover:text-blue-300 transition-colors", children: "Home" }), c(N, { href: "/about", className: "text-blue-400 hover:text-blue-300 transition-colors", children: "About" }), c(N, { href: "/products", className: "text-blue-400 hover:text-blue-300 transition-colors font-bold", children: "Products" })] }), c("h1", { className: "text-4xl font-bold mb-6", children: "\u{1F6CD}\uFE0F HyperFX Products" }), c("p", { className: "text-xl text-gray-300 mb-8", children: "Discover our premium tools and components for reactive web development" }), m("div", { className: "bg-gradient-to-r from-green-900 to-blue-900 p-6 rounded-lg mb-8 border border-green-700", children: [c("h2", { className: "text-2xl font-semibold mb-4 text-green-300", children: "\u{1F6D2} Shopping Cart" }), m("div", { className: "flex justify-between items-center", children: [m("div", { children: [m("span", { className: "text-lg", children: ["Items: ", q] }), m("span", { className: "text-lg ml-4", children: ["Total: $", bt] })] }), c("button", { className: "px-4 py-2 bg-red-600 hover:bg-red-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed", onclick: vt, disabled: q() === 0, children: "Clear Cart" })] }), q() > 0 && m("div", { className: "mt-4", children: [c("h3", { className: "text-lg font-medium mb-2", children: "Cart Items:" }), c("div", { className: "space-y-2", children: w().map((e) => m("div", { className: "flex justify-between items-center bg-gray-800 p-3 rounded", children: [m("span", { children: [e.name, " - $", e.price] }), c("button", { className: "px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors", onclick: () => xt(e.id), children: "Remove" })] }, e.id)) })] })] }), c("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6", children: gt.map((e) => m("div", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-3 text-blue-400", children: e.name }), c("p", { className: "text-gray-300 mb-4", children: e.description }), m("div", { className: "flex justify-between items-center", children: [m("span", { className: "text-2xl font-bold text-green-400", children: ["$", e.price] }), c("button", { className: `px-4 py-2 rounded transition-colors ${w().find((t) => t.id === e.id) ? "bg-gray-600 text-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}`, onclick: () => yt(e), disabled: !!w().find((t) => t.id === e.id), children: ot(() => w().find((t) => t.id === e.id) ? "In Cart" : "Add to Cart") })] })] }, e.id)) }), m("div", { className: "mt-12 bg-gray-800 p-6 rounded-lg border border-gray-700", children: [c("h3", { className: "text-xl font-semibold mb-4 text-purple-400", children: "\u2728 Why Choose HyperFX?" }), m("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [m("div", { children: [c("h4", { className: "font-semibold text-green-400 mb-2", children: "Performance First" }), c("p", { className: "text-gray-300 text-sm", children: "Optimized for speed with minimal runtime overhead and smart bundling." })] }), m("div", { children: [c("h4", { className: "font-semibold text-blue-400 mb-2", children: "Developer Experience" }), c("p", { className: "text-gray-300 text-sm", children: "TypeScript support, hot reload, and familiar JSX syntax." })] }), m("div", { children: [c("h4", { className: "font-semibold text-yellow-400 mb-2", children: "Production Ready" }), c("p", { className: "text-gray-300 text-sm", children: "Battle-tested with comprehensive testing and documentation." })] }), m("div", { children: [c("h4", { className: "font-semibold text-red-400 mb-2", children: "Community Driven" }), c("p", { className: "text-gray-300 text-sm", children: "Open source with active community support and contributions." })] })] })] })] });
-}
-const Tt = eventHandler(async (e) => {
-  console.log("\u{1F680} SSR Handler called for:", e.node.req.url);
-  const t = e.node.req.url || "/", n = new URL(t, "http://localhost").pathname;
-  if (console.log("\u{1F4CD} Pathname:", n), n.startsWith("/_build/") || n.startsWith("/assets/") || n.includes(".css") || n.includes(".js") || n.includes(".map")) {
-    console.log("\u26A1 Skipping asset route:", n);
-    return;
+  const r = [];
+  for (let t = 0; t < e.length; t++) {
+    const n = e[t];
+    n && (typeof n == "function" && se(n) && e.some((c, i) => i !== t && typeof c == "string" && c.trim().length > 0) ? r.push(mt(n)) : r.push(n));
   }
-  const i = { "/": lt, "/about": mt, "/products": St }[n] || (() => wt(n));
-  console.log("\u{1F3AF} Route component found:", !!i), console.log("\u{1F50D} Route component type:", typeof i);
+  return r;
+}
+function a(e, r, t) {
+  if (e === k || e === bt) return { tag: k, props: {}, children: ne(r == null ? void 0 : r.children), key: t };
+  if (typeof e == "function") return e(r);
+  const n = pt(r), o = ne(r == null ? void 0 : r.children), c = n.__reactiveProps;
+  delete n.__reactiveProps;
+  const i = { tag: e, props: n, children: o, key: t };
+  return c && (i.reactiveProps = c), i;
+}
+function bt(e) {
+  return { tag: k, props: {}, children: ne(e == null ? void 0 : e.children) };
+}
+const d = a;
+let me = 0;
+function ke(e) {
+  const { each: r, children: t, fallback: n } = e, o = typeof r == "function";
+  let c;
+  if (o ? c = `for-${++me}` : c = `for-static-${++me}`, o) {
+    const i = r;
+    let l = [];
+    try {
+      l = i();
+    } catch {
+      l = [];
+    }
+    const h = l.length === 0 && n ? [n] : l.map((b, v) => {
+      const s = t(b, v);
+      return s.key || (s.key = `item-${v}`), s;
+    });
+    return { tag: "div", props: { "data-reactive-for": "true", "data-reactive-id": c, style: "display: contents;" }, children: h, __reactiveArrayFn: i, __renderFn: t, __fallback: n };
+  } else {
+    const i = r;
+    return i.length === 0 && n ? n : { tag: "div", props: { style: "display: contents;" }, children: i.map((l, h) => {
+      const b = t(l, h);
+      return b.key || (b.key = `static-item-${h}`), b;
+    }) };
+  }
+}
+function Y(e) {
+  return a("a", { href: e.href, class: e.className, onclick: (r) => {
+    r.preventDefault(), ot().navigate(e.href);
+  }, children: e.children });
+}
+function ae() {
+  return a("header", { className: "bg-gradient-to-r from-gray-800/95 via-gray-700/95 to-gray-800/95 backdrop-blur-md border-b border-gray-600/50 sticky top-0 z-50", children: a("div", { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8", children: d("nav", { className: "flex justify-center space-x-12 py-6", role: "navigation", "aria-label": "Main navigation", children: [d(Y, { href: "/", className: "group text-blue-400 hover:text-blue-300 transition-all duration-300 text-lg font-medium relative", children: [d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-xl group-hover:animate-bounce", children: "\u{1F3E0}" }), "Home"] }), a("span", { className: "absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-cyan-400 group-hover:w-full transition-all duration-300" })] }), d(Y, { href: "/about", className: "group text-blue-400 hover:text-blue-300 transition-all duration-300 text-lg font-medium relative", children: [d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-xl group-hover:animate-bounce", children: "\u{1F4D6}" }), "About"] }), a("span", { className: "absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-cyan-400 group-hover:w-full transition-all duration-300" })] }), d(Y, { href: "/products", className: "group text-blue-400 hover:text-blue-300 transition-all duration-300 text-lg font-medium relative", children: [d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-xl group-hover:animate-bounce", children: "\u{1F6CD}\uFE0F" }), "Products"] }), a("span", { className: "absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-cyan-400 group-hover:w-full transition-all duration-300" })] })] }) }) });
+}
+const _ = q(0), yt = { increment() {
+  _(_() + 1);
+}, decrement() {
+  _(_() - 1);
+}, reset() {
+  _(0);
+} }, { increment: xt, decrement: vt, reset: wt } = yt;
+function Nt() {
+  return d("div", { className: "min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white", children: [a(ae, {}), d("main", { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12", children: [d("section", { className: "text-center mb-16", children: [a("h1", { className: "text-5xl md:text-7xl font-bold p-2 mb-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent", children: "\u{1F680} Welcome to HyperFX JSX" }), a("p", { className: "text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed", children: "A modern SSR framework with reactive JSX components" })] }), a("section", { className: "mb-16", "aria-labelledby": "counter-heading", children: d("div", { className: "bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-indigo-900/50 backdrop-blur-sm p-10 rounded-2xl border border-blue-500/30 shadow-2xl shadow-blue-500/10", children: [a("h2", { id: "counter-heading", className: "text-3xl font-semibold mb-8 text-center text-blue-300", children: "\u{1F9EE} Interactive Counter" }), d("div", { className: "text-center", children: [a("div", { className: "text-7xl md:text-8xl font-bold mb-10 text-transparent bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text animate-pulse", role: "status", "aria-live": "polite", "aria-label": `Current count: ${_()}`, children: _ }), d("div", { className: "flex flex-wrap justify-center gap-6", children: [a("button", { className: "group px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-green-500/25", onclick: xt, type: "button", "aria-label": "Increment counter", children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-2xl group-hover:animate-bounce", children: "\u2795" }), "Increment"] }) }), a("button", { className: "group px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25", onclick: vt, type: "button", "aria-label": "Decrement counter", children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-2xl group-hover:animate-bounce", children: "\u2796" }), "Decrement"] }) }), a("button", { className: "group px-8 py-4 bg-gradient-to-r from-gray-600 to-slate-600 hover:from-gray-500 hover:to-slate-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-gray-500/25", onclick: wt, type: "button", "aria-label": "Reset counter to zero", children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-2xl group-hover:animate-spin", children: "\u{1F504}" }), "Reset"] }) })] })] })] }) }), d("section", { className: "mb-12", "aria-labelledby": "features-heading", children: [a("h2", { id: "features-heading", className: "sr-only", children: "Features" }), d("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6", children: [d("article", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [a("h3", { className: "text-xl font-semibold mb-3 text-green-400", children: "\u26A1 Fast SSR" }), a("p", { className: "text-gray-300", children: "Server-side rendering with automatic hydration for optimal performance and SEO benefits." })] }), d("article", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [a("h3", { className: "text-xl font-semibold mb-3 text-blue-400", children: "\u{1F504} Reactive" }), a("p", { className: "text-gray-300", children: "Fine-grained reactivity with signals that update only what's needed for maximum efficiency." })] }), d("article", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [a("h3", { className: "text-xl font-semibold mb-3 text-purple-400", children: "\u{1F4F1} JSX" }), a("p", { className: "text-gray-300", children: "Familiar React-like JSX syntax with TypeScript support for a great developer experience." })] })] })] }), a("section", { "aria-labelledby": "getting-started-heading", children: d("article", { className: "bg-gray-800 p-6 rounded-lg border border-gray-700", children: [a("h3", { id: "getting-started-heading", className: "text-xl font-semibold mb-4 text-orange-400", children: "\u{1F680} Getting Started" }), a("p", { className: "text-gray-300 mb-4", children: "This counter demonstrates HyperFX's reactive capabilities. The count value is stored in a reactive signal that automatically updates the UI when changed." }), a("p", { className: "text-gray-300", children: "Try clicking the buttons above - the count updates instantly with no manual DOM manipulation required!" })] }) })] })] });
+}
+const R = q(["SSR", "Hydration", "Routing", "Reactivity"]), j = q(""), St = $(() => R().length);
+function Ct() {
+  const e = j().trim();
+  e && (R([...R(), e]), j(""));
+}
+function Tt(e) {
+  const r = R();
+  R([...r.slice(0, e), ...r.slice(e + 1)]);
+}
+function $t(e) {
+  const r = e.target.value;
+  j(r);
+}
+function Et() {
+  R(["SSR", "Hydration", "Routing", "Reactivity"]), j("");
+}
+function _t() {
+  return d("div", { className: "min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white", children: [a(ae, {}), d("main", { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12", children: [d("section", { className: "text-center mb-16", children: [a("h1", { className: "text-5xl p-2 md:text-7xl font-bold mb-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent", children: "\u{1F4D6} About HyperFX JSX" }), a("p", { className: "text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed", children: "Learn about our modern SSR framework with JSX support" })] }), a("section", { className: "mb-16", "aria-labelledby": "features-section", children: d("div", { className: "bg-gradient-to-br from-purple-900/50 via-indigo-900/50 to-blue-900/50 backdrop-blur-sm p-10 rounded-2xl border border-purple-500/30 shadow-2xl shadow-purple-500/10", children: [a("h2", { id: "features-section", className: "text-3xl font-semibold mb-8 text-center text-purple-300", children: "\u{1F680} Framework Features" }), d("div", { className: "mb-8", children: [d("h3", { className: "text-2xl font-medium mb-6 text-center", children: ["Feature List (", a("span", { "aria-live": "polite", className: "text-transparent bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text font-bold", children: St }), "items)"] }), a("ul", { className: "space-y-3 mb-8", role: "list", "aria-label": "Framework features", children: a(ke, { each: R, children: (e, r) => d("li", { className: "flex items-center justify-between bg-gradient-to-r from-gray-800/80 to-gray-700/80 backdrop-blur-sm p-4 rounded-xl border border-gray-600/50 hover:border-purple-500/50 transition-all duration-300", role: "listitem", children: [a("span", { className: "text-white font-medium text-lg", children: e }), a("button", { className: "group px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-lg text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25", onclick: () => Tt(r), type: "button", "aria-label": `Remove ${e} from feature list`, children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-lg group-hover:animate-pulse", children: "\u{1F5D1}\uFE0F" }), "Remove"] }) })] }) }) }), d("form", { className: "flex flex-col lg:flex-row gap-4", onsubmit: (e) => {
+    e.preventDefault(), Ct();
+  }, children: [a("label", { htmlFor: "new-feature", className: "sr-only", children: "Add new feature" }), a("input", { id: "new-feature", type: "text", placeholder: "Add new feature...", className: "flex-1 px-6 py-4 bg-gray-800/80 backdrop-blur-sm text-white border border-gray-600/50 rounded-xl focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/30 transition-all duration-300 text-lg", value: j(), oninput: $t, required: true }), d("div", { className: "flex gap-4", children: [a("button", { type: "submit", className: "group px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-green-500/25", children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-xl group-hover:animate-bounce", children: "\u2795" }), "Add"] }) }), a("button", { type: "button", className: "group px-8 py-4 bg-gradient-to-r from-gray-600 to-slate-600 hover:from-gray-500 hover:to-slate-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-gray-500/25", onclick: Et, children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-xl group-hover:animate-spin", children: "\u{1F504}" }), "Reset"] }) })] })] })] })] }) }), d("section", { className: "mb-16", "aria-labelledby": "technical-details", children: [a("h2", { id: "technical-details", className: "text-3xl font-bold mb-8 text-center bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent", children: "Technical Excellence" }), d("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8", children: [d("article", { className: "bg-gradient-to-br from-gray-800/80 to-gray-700/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-600/50 hover:border-green-500/50 transition-all duration-300 group", children: [a("h3", { className: "text-2xl font-semibold mb-6 text-green-400 group-hover:text-green-300 transition-colors duration-300", children: "\u{1F527} Technical Stack" }), d("ul", { className: "space-y-3 text-gray-300", role: "list", children: [d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-green-400 rounded-full" }), a("strong", { children: "HyperFX:" }), " Reactive UI framework"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-blue-400 rounded-full" }), a("strong", { children: "Vinxi:" }), " Full-stack meta-framework"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-purple-400 rounded-full" }), a("strong", { children: "JSX:" }), " Familiar React-like syntax"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-cyan-400 rounded-full" }), a("strong", { children: "Tailwind CSS v4:" }), " Modern styling"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-indigo-400 rounded-full" }), a("strong", { children: "TypeScript:" }), " Type safety"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-orange-400 rounded-full" }), a("strong", { children: "Vite:" }), " Fast development"] })] })] }), d("article", { className: "bg-gradient-to-br from-gray-800/80 to-gray-700/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-600/50 hover:border-blue-500/50 transition-all duration-300 group", children: [a("h3", { className: "text-2xl font-semibold mb-6 text-blue-400 group-hover:text-blue-300 transition-colors duration-300", children: "\u26A1 Performance" }), d("ul", { className: "space-y-3 text-gray-300", role: "list", children: [d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-yellow-400 rounded-full" }), "Fast server-side rendering"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-green-400 rounded-full" }), "Progressive hydration"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-blue-400 rounded-full" }), "Minimal JavaScript bundle"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-purple-400 rounded-full" }), "Efficient client-side updates"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-pink-400 rounded-full" }), "Smart caching strategies"] }), d("li", { className: "flex items-center gap-3", children: [a("span", { className: "w-2 h-2 bg-cyan-400 rounded-full" }), "SEO-friendly architecture"] })] })] })] })] }), a("section", { "aria-labelledby": "philosophy-heading", children: d("article", { className: "bg-gradient-to-br from-orange-900/50 via-amber-900/50 to-yellow-900/50 backdrop-blur-sm p-10 rounded-2xl border border-orange-500/30 shadow-2xl shadow-orange-500/10", children: [a("h3", { id: "philosophy-heading", className: "text-3xl font-semibold mb-8 text-center text-orange-400", children: "\u{1F4AD} Philosophy" }), d("div", { className: "space-y-6 text-lg leading-relaxed", children: [a("p", { className: "text-gray-300", children: "HyperFX combines the best of both worlds: the familiar JSX syntax that developers love with the performance and simplicity of a lightweight framework." }), a("p", { className: "text-gray-300", children: "We believe in progressive enhancement, where your app works great even without JavaScript, but becomes more interactive as it loads. This ensures the best user experience across all devices and network conditions." })] })] }) })] })] });
+}
+const At = [{ id: 1, name: "HyperFX Pro", price: 99, description: "Advanced reactive framework with premium features", category: "Framework" }, { id: 2, name: "JSX Components", price: 49, description: "Pre-built accessible component library", category: "Components" }, { id: 3, name: "SSR Toolkit", price: 79, description: "Server-side rendering tools and optimization utilities", category: "Tools" }, { id: 4, name: "Dev Tools", price: 29, description: "Development and debugging tools for enhanced productivity", category: "Tools" }], T = q([]), kt = $(() => T().reduce((e, r) => e + r.price, 0)), X = $(() => T().length), Rt = $(() => X() > 0), Ft = $(() => X() === 0);
+function Pt(e) {
+  const r = T();
+  r.find((t) => t.id === e.id) || T([...r, e]);
+}
+function Ht(e) {
+  const r = T();
+  T(r.filter((t) => t.id !== e));
+}
+function Mt() {
+  T([]);
+}
+function Dt() {
+  return d("div", { className: "min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white", children: [a(ae, {}), d("main", { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12", children: [d("section", { className: "text-center mb-16", children: [a("h1", { className: "text-5xl md:text-7xl p-2 font-bold mb-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent", children: "\u{1F6CD}\uFE0F HyperFX Products" }), a("p", { className: "text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed", children: "Discover our premium tools and components for reactive web development" })] }), a("section", { className: "mb-16", "aria-labelledby": "cart-heading", children: d("div", { className: "bg-gradient-to-br from-green-900/50 via-emerald-900/50 to-teal-900/50 backdrop-blur-sm p-10 rounded-2xl border border-green-500/30 shadow-2xl shadow-green-500/10", children: [a("h2", { id: "cart-heading", className: "text-3xl font-semibold mb-8 text-center text-green-300", children: "\u{1F6D2} Shopping Cart" }), d("div", { className: "flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-8", children: [d("div", { className: "flex flex-col sm:flex-row gap-6 text-xl", children: [d("div", { "aria-live": "polite", className: "text-center lg:text-left", children: ["Items: ", a("span", { className: "text-transparent bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text font-bold text-2xl", children: X() })] }), d("div", { "aria-live": "polite", className: "text-center lg:text-left", children: ["Total: ", d("span", { className: "text-transparent bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text font-bold text-2xl", children: ["$", kt()] })] })] }), a("button", { className: "group px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-xl text-lg font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25", onclick: Mt, disabled: Ft, type: "button", "aria-label": `Clear all ${X()} items from cart`, children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-xl group-hover:animate-bounce", children: "\u{1F5D1}\uFE0F" }), "Clear Cart"] }) })] }), ze(Rt, () => d("div", { children: [a("h3", { className: "text-2xl font-medium mb-6 text-center", children: "Cart Items:" }), a("ul", { className: "space-y-4", role: "list", "aria-label": "Items in shopping cart", children: a(ke, { each: T, children: (e, r) => d("li", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-gradient-to-r from-gray-800/80 to-gray-700/80 backdrop-blur-sm p-4 rounded-xl border border-gray-600/50 hover:border-green-500/50 transition-all duration-300", children: [d("div", { className: "flex-1", children: [a("span", { className: "font-medium text-lg text-white", children: e.name }), d("span", { className: "text-green-400 ml-3 font-bold text-xl", children: ["$", e.price] })] }), a("button", { className: "group px-4 py-2 bg-gradient-to-r from-red-300 to-rose-400 hover:from-red-800 hover:to-rose-900 rounded-lg text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25 self-start sm:self-center", onclick: () => Ht(e.id), type: "button", "aria-label": `Remove ${e.name} from cart`, children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-lg group-hover:animate-pulse", children: "\u274C" }), "Remove"] }) })] }) }) })] }))] }) }), d("section", { "aria-labelledby": "products-heading", children: [a("h2", { id: "products-heading", className: "text-3xl font-bold mb-8 text-center bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent", children: "Available Products" }), a("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-8 mb-16", children: At.map((e) => {
+    const r = $(() => !!T().find((o) => o.id === e.id)), t = $(() => r() ? "In Cart" : "Add to Cart"), n = $(() => r() ? `${e.name} is already in cart` : `Add ${e.name} to cart for $${e.price}`);
+    return d("article", { className: "bg-gradient-to-br from-gray-800/80 to-gray-700/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-600/50 hover:border-blue-500/50 transition-all duration-300 group hover:transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/10", children: [d("header", { className: "mb-6", children: [d("div", { className: "flex justify-between items-start mb-4", children: [a("h3", { className: "text-2xl font-semibold text-blue-400 group-hover:text-blue-300 transition-colors duration-300", children: e.name }), a("span", { className: "text-sm bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-1 rounded-full text-white font-medium", children: e.category })] }), a("p", { className: "text-gray-300 text-lg leading-relaxed", children: e.description })] }), d("footer", { className: "flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6", children: [d("span", { className: "text-3xl font-bold text-transparent bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text", "aria-label": `Price: ${e.price} dollars`, children: ["$", e.price] }), a("button", { className: "group px-6 py-3 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white disabled:from-gray-600 disabled:to-slate-600 disabled:text-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none focus:ring-blue-500/50 hover:shadow-blue-500/25", onclick: () => Pt(e), disabled: r, type: "button", "aria-label": n, children: d("span", { className: "flex items-center gap-2", children: [a("span", { className: "text-xl group-hover:animate-bounce", children: r() ? "\u2713" : "\u{1F6D2}" }), t] }) })] })] }, e.id);
+  }) })] })] })] });
+}
+const Vt = eventHandler(async (e) => {
+  var _a;
+  const r = e.node.req.url || "/", t = new URL(r, "http://localhost").pathname;
+  if (t.startsWith("/_build/") || t.startsWith("/assets/") || t.includes(".css") || t.includes(".js") || t.includes(".map")) return;
+  const c = { "/": Nt, "/about": _t, "/products": Dt }[t] || (() => jt(t));
   try {
-    const a = { url: n, userAgent: e.node.req.headers["user-agent"] || "", isBot: oe.isBot(e.node.req.headers["user-agent"] || ""), headers: e.node.req.headers, query: {} }, o = { title: `HyperFX SSR - ${n === "/" ? "Home" : n.slice(1)}`, description: "HyperFX Server-Side Rendering with Vinxi", keywords: ["hyperfx", "ssr", "vinxi", "react", "framework"], openGraph: { title: "HyperFX + Vinxi SSR Demo", description: "Modern SSR with HyperFX and Vinxi", type: "website" } }, d = new oe(a, o);
-    console.log("\u{1F3AC} Calling RouteComponent...");
-    const g = i();
-    console.log("\u{1F4E6} VNode created:", !!g, typeof g), console.log("\u{1F528} Rendering with hydration...");
-    const { html: b, hydrationData: x } = ye(g);
-    console.log("\u2705 Rendered content length:", (b == null ? void 0 : b.length) || 0);
-    const s = Ne("client"), u = await s.inputs[s.handler].assets(), h = [], l = [];
-    u.forEach((v) => {
-      v.tag === "link" && v.attrs.rel === "stylesheet" ? h.push(v.attrs.href) : v.tag === "script" && l.push(v.attrs.src);
+    const i = { url: t, userAgent: e.node.req.headers["user-agent"] || "", isBot: ge.isBot(e.node.req.headers["user-agent"] || ""), headers: e.node.req.headers, query: {} }, l = { title: `HyperFX SSR - ${t === "/" ? "Home" : t.slice(1)}`, description: "HyperFX Server-Side Rendering with Vinxi", keywords: ["hyperfx", "ssr", "vinxi", "react", "framework"], openGraph: { title: "HyperFX + Vinxi SSR Demo", description: "Modern SSR with HyperFX and Vinxi", type: "website" } }, h = new ge(i, l), b = c(), { html: v, hydrationData: s } = Ae(b), u = Pe("client"), p = await u.inputs[u.handler].assets(), m = [], g = [];
+    p.forEach((N) => {
+      N.tag === "link" && N.attrs.rel === "stylesheet" && N.attrs.href ? m.push(N.attrs.href) : N.tag === "script" && N.attrs.src && g.push(N.attrs.src);
     });
     const f = false;
-    let p = "";
-    f || (p = `<script>window.__HYPERFX_HYDRATION_DATA__ = ${JSON.stringify(x)};<\/script>
-`, l.forEach((v) => {
-      p += `<script type="module" src="${v}"><\/script>
+    let y = "";
+    if (!f) {
+      if (y = `<script>window.__HYPERFX_HYDRATION_DATA__ = ${JSON.stringify(s)};<\/script>
+`, g.length === 0) {
+        const N = p.find((C) => C.attrs && C.attrs.src && C.attrs.src.includes("client") && C.attrs.src.endsWith(".js"));
+        if ((_a = N == null ? void 0 : N.attrs) == null ? void 0 : _a.src) g.push(N.attrs.src);
+        else try {
+          const C = await import('fs'), ce = (await import('path')).resolve(".output/public/_build/.vite/manifest.json");
+          if (C.existsSync(ce)) {
+            const Re = C.readFileSync(ce, "utf-8"), le = JSON.parse(Re), de = le["virtual:$vinxi/handler/client"];
+            if (de == null ? void 0 : de.file) g.push(`/_build/${de.file}`);
+            else {
+              const ue = Object.values(le).find((z) => z.isEntry && z.file && z.file.endsWith(".js"));
+              (ue == null ? void 0 : ue.file) && g.push(`/_build/${ue.file}`);
+            }
+          }
+        } catch (C) {
+          console.warn("Could not read Vite manifest:", C);
+        }
+      }
+      g.forEach((N) => {
+        y += `<script type="module" src="${N}"><\/script>
 `;
-    }));
-    const y = { bodyAttributes: { class: "antialiased" }, inlineStyles: "", stylesheets: h };
-    p && (y.inlineScripts = "/* Module scripts will be injected after rendering */");
-    let S = `<!DOCTYPE html>
+      });
+    }
+    const x = { bodyAttributes: { class: "antialiased" }, inlineStyles: "", stylesheets: m };
+    y && (x.inlineScripts = "/* Module scripts will be injected after rendering */");
+    const w = l.title.replace(/"/g, "&quot;"), F = l.description.replace(/"/g, "&quot;"), I = m.map((N) => `<link rel="stylesheet" href="${N}">`).join(`
+  `);
+    let P = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${o.title}</title>
-  <meta name="description" content="${o.description}">
-  ${h.map((v) => `<link rel="stylesheet" href="${v}">`).join(`
-  `)}
+  <title>${w}</title>
+  <meta name="description" content="${F}">
+  ${I}
 </head>
 <body class="antialiased">
-  ${b}
+  ${v}
 </body>
 </html>`;
-    return p && (S = S.replace("</head>", `  ${p}
-</head>`)), e.node.res.setHeader("Content-Type", "text/html; charset=utf-8"), e.node.res.setHeader("Cache-Control", "public, max-age=3600"), S;
-  } catch (a) {
-    console.error("\u274C SSR Error:", a);
-    const o = `<!DOCTYPE html>
+    return y && (P = P.replace("</head>", `  ${y}
+</head>`)), e.node.res.setHeader("Content-Type", "text/html; charset=utf-8"), e.node.res.setHeader("Cache-Control", "public, max-age=3600"), P;
+  } catch (i) {
+    const l = { pathname: t, error: i, userAgent: e.node.req.headers["user-agent"] };
+    console.error("\u274C SSR Error:", l);
+    const h = i instanceof Error ? i.message : String(i);
+    i instanceof Error && i.stack;
+    const b = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -5599,26 +5766,31 @@ const Tt = eventHandler(async (e) => {
   <style>
     body { font-family: system-ui; padding: 2rem; background: #1f2937; color: #f3f4f6; }
     .error { background: #dc2626; color: white; padding: 1rem; border-radius: 0.5rem; }
+    .error-details { background: #374151; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; }
+    pre { overflow-x: auto; white-space: pre-wrap; }
   </style>
 </head>
 <body>
   <div class="error">
     <h1>Server Error</h1>
     <p>There was an error rendering this page.</p>
-    <pre>${a instanceof Error ? a.message : String(a)}</pre>
+    <div class="error-details">
+      <pre>${h}</pre>
+      
+    </div>
   </div>
 </body>
 </html>`;
-    return e.node.res.setHeader("Content-Type", "text/html; charset=utf-8"), o;
+    return e.node.res.setHeader("Content-Type", "text/html; charset=utf-8"), b;
   }
 });
-function wt(e) {
-  return () => Me({ class: "min-h-screen bg-gray-900 text-white flex items-center justify-center" }, [je({ class: "text-4xl font-bold text-red-400" }, [X("404 - Page Not Found")]), Oe({ class: "text-gray-300 mt-4" }, [X(`Route "${e}" not found`)]), Le({ href: "/", class: "text-blue-400 hover:text-blue-300 mt-4 inline-block" }, [X("\u2190 Back to Home")])]);
+function jt(e) {
+  return qe({ class: "min-h-screen bg-gray-900 text-white flex items-center justify-center" }, [Je({ class: "text-4xl font-bold text-red-400" }, [B("404 - Page Not Found")]), Ge({ class: "text-gray-300 mt-4" }, [B(`Route "${e}" not found`)]), Ke({ href: "/", class: "text-blue-400 hover:text-blue-300 mt-4 inline-block" }, [B("\u2190 Back to Home")])]);
 }
 
 const handlers = [
   { route: '', handler: _DCUJxM, lazy: false, middleware: true, method: undefined },
-  { route: '/', handler: Tt, lazy: false, middleware: true, method: undefined }
+  { route: '/', handler: Vt, lazy: false, middleware: true, method: undefined }
 ];
 
 function createNitroApp() {
