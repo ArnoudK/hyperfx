@@ -1,30 +1,8 @@
-import type { GlobalAttr } from "./attr";
-import { addAttr, createS } from "./elem";
+import type { StrictImageAttributes } from "./attr";
+import { createElement } from "./elem";
 
-type requiredImgAttr = { src: string };
-type optionImgAttr = {
-  alt: string;
-  attributionsrc: string;
-  crossorigin: "anonymous" | "use-credentials";
-  decoding: "sync" | "async" | "auto";
-  elementtiming: string;
-  fetchpriority: "high" | "low" | "auto";
-  height: string;
-  width: string;
-  loading: "eager" | "lazy";
-  referrerpolicy:
-    | "no-referrer"
-    | "no-referrer-when-downgrade"
-    | "origin"
-    | "origin-when-cross-origin"
-    | "same-origin"
-    | "strict-origin"
-    | "strict-origin-when-cross-origin"
-    | "unsafe-url";
-  sizes: string;
-  srcset: string;
-};
-
-type imageAttr = requiredImgAttr & GlobalAttr & Partial<optionImgAttr>;
-
-export const Img = (attrs: imageAttr) => createS("img", attrs);
+/**
+ * Type-safe image element with required src and alt attributes
+ * Uses the strict image attributes from attr.ts for better type safety
+ */
+export const Img = (attrs: StrictImageAttributes) => createElement("img", attrs);

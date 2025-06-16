@@ -113,8 +113,22 @@ import("jsdom").then(async (jsdom) => {
     equal(div_text, div_text_from_elem);
   }
 
-  Tests().then(() => {
+  Tests().then(async () => {
     console.log("Testing simple Html passed");
-    console.log(`\nall test finished after: ${Date.now() - start}ms`);
+    
+    // Run attribute system tests
+    try {
+      const testModule = await import("./attribute-system.test.js");
+      console.log("Loaded test module:", Object.keys(testModule));
+      if (testModule.runAttributeSystemTests) {
+        testModule.runAttributeSystemTests();
+      } else {
+        console.error("runAttributeSystemTests not found in module");
+      }
+      console.log(`\nall test finished after: ${Date.now() - start}ms`);
+    } catch (error) {
+      console.error("Attribute system tests failed:", error);
+      console.log(`\nall test finished after: ${Date.now() - start}ms`);
+    }
   });
 });

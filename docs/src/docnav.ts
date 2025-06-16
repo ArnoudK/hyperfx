@@ -8,7 +8,7 @@ export function DocNav() {
     A({ class: "p-2", href: `${prefix_md_doc}${docsMD[0].route_name}` }, [
       t(docsMD[0].title),
     ]),
-    A({ class: "p-2", href: "/editor" }, [t("Example")]),
+    A({ class: "p-2", href: "/hyperfx/editor" }, [t("Example")]),
   ]);
 }
 
@@ -24,12 +24,13 @@ export const SideNavComp = Component(
       [
         Button(
           {
-            class: "text-indigo-300 border border-indigo-300 p-2 rounded-xl",
+            class: "text-indigo-300 border border-indigo-300 p-2 rounded-xl sm:hidden",
+            title: "Toggle Navigation",
           },
           []
         )
           .WithEvent$HFX("click", () => {
-            c.Update({ expand: !c.data.expand });
+            c.Update({ expand: !c.data().expand });
           })
           .With$HFX((e) => {
             if (data.expand) {
@@ -40,8 +41,8 @@ export const SideNavComp = Component(
           }),
         Nav(
           {
-            class: "flex-col flex-auto flex-grow",
-            style: c.data.expand ? "display:flex" : "display:none",
+            class: `flex-col flex-auto flex-grow sm:flex ${data.expand ? "flex" : "hidden"}`,
+
           },
           docsMD.map((a) => {
             return A(
@@ -56,3 +57,5 @@ export const SideNavComp = Component(
       ]
     )
 );
+
+

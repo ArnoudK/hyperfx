@@ -5,6 +5,32 @@
   "license": "BSD-2-Clause",
   "private": "false",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./jsx": {
+      "types": "./dist/jsx/jsx-runtime.d.ts",
+      "import": "./dist/jsx/jsx-runtime.js"
+    },
+    "./jsx-runtime": {
+      "types": "./dist/jsx/jsx-runtime.d.ts",
+      "import": "./dist/jsx/jsx-runtime.js"
+    },
+    "./jsx-dev-runtime": {
+      "types": "./dist/jsx/jsx-dev-runtime.d.ts",
+      "import": "./dist/jsx/jsx-dev-runtime.js"
+    },
+    "./jsx/jsx-runtime": {
+      "types": "./dist/jsx/jsx-runtime.d.ts",
+      "import": "./dist/jsx/jsx-runtime.js"
+    },
+    "./jsx/jsx-dev-runtime": {
+      "types": "./dist/jsx/jsx-dev-runtime.d.ts",
+      "import": "./dist/jsx/jsx-dev-runtime.js"
+    }
+  },
   "author": {
     "name": "Arnoud Kerkhof"
   },
@@ -15,7 +41,7 @@
   ],
   "version": "0.0.2",
   "scripts": {
-    "lint": "npx prettier ./src ./test --write",
+    "lint": "oxlint --fix src",
     "build": "tsc -b",
     "dev": "tsc -b --watch --preserveWatchOutput",
     "release": "pnpm run build && changeset publish",
@@ -24,16 +50,19 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.4",
-    "@eslint/js": "^9.26.0",
+    "@eslint/js": "^9.28.0",
     "@types/jsdom": "^21.1.7",
-    "@types/node": "^22.15.18",
+    "@types/node": "^22.15.31",
     "jsdom": "^26.1.0",
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
-    "tsx": "^4.19.4",
+    "tsx": "^4.20.2",
     "typescript": "^5.8.3"
   },
   "files": [
     "dist/"
-  ]
+  ],
+  "dependencies": {
+    "alien-signals": "^2.0.5"
+  }
 }
