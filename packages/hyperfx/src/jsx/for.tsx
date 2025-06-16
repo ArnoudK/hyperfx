@@ -1,4 +1,4 @@
-// For component for reactive arrays in JSX
+// For component for reactive arrays in JSX with improved types
 import { VNode, FRAGMENT_TAG } from "../elem/elem";
 import { ReactiveSignal } from "../reactive/state";
 
@@ -9,6 +9,14 @@ export interface ForProps<T> {
   each: ReactiveSignal<T[]> | T[];
   children: (item: T, index: number) => VNode;
   fallback?: VNode;
+  key?: string | number; // Key for the For component itself
+}
+
+// Enhanced VNode with reactive For data
+interface ReactiveForVNode extends VNode {
+  __reactiveArrayFn?: ReactiveSignal<any[]>;
+  __renderFn?: (item: any, index: number) => VNode;
+  __fallback?: VNode;
 }
 
 export function For<T>(props: ForProps<T>): VNode {
@@ -53,7 +61,7 @@ export function For<T>(props: ForProps<T>): VNode {
         });
     
     // Use a transparent wrapper div that can hold reactive data and be found during hydration
-    return {
+    const reactiveVNode: ReactiveForVNode = {
       tag: 'div',
       props: {
         'data-reactive-for': 'true',
@@ -65,7 +73,9 @@ export function For<T>(props: ForProps<T>): VNode {
       __reactiveArrayFn: reactiveSignal,
       __renderFn: children,
       __fallback: fallback,
-    } as any;
+    };
+    
+    return reactiveVNode;
   } else {
     // For static arrays, render immediately as a fragment
     const items = each as T[];

@@ -13,8 +13,7 @@ export type VNodeChildren = readonly (VNode | string | ReactiveSignal<string>)[]
 export declare function resolveReactiveValue<T>(value: T | ReactiveSignal<T>): T;
 export declare const el: <K extends keyof HTMLElementTagNameMap>(tagName: K, attributes?: AttributesForElement<K>, children?: VNodeChildren) => VNode<K>;
 export declare const Div: (attributes?: AttributesForElement<"div">, children?: VNodeChildren) => VNode<"div">;
-/** Render text (the text content inside a tag): now returns a string for VDOM */
-export declare function t(text: TemplateStringsArray | string, ...values: (string | unknown)[]): string;
+export { template as t, template } from '../jsx/jsx-runtime';
 export declare const FRAGMENT_TAG: unique symbol;
 export declare const Fragment: (children: VNodeChildren) => VNode<typeof FRAGMENT_TAG>;
 export declare const createElement: <K extends keyof HTMLElementTagNameMap>(name: K, attributes: AttrElementAttributes) => VNode<K>;

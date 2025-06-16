@@ -68,11 +68,14 @@ function hydrateVNode(vnode, container, hydrationData) {
         node.dom = element;
         // Set up reactive properties if they exist
         if (node.reactiveProps) {
+            console.log('🔧 Setting up reactive props for element:', element.tagName, 'props:', Object.keys(node.reactiveProps));
             // Import createEffect here to avoid circular dependency
             node.effects = node.effects || [];
             Object.entries(node.reactiveProps).forEach(([propName, signal]) => {
+                console.log('🔧 Setting up reactive prop:', propName, 'initial value:', signal());
                 const effect = createEffect(() => {
                     const value = signal();
+                    console.log('🔄 Updating reactive prop', propName, 'to:', value);
                     if (propName === 'textContent') {
                         element.textContent = String(value);
                     }
@@ -243,7 +246,6 @@ function hydrateInteractiveComponents(vnode, container) {
             const props = vNodeToHydrate.props;
             // console.log('🔍 Attempting to attach handlers for element:', element.tagName, 'Props:', Object.keys(props));
             Object.entries(props).forEach(([key, value]) => {
-                // console.log('🔍 Checking prop:', key, 'type:', typeof value, 'isFunction:', typeof value === 'function');
                 if (key.startsWith('on') && typeof value === 'function') {
                     const eventName = key.slice(2).toLowerCase();
                     // Remove old listener if any
@@ -256,21 +258,21 @@ function hydrateInteractiveComponents(vnode, container) {
                     element[`__event_${eventName}`] = value;
                     // console.log('🎯 Attached', eventName, 'handler to', element.tagName, '- Text:', element.textContent?.trim());
                 }
-                else if (typeof value === 'function') {
-                    // Handle reactive props during hydration
-                    console.log('🔧 Setting up reactive prop during hydration:', key, 'for element:', element.tagName);
-                    createEffect(() => {
-                        try {
-                            const propValue = value();
-                            console.log('🔄 Updating reactive prop during hydration:', key, 'to:', propValue);
-                            setElementProperty(element, key, propValue);
-                        }
-                        catch (error) {
-                            console.error('❌ Error updating reactive prop during hydration:', key, error);
-                        }
-                    });
-                }
             });
+            // Handle reactive props separately 
+            if (vNodeToHydrate.reactiveProps) {
+                console.log('🔧 Setting up reactive props during hydration for element:', element.tagName, 'props:', Object.keys(vNodeToHydrate.reactiveProps));
+                vNodeToHydrate.effects = vNodeToHydrate.effects || [];
+                Object.entries(vNodeToHydrate.reactiveProps).forEach(([propName, signal]) => {
+                    console.log('� Setting up reactive prop during hydration:', propName, 'initial value:', signal());
+                    const effect = createEffect(() => {
+                        const value = signal();
+                        console.log('🔄 Updating reactive prop during hydration:', propName, 'to:', value);
+                        setElementProperty(element, propName, value);
+                    });
+                    vNodeToHydrate.effects.push(effect);
+                });
+            }
             // Clean up the hydration marker
             element.removeAttribute('data-hyperfx-hydrate');
             // Link VNode to DOM element for other systems

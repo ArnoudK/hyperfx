@@ -27,6 +27,8 @@ export { ReactiveList } from "./jsx/reactive-list";
 export { For } from "./jsx/for";
 export { reactive } from "./jsx/reactive-helper";
 export { RouterLink } from "./jsx/router-link";
+export { template as jsxTemplate, r } from "./jsx/jsx-runtime";
+export { template, t } from "./elem/elem";
 export { JSX } from "./jsx/jsx-runtime";
 declare global {
     interface HTMLElement {

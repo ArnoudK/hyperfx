@@ -3,7 +3,7 @@ import {
   booleanAttrs,
   type AttributesForElement,
 } from "./attr";
-import { ReactiveSignal, createEffect, EffectCleanup } from "../reactive/state";
+import { ReactiveSignal, createEffect, ComputedSignal, EffectCleanup } from "../reactive/state";
 
 // Enhanced VNode interface with reactive support
 export interface VNode<TagType extends keyof HTMLElementTagNameMap | string | symbol = string | symbol> {
@@ -47,20 +47,8 @@ export const Div = (
   children?: VNodeChildren
 ): VNode<"div"> => el("div", attributes, children);
 
-/** Render text (the text content inside a tag): now returns a string for VDOM */
-export function t(text: TemplateStringsArray | string, ...values: (string | unknown)[]): string {
-  let result = "";
-  if (typeof text === "string") {
-    result = text;
-  } else {
-    for (let i = 0; i < values.length; i++) {
-      result += text[i];
-      result += String(values[i]);
-    }
-    result += text[values.length];
-  }
-  return result;
-}
+// Re-export the new reactive template function as 't' for convenience
+export { template as t, template } from '../jsx/jsx-runtime';
 
 // Fragment
 export const FRAGMENT_TAG = Symbol("HyperFX.Fragment"); // Unique symbol for fragment tag
@@ -84,6 +72,11 @@ const setElementAttributesInternal = (el: HTMLElement, attributes: AttrElementAt
     if (attrName.startsWith("on") && typeof attrValue === "function") {
       const eventName = attrName.slice(2).toLowerCase();
       el.addEventListener(eventName, attrValue as EventListener);
+      continue;
+    }
+
+    if (attrName === "innerHTML" && typeof attrValue === 'string') {
+      el.innerHTML = attrValue;
       continue;
     }
 
@@ -199,6 +192,9 @@ export function mount(vnode: VNode | string | ReactiveSignal<string>, container:
             el.removeAttribute('checked');
           }
           (el as any).checked = !!value;
+        } else if (propName === 'innerHTML') {
+          // Handle innerHTML property specially
+          el.innerHTML = String(value);
         } else {
           el.setAttribute(propName, String(value));
         }
@@ -490,6 +486,9 @@ export function patch(
                 // Add new listener
                 element.addEventListener(eventName, value);
                 (element as any)[`__${propName}`] = value;
+              } else if (propName === 'innerHTML') {
+                // Handle innerHTML property specially
+                element.innerHTML = String(value);
               } else {
                 element.setAttribute(propName, String(value));
               }

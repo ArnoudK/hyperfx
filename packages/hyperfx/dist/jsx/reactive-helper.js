@@ -8,4 +8,10 @@ export function reactive(expression) {
     reactiveExpr.__isReactiveExpression = true;
     return reactiveExpr;
 }
+/**
+ * Type guard to check if a function is a reactive expression
+ */
+export function isReactiveExpression(fn) {
+    return typeof fn === 'function' && '__isReactiveExpression' in fn && fn.__isReactiveExpression === true;
+}
 //# sourceMappingURL=reactive-helper.js.map

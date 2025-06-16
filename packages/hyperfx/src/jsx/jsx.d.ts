@@ -1,25 +1,19 @@
 /// <reference path="jsx-runtime.ts" />
 
 import { VNode } from "../elem/elem";
+import { JSXChildren, EventHandlers, ReactiveHtmlAttributes } from "./jsx-runtime";
+import { AttributesForElement } from "../elem/attr";
 
 declare global {
   namespace JSX {
-    interface Element {
-      tag: string | symbol;
-      props: Record<string, any>;
-      children: any[];
-      key?: string | number;
-      dom?: HTMLElement | Text | Comment;
-      reactiveProps?: Record<string, any>;
-      effects?: any[];
-    }
+    interface Element extends VNode {}
 
     interface IntrinsicElements {
-      [elemName: string]: VNode;
+      [elemName: string]: AttributesForElement<any> & EventHandlers & ReactiveHtmlAttributes & { children?: JSXChildren };
     }
 
     interface ElementChildrenAttribute {
-      children: {};
+      children: JSXChildren;
     }
   }
 }

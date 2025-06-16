@@ -1,3 +1,4 @@
+import { mount, unmount, FRAGMENT_TAG } from "../elem/elem";
 import { navigateTo } from "./navigate";
 export class PageRegister {
     /**
@@ -81,7 +82,16 @@ function onPageChange() {
         pageOptions.onPageUnload?.(reg.currentPage);
         reg.currentPage.destroy(); // Use destroy from Comp
     }
+    // Unmount the current VNode properly
+    if (reg.currentVNode) {
+        unmount(reg.currentVNode);
+        reg.currentVNode = undefined;
+    }
     reg.currentPage = undefined;
+    // Clear the anchor container
+    while (reg.Anchor.firstChild) {
+        reg.Anchor.removeChild(reg.Anchor.firstChild);
+    }
     // Clear params of the old route and the route itself
     if (reg.currentRoute) {
         for (const p of reg.currentRoute.params) {
@@ -110,21 +120,28 @@ function onPageChange() {
                     p.value = undefined; // Or handle as error/default
                 }
             }
-            // Ensure the new component instance is fresh if PageComp instances are not reused
-            // For now, assuming r.comp is the correct instance to use or a factory.
-            // If r.comp is a class/factory, it should be instantiated here.
-            // Based on previous context, r.comp is already an instance.
+            // Render the component and get its VNode
             const newPage = r.comp;
-            // Mount the new page component to the anchor
-            // The anchor should be cleared before mounting a new page.
-            while (reg.Anchor.firstChild) {
-                reg.Anchor.removeChild(reg.Anchor.firstChild);
+            const renderOutput = newPage.Render(newPage.currentProps, newPage);
+            let vNodeToMount;
+            if (Array.isArray(renderOutput)) {
+                vNodeToMount = { tag: FRAGMENT_TAG, props: {}, children: renderOutput, dom: undefined };
             }
-            newPage.mount(reg.Anchor); // Mount the component
+            else {
+                vNodeToMount = renderOutput;
+            }
+            // Mount the VNode directly to the DOM
+            mount(vNodeToMount, reg.Anchor);
+            // Store the VNode for cleanup
+            reg.currentVNode = vNodeToMount;
+            reg.currentPage = newPage;
+            // Update the component's state to reflect that it's mounted
+            newPage.currentRender = vNodeToMount;
+            newPage.mountedDom = vNodeToMount.dom;
+            newPage.parentDomElement = reg.Anchor;
             // Call onPageLoad from options if it exists
             const pageOptions = newPage.options; // Cast to PageOptions
             pageOptions.onPageLoad?.(reg.Anchor, newPage);
-            reg.currentPage = newPage; // Set the new page as current
             return; // Route processed
         }
     }

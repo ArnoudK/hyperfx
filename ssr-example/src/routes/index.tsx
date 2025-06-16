@@ -1,48 +1,63 @@
 import { createSignal, RouterLink, VNode } from 'hyperfx';
 import { TopNav } from '../components/topnav';
 
-// Create a reactive counter signal
-const count = createSignal(0);
+// Type definitions for better type safety
+type CounterValue = number;
+type CounterSignal = ReturnType<typeof createSignal<CounterValue>>;
 
-// Counter actions
-function increment() {
-    count(count() + 1);
+interface CounterActions {
+    increment: () => void;
+    decrement: () => void;
+    reset: () => void;
 }
 
-function decrement() {
-    count(count() - 1);
-}
+// Create a reactive counter signal with proper typing
+const count: CounterSignal = createSignal<CounterValue>(0);
 
-function reset() {
-    count(0);
-}
+// Counter actions with proper typing
+const counterActions: CounterActions = {
+    increment(): void {
+        count(count() + 1);
+    },
 
-export default function HomePage(): VNode {
+    decrement(): void {
+        count(count() - 1);
+    },
+
+    reset(): void {
+        count(0);
+    }
+};
+
+// Export individual actions for convenience
+export const { increment, decrement, reset } = counterActions;
+
+export default function HomePage(): VNode<any> {
     return (
-        <div className="min-h-screen bg-gray-900 text-white">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
           <TopNav />
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <section className="text-center mb-12">
-                    <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <section className="text-center mb-16">
+                    <h1 className="text-5xl md:text-7xl font-bold p-2 mb-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                         🚀 Welcome to HyperFX JSX
                     </h1>
                     
-                    <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+                    <p className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
                         A modern SSR framework with reactive JSX components
                     </p>
                 </section>
 
                 {/* Interactive Counter Demo */}
-                <section className="mb-12" aria-labelledby="counter-heading">
-                    <div className="bg-gradient-to-r from-blue-900 to-purple-900 p-8 rounded-lg border border-blue-700">
-                        <h2 id="counter-heading" className="text-2xl font-semibold mb-6 text-blue-300">
+                <section className="mb-16" aria-labelledby="counter-heading">
+                    <div className="bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-indigo-900/50 backdrop-blur-sm p-10 rounded-2xl border border-blue-500/30 shadow-2xl shadow-blue-500/10">
+                        <h2 id="counter-heading" className="text-3xl font-semibold mb-8 text-center text-blue-300">
                             🧮 Interactive Counter
                         </h2>
                         
                         <div className="text-center">
                             <div 
-                                className="text-6xl font-bold mb-6 text-yellow-400"
+                                className="text-7xl md:text-8xl font-bold mb-10 text-transparent bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text animate-pulse"
                                 role="status"
                                 aria-live="polite"
                                 aria-label={`Current count: ${count()}`}
@@ -50,30 +65,39 @@ export default function HomePage(): VNode {
                                 {count}
                             </div>
                             
-                            <div className="flex flex-wrap justify-center gap-4">
+                            <div className="flex flex-wrap justify-center gap-6">
                                 <button
-                                    className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                                    className="group px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-green-500/25"
                                     onclick={increment}
                                     type="button"
                                     aria-label="Increment counter"
                                 >
-                                    ➕ Increment
+                                    <span className="flex items-center gap-2">
+                                        <span className="text-2xl group-hover:animate-bounce">➕</span>
+                                        Increment
+                                    </span>
                                 </button>
                                 <button
-                                    className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg text-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                                    className="group px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25"
                                     onclick={decrement}
                                     type="button"
                                     aria-label="Decrement counter"
                                 >
-                                    ➖ Decrement
+                                    <span className="flex items-center gap-2">
+                                        <span className="text-2xl group-hover:animate-bounce">➖</span>
+                                        Decrement
+                                    </span>
                                 </button>
                                 <button
-                                    className="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg text-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                                    className="group px-8 py-4 bg-gradient-to-r from-gray-600 to-slate-600 hover:from-gray-500 hover:to-slate-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-gray-500/25"
                                     onclick={reset}
                                     type="button"
                                     aria-label="Reset counter to zero"
                                 >
-                                    🔄 Reset
+                                    <span className="flex items-center gap-2">
+                                        <span className="text-2xl group-hover:animate-spin">🔄</span>
+                                        Reset
+                                    </span>
                                 </button>
                             </div>
                         </div>

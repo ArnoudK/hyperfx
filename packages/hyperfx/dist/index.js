@@ -32,4 +32,7 @@ export { ReactiveList } from "./jsx/reactive-list";
 export { For } from "./jsx/for";
 export { reactive } from "./jsx/reactive-helper";
 export { RouterLink } from "./jsx/router-link";
+// Template literal helpers (available from both elem and jsx)
+export { template as jsxTemplate, r } from "./jsx/jsx-runtime";
+export { template, t } from "./elem/elem";
 //# sourceMappingURL=index.js.map

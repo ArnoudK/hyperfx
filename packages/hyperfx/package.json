@@ -45,8 +45,7 @@
     "build": "tsc -b",
     "dev": "tsc -b --watch --preserveWatchOutput",
     "release": "pnpm run build && changeset publish",
-    "prepublish": "pnpm build",
-    "test": "tsx test/index.ts"
+    "prepublish": "pnpm build"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.4",

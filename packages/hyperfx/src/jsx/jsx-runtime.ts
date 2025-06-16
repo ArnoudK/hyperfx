@@ -1,248 +1,429 @@
 import { VNode, VNodeChildren, FRAGMENT_TAG } from "../elem/elem";
-import { type ElementAttributes } from "../elem/attr";
-import { ReactiveSignal } from "../reactive/state";
+import { type ElementAttributes, type AttributesForElement } from "../elem/attr";
+import { ReactiveSignal, ComputedSignal, createComputed } from "../reactive/state";
 
-// JSX types for TypeScript
-export namespace JSX {
-  export interface Element extends VNode {}
-  
-  export interface IntrinsicElements {
-    [elemName: string]: any;
-    
-    // HTML Elements
-    a: any;
-    abbr: any;
-    address: any;
-    area: any;
-    article: any;
-    aside: any;
-    audio: any;
-    b: any;
-    base: any;
-    bdi: any;
-    bdo: any;
-    blockquote: any;
-    body: any;
-    br: any;
-    button: any;
-    canvas: any;
-    caption: any;
-    cite: any;
-    code: any;
-    col: any;
-    colgroup: any;
-    data: any;
-    datalist: any;
-    dd: any;
-    del: any;
-    details: any;
-    dfn: any;
-    dialog: any;
-    div: any;
-    dl: any;
-    dt: any;
-    em: any;
-    embed: any;
-    fieldset: any;
-    figcaption: any;
-    figure: any;
-    footer: any;
-    form: any;
-    h1: any;
-    h2: any;
-    h3: any;
-    h4: any;
-    h5: any;
-    h6: any;
-    head: any;
-    header: any;
-    hgroup: any;
-    hr: any;
-    html: any;
-    i: any;
-    iframe: any;
-    img: any;
-    input: any;
-    ins: any;
-    kbd: any;
-    label: any;
-    legend: any;
-    li: any;
-    link: any;
-    main: any;
-    map: any;
-    mark: any;
-    meta: any;
-    meter: any;
-    nav: any;
-    noscript: any;
-    object: any;
-    ol: any;
-    optgroup: any;
-    option: any;
-    output: any;
-    p: any;
-    picture: any;
-    pre: any;
-    progress: any;
-    q: any;
-    rp: any;
-    rt: any;
-    ruby: any;
-    s: any;
-    samp: any;
-    script: any;
-    section: any;
-    select: any;
-    small: any;
-    source: any;
-    span: any;
-    strong: any;
-    style: any;
-    sub: any;
-    summary: any;
-    sup: any;
-    table: any;
-    tbody: any;
-    td: any;
-    template: any;
-    textarea: any;
-    tfoot: any;
-    th: any;
-    thead: any;
-    time: any;
-    title: any;
-    tr: any;
-    track: any;
-    u: any;
-    ul: any;
-    var: any;
-    video: any;
-    wbr: any;
+/**
+ * JSX Runtime for HyperFX
+ * 
+ * Features supported:
+ * - Full TypeScript JSX support with type safety
+ * - Reactive signals as props and children
+ * - htmlFor attribute (maps to 'for')
+ * - className attribute (maps to 'class')
+ * - Key props for reconciliation
+ * - Event handlers with proper typing
+ * - Fragment support
+ * - Function components
+ * 
+ * Example usage:
+ * ```tsx
+ * // Reactive children
+ * <div>{count()}</div>
+ * <span>{() => `Count: ${count()}`}</span>
+ * 
+ * // Reactive template literals (recommended approach)
+ * <button aria-label={template`Clear all ${cartItemCount} items from cart`}>
+ *   Clear Cart
+ * </button>
+ * 
+ * // Alternative: Use r() helper for complex reactive expressions
+ * <div title={r(() => `User ${userName()}: ${status()}`)}>Content</div>
+ * 
+ * // htmlFor attribute
+ * <label htmlFor="input-id">Label</label>
+ * 
+ * // Reactive props
+ * <div className={isActive() ? 'active' : 'inactive'}>Content</div>
+ * 
+ * // Key props
+ * <div key="unique-id">Item</div>
+ * ```
+ */
+
+// Core reactive prop type - allows any value to be reactive
+export type ReactiveValue<T> = T | ReactiveSignal<T> | (() => T);
+
+// Specific reactive types for common use cases
+export type ReactiveString = ReactiveValue<string>;
+export type ReactiveNumber = ReactiveValue<number>;
+export type ReactiveBoolean = ReactiveValue<boolean>;
+
+// Template literal support for reactive strings
+export type ReactiveStringExpression =
+  | string
+  | ReactiveSignal<string>
+  | (() => string); // Support for template literals and computed expressions (must be wrapped in function)
+
+// Event handler type (should NOT be reactive)
+export type EventHandler<E extends Event = Event> = (event: E) => void;
+
+// Utility type to make attribute values reactive, but preserve event handlers and special props
+type MakeReactive<T> = {
+  [K in keyof T]: K extends `on${string}`
+  ? T[K] // Keep event handlers as-is
+  : K extends 'key'
+  ? T[K] // Keep key as-is for performance
+  : K extends 'ref'
+  ? T[K] // Keep ref as-is
+  : T[K] extends string | undefined
+  ? ReactiveStringExpression | T[K] // Enhanced string support with template literals
+  : T[K] extends number | undefined
+  ? ReactiveNumber | T[K]
+  : T[K] extends boolean | undefined
+  ? ReactiveBoolean | T[K]
+  : T[K] extends string | number | undefined
+  ? ReactiveValue<string | number> | T[K]
+  : ReactiveValue<T[K]> | T[K];
+};
+
+// Apply reactive transformation to HTML element attributes
+export type ReactiveElementAttributes<K extends keyof HTMLElementTagNameMap> =
+  MakeReactive<AttributesForElement<K>> & {
+    // Add special JSX attributes that don't exist in standard HTML
+    htmlFor?: ReactiveStringExpression; // Maps to 'for' attribute with template literal support
+    className?: ReactiveStringExpression; // Maps to 'class' attribute with template literal support
+    key?: string | number; // Key for reconciliation (not reactive for performance)
+  };
+
+// Type guards for reactive signals
+function isReactiveSignal<T = any>(fn: unknown): fn is ReactiveSignal<T> {
+  if (typeof fn !== 'function') return false;
+
+  // Check for alien-signals function names (these are the most reliable)
+  const signalNames = ['bound signalOper', 'bound computedOper', 'signalOper', 'computedOper'];
+  if (signalNames.includes(fn.name)) {
+    return true;
   }
-  
-  export interface ElementChildrenAttribute {
-    children: {};
+
+  // Try to call the function to see if it's reactive
+  try {
+    const result = fn();
+    // If it returns a primitive value, it's likely reactive
+    const isPrimitive = typeof result === 'string' || typeof result === 'number' || typeof result === 'boolean';
+
+    if (isPrimitive) {
+      // Additional check: see if the function string contains signal calls
+      const fnString = fn.toString();
+      // Look for common reactive patterns:
+      const hasReactivePattern =
+        /\w+\(\)/.test(fnString) || // function calls ending with ()
+        /signal|computed|createSignal|createComputed/.test(fnString) || // signal creation
+        /\$\{[^}]*\(\)[^}]*\}/.test(fnString) || // template literal patterns with ${...()}
+        /\$\{[^}]*signal|computed[^}]*\}/.test(fnString) || // template literals with signal/computed
+        /`[^`]*\$\{[^}]*\}[^`]*`/.test(fnString); // template literal detection
+
+      return hasReactivePattern;
+    }
+
+    return false;
+  } catch {
+    // If calling the function throws, but it looks like it might be reactive, 
+    // check if it has reactive patterns in its string representation
+    try {
+      const fnString = fn.toString();
+      return /signal|computed|createSignal|createComputed|\$\{[^}]*\(\)/.test(fnString);
+    } catch {
+      return false;
+    }
   }
 }
 
-// Normalize props for JSX compatibility
-function normalizeProps(props: any): ElementAttributes {
+function isComputedSignal<T = any>(fn: unknown): fn is ComputedSignal<T> {
+  if (typeof fn !== 'function') return false;
+  return fn.name.includes('computedOper') || fn.name.includes('bound computedOper');
+}
+
+// Component types
+export type ComponentProps<P = {}> = P & {
+  children?: JSXChildren;
+  key?: string | number; // Key for reconciliation
+};
+
+export type FunctionComponent<P = {}> = (props: ComponentProps<P>) => VNode;
+
+// JSX children types
+export type JSXChild =
+  | VNode
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | ReactiveSignal<string>
+  | ReactiveSignal<number>
+  | ReactiveSignal<boolean>
+  | ReactiveSignal<VNode>
+  | ReactiveSignal<VNode[]>;
+
+export type JSXChildren = JSXChild | JSXChild[];
+
+// Event handler types (these should NOT be reactive)
+export interface EventHandlers {
+  onClick?: EventHandler<MouseEvent>;
+  onInput?: EventHandler<InputEvent>;
+  onChange?: EventHandler<Event>;
+  onSubmit?: EventHandler<SubmitEvent>;
+  onFocus?: EventHandler<FocusEvent>;
+  onBlur?: EventHandler<FocusEvent>;
+  onKeyDown?: EventHandler<KeyboardEvent>;
+  onKeyUp?: EventHandler<KeyboardEvent>;
+  onKeyPress?: EventHandler<KeyboardEvent>;
+  onMouseEnter?: EventHandler<MouseEvent>;
+  onMouseLeave?: EventHandler<MouseEvent>;
+  onMouseMove?: EventHandler<MouseEvent>;
+  onMouseDown?: EventHandler<MouseEvent>;
+  onMouseUp?: EventHandler<MouseEvent>;
+  onTouchStart?: EventHandler<TouchEvent>;
+  onTouchEnd?: EventHandler<TouchEvent>;
+  onTouchMove?: EventHandler<TouchEvent>;
+  onScroll?: EventHandler<Event>;
+  onResize?: EventHandler<Event>;
+  onLoad?: EventHandler<Event>;
+  onError?: EventHandler<Event>;
+}
+
+
+// JSX types for TypeScript
+export namespace JSX {
+  export interface Element extends VNode { }
+
+  export interface IntrinsicElements {
+    // HTML Elements with proper reactive attribute types
+    a: ReactiveElementAttributes<'a'> & EventHandlers & { children?: JSXChildren };
+    abbr: ReactiveElementAttributes<'abbr'> & EventHandlers & { children?: JSXChildren };
+    address: ReactiveElementAttributes<'address'> & EventHandlers & { children?: JSXChildren };
+    area: ReactiveElementAttributes<'area'> & EventHandlers;
+    article: ReactiveElementAttributes<'article'> & EventHandlers & { children?: JSXChildren };
+    aside: ReactiveElementAttributes<'aside'> & EventHandlers & { children?: JSXChildren };
+    audio: ReactiveElementAttributes<'audio'> & EventHandlers & { children?: JSXChildren };
+    b: ReactiveElementAttributes<'b'> & EventHandlers & { children?: JSXChildren };
+    base: ReactiveElementAttributes<'base'> & EventHandlers;
+    bdi: ReactiveElementAttributes<'bdi'> & EventHandlers & { children?: JSXChildren };
+    bdo: ReactiveElementAttributes<'bdo'> & EventHandlers & { children?: JSXChildren };
+    blockquote: ReactiveElementAttributes<'blockquote'> & EventHandlers & { children?: JSXChildren };
+    body: ReactiveElementAttributes<'body'> & EventHandlers & { children?: JSXChildren };
+    br: ReactiveElementAttributes<'br'> & EventHandlers;
+    button: ReactiveElementAttributes<'button'> & EventHandlers & { children?: JSXChildren };
+    canvas: ReactiveElementAttributes<'canvas'> & EventHandlers & { children?: JSXChildren };
+    caption: ReactiveElementAttributes<'caption'> & EventHandlers & { children?: JSXChildren };
+    cite: ReactiveElementAttributes<'cite'> & EventHandlers & { children?: JSXChildren };
+    code: ReactiveElementAttributes<'code'> & EventHandlers & { children?: JSXChildren };
+    col: ReactiveElementAttributes<'col'> & EventHandlers;
+    colgroup: ReactiveElementAttributes<'colgroup'> & EventHandlers & { children?: JSXChildren };
+    data: ReactiveElementAttributes<'data'> & EventHandlers & { children?: JSXChildren };
+    datalist: ReactiveElementAttributes<'datalist'> & EventHandlers & { children?: JSXChildren };
+    dd: ReactiveElementAttributes<'dd'> & EventHandlers & { children?: JSXChildren };
+    del: ReactiveElementAttributes<'del'> & EventHandlers & { children?: JSXChildren };
+    details: ReactiveElementAttributes<'details'> & EventHandlers & { children?: JSXChildren };
+    dfn: ReactiveElementAttributes<'dfn'> & EventHandlers & { children?: JSXChildren };
+    dialog: ReactiveElementAttributes<'dialog'> & EventHandlers & { children?: JSXChildren };
+    div: ReactiveElementAttributes<'div'> & EventHandlers & { children?: JSXChildren };
+    dl: ReactiveElementAttributes<'dl'> & EventHandlers & { children?: JSXChildren };
+    dt: ReactiveElementAttributes<'dt'> & EventHandlers & { children?: JSXChildren };
+    em: ReactiveElementAttributes<'em'> & EventHandlers & { children?: JSXChildren };
+    embed: ReactiveElementAttributes<'embed'> & EventHandlers;
+    fieldset: ReactiveElementAttributes<'fieldset'> & EventHandlers & { children?: JSXChildren };
+    figcaption: ReactiveElementAttributes<'figcaption'> & EventHandlers & { children?: JSXChildren };
+    figure: ReactiveElementAttributes<'figure'> & EventHandlers & { children?: JSXChildren };
+    footer: ReactiveElementAttributes<'footer'> & EventHandlers & { children?: JSXChildren };
+    form: ReactiveElementAttributes<'form'> & EventHandlers & { children?: JSXChildren };
+    h1: ReactiveElementAttributes<'h1'> & EventHandlers & { children?: JSXChildren };
+    h2: ReactiveElementAttributes<'h2'> & EventHandlers & { children?: JSXChildren };
+    h3: ReactiveElementAttributes<'h3'> & EventHandlers & { children?: JSXChildren };
+    h4: ReactiveElementAttributes<'h4'> & EventHandlers & { children?: JSXChildren };
+    h5: ReactiveElementAttributes<'h5'> & EventHandlers & { children?: JSXChildren };
+    h6: ReactiveElementAttributes<'h6'> & EventHandlers & { children?: JSXChildren };
+    head: ReactiveElementAttributes<'head'> & EventHandlers & { children?: JSXChildren };
+    header: ReactiveElementAttributes<'header'> & EventHandlers & { children?: JSXChildren };
+    hgroup: ReactiveElementAttributes<'hgroup'> & EventHandlers & { children?: JSXChildren };
+    hr: ReactiveElementAttributes<'hr'> & EventHandlers;
+    html: ReactiveElementAttributes<'html'> & EventHandlers & { children?: JSXChildren };
+    i: ReactiveElementAttributes<'i'> & EventHandlers & { children?: JSXChildren };
+    iframe: ReactiveElementAttributes<'iframe'> & EventHandlers & { children?: JSXChildren };
+    img: ReactiveElementAttributes<'img'> & EventHandlers;
+    input: ReactiveElementAttributes<'input'> & EventHandlers;
+    ins: ReactiveElementAttributes<'ins'> & EventHandlers & { children?: JSXChildren };
+    kbd: ReactiveElementAttributes<'kbd'> & EventHandlers & { children?: JSXChildren };
+    label: ReactiveElementAttributes<'label'> & EventHandlers & { children?: JSXChildren };
+    legend: ReactiveElementAttributes<'legend'> & EventHandlers & { children?: JSXChildren };
+    li: ReactiveElementAttributes<'li'> & EventHandlers & { children?: JSXChildren };
+    link: ReactiveElementAttributes<'link'> & EventHandlers;
+    main: ReactiveElementAttributes<'main'> & EventHandlers & { children?: JSXChildren };
+    map: ReactiveElementAttributes<'map'> & EventHandlers & { children?: JSXChildren };
+    mark: ReactiveElementAttributes<'mark'> & EventHandlers & { children?: JSXChildren };
+    meta: ReactiveElementAttributes<'meta'> & EventHandlers;
+    meter: ReactiveElementAttributes<'meter'> & EventHandlers & { children?: JSXChildren };
+    nav: ReactiveElementAttributes<'nav'> & EventHandlers & { children?: JSXChildren };
+    noscript: ReactiveElementAttributes<'noscript'> & EventHandlers & { children?: JSXChildren };
+    object: ReactiveElementAttributes<'object'> & EventHandlers & { children?: JSXChildren };
+    ol: ReactiveElementAttributes<'ol'> & EventHandlers & { children?: JSXChildren };
+    optgroup: ReactiveElementAttributes<'optgroup'> & EventHandlers & { children?: JSXChildren };
+    option: ReactiveElementAttributes<'option'> & EventHandlers & { children?: JSXChildren };
+    output: ReactiveElementAttributes<'output'> & EventHandlers & { children?: JSXChildren };
+    p: ReactiveElementAttributes<'p'> & EventHandlers & { children?: JSXChildren };
+    picture: ReactiveElementAttributes<'picture'> & EventHandlers & { children?: JSXChildren };
+    pre: ReactiveElementAttributes<'pre'> & EventHandlers & { children?: JSXChildren };
+    progress: ReactiveElementAttributes<'progress'> & EventHandlers & { children?: JSXChildren };
+    q: ReactiveElementAttributes<'q'> & EventHandlers & { children?: JSXChildren };
+    rp: ReactiveElementAttributes<'rp'> & EventHandlers & { children?: JSXChildren };
+    rt: ReactiveElementAttributes<'rt'> & EventHandlers & { children?: JSXChildren };
+    ruby: ReactiveElementAttributes<'ruby'> & EventHandlers & { children?: JSXChildren };
+    s: ReactiveElementAttributes<'s'> & EventHandlers & { children?: JSXChildren };
+    samp: ReactiveElementAttributes<'samp'> & EventHandlers & { children?: JSXChildren };
+    script: ReactiveElementAttributes<'script'> & EventHandlers & { children?: JSXChildren };
+    section: ReactiveElementAttributes<'section'> & EventHandlers & { children?: JSXChildren };
+    select: ReactiveElementAttributes<'select'> & EventHandlers & { children?: JSXChildren };
+    small: ReactiveElementAttributes<'small'> & EventHandlers & { children?: JSXChildren };
+    source: ReactiveElementAttributes<'source'> & EventHandlers;
+    span: ReactiveElementAttributes<'span'> & EventHandlers & { children?: JSXChildren };
+    strong: ReactiveElementAttributes<'strong'> & EventHandlers & { children?: JSXChildren };
+    style: ReactiveElementAttributes<'style'> & EventHandlers & { children?: JSXChildren };
+    sub: ReactiveElementAttributes<'sub'> & EventHandlers & { children?: JSXChildren };
+    summary: ReactiveElementAttributes<'summary'> & EventHandlers & { children?: JSXChildren };
+    sup: ReactiveElementAttributes<'sup'> & EventHandlers & { children?: JSXChildren };
+    table: ReactiveElementAttributes<'table'> & EventHandlers & { children?: JSXChildren };
+    tbody: ReactiveElementAttributes<'tbody'> & EventHandlers & { children?: JSXChildren };
+    td: ReactiveElementAttributes<'td'> & EventHandlers & { children?: JSXChildren };
+    template: ReactiveElementAttributes<'template'> & EventHandlers & { children?: JSXChildren };
+    textarea: ReactiveElementAttributes<'textarea'> & EventHandlers & { children?: JSXChildren };
+    tfoot: ReactiveElementAttributes<'tfoot'> & EventHandlers & { children?: JSXChildren };
+    th: ReactiveElementAttributes<'th'> & EventHandlers & { children?: JSXChildren };
+    thead: ReactiveElementAttributes<'thead'> & EventHandlers & { children?: JSXChildren };
+    time: ReactiveElementAttributes<'time'> & EventHandlers & { children?: JSXChildren };
+    title: ReactiveElementAttributes<'title'> & EventHandlers & { children?: JSXChildren };
+    tr: ReactiveElementAttributes<'tr'> & EventHandlers & { children?: JSXChildren };
+    track: ReactiveElementAttributes<'track'> & EventHandlers;
+    u: ReactiveElementAttributes<'u'> & EventHandlers & { children?: JSXChildren };
+    ul: ReactiveElementAttributes<'ul'> & EventHandlers & { children?: JSXChildren };
+    var: ReactiveElementAttributes<'var'> & EventHandlers & { children?: JSXChildren };
+    video: ReactiveElementAttributes<'video'> & EventHandlers & { children?: JSXChildren };
+    wbr: ReactiveElementAttributes<'wbr'> & EventHandlers;
+  }
+
+  export interface ElementChildrenAttribute {
+    children: JSXChildren;
+  }
+}
+
+// Normalize props for JSX compatibility with better type safety
+function normalizeProps<T extends Record<string, any>>(props: T | null | undefined): ElementAttributes & {
+  __reactiveProps?: Record<string, ReactiveSignal<any>>;
+  __key?: string | number;
+} {
   if (!props) return {};
-  
-  const normalizedProps: any = {}; // Use any to avoid index signature issues
-  const reactiveProps: any = {};
-  
+
+  const normalizedProps: Record<string, any> = {};
+  const reactiveProps: Record<string, ReactiveSignal<any>> = {};
+
   for (const [key, value] of Object.entries(props)) {
     if (key === 'children') continue; // Children are handled separately
-    
+    if (key === 'key') {
+      // Extract key for special handling - it shouldn't be in props
+      normalizedProps.__key = value;
+      continue;
+    }
+
     // Convert className to class
     if (key === 'className') {
-      normalizedProps.class = value as string;
+      if (isReactiveSignal(value)) {
+        reactiveProps.class = value;
+        normalizedProps.class = value(); // Use current value for SSR
+      } else {
+        normalizedProps.class = value as string;
+      }
     }
     // Convert htmlFor to for
     else if (key === 'htmlFor') {
-      normalizedProps.for = value as string;
+      if (isReactiveSignal(value)) {
+        reactiveProps.for = value;
+        normalizedProps.for = value(); // Use current value for SSR
+      } else {
+        normalizedProps.for = value as string;
+      }
     }
     // Handle reactive signals and expressions
     else if (typeof value === 'function') {
       // Event handlers start with 'on' - don't call them!
-      if (key.startsWith('on')) {
+      if (key.startsWith('on') && typeof value === 'function') {
         normalizedProps[key] = value;
+      } else if (isReactiveSignal(value)) {
+        // Reactive signal - extract for special handling
+        reactiveProps[key] = value;
+        normalizedProps[key] = value(); // Use current value for SSR
       } else {
-        // Non-event function - check if it's a reactive signal
-        try {
-          const testValue = value();
-          // If the function can be called, it might be a reactive signal
-          // Store it as a reactive prop for hydration
-          reactiveProps[key] = value;
-          normalizedProps[key] = testValue; // Use current value for SSR
-        } catch {
-          // If it throws, treat as a regular function
-          normalizedProps[key] = value;
-        }
+        // Regular function - keep as is
+        normalizedProps[key] = value;
+        console.log('🔍 Regular function prop:', key, 'name:', value.name);
       }
     }
     else {
       normalizedProps[key] = value;
     }
   }
-  
+
   // If we have reactive props, add them to the VNode
   if (Object.keys(reactiveProps).length > 0) {
     normalizedProps.__reactiveProps = reactiveProps;
   }
-  
-  return normalizedProps as ElementAttributes;
+
+  return normalizedProps as ElementAttributes & {
+    __reactiveProps?: Record<string, ReactiveSignal<any>>;
+    __key?: string | number;
+  };
 }
 
-// Normalize children to flatten arrays and handle reactive signals
-function normalizeChildren(children: any): (VNode | string | ReactiveSignal<string>)[] {
+// Normalize children to flatten arrays and handle reactive signals with better type safety
+function normalizeChildren(children: JSXChildren): (VNode | string | ReactiveSignal<any>)[] {
   if (!children) return [];
-  
-  const normalizedChildren: (VNode | string | (() => any))[] = [];
-  
-  const flatten = (child: any) => {
+
+  const normalizedChildren: (VNode | string | ReactiveSignal<any>)[] = [];
+
+  const flatten = (child: JSXChild): void => {
     if (Array.isArray(child)) {
       child.forEach(flatten);
     } else if (child != null && child !== false && child !== true && child !== undefined) {
-      if (typeof child === 'object' && child.tag) {
+      if (typeof child === 'object' && 'tag' in child) {
         // It's a VNode
-        normalizedChildren.push(child);
+        normalizedChildren.push(child as VNode);
       } else if (typeof child === 'function') {
-        // Check if it's a reactive expression
-        if ((child as any).__isReactiveExpression) {
-          // It's a reactive expression - create a special container
-          const reactiveContainer = createReactiveExpressionContainer(child);
-          normalizedChildren.push(reactiveContainer);
+        if (isReactiveSignal(child)) {
+          // This is a reactive signal - preserve it as a function
+          // The signal could return string, number, boolean, VNode, or VNode[]
+          normalizedChildren.push(child);
         } else {
           // Try to evaluate the function to see what it returns
           try {
-            const result = child();
-            // Check if the original function name suggests it's a reactive signal
-            if (child.name === 'bound signalOper' || child.name === 'bound computedOper' || 
-                child.name === 'signalOper' || child.name === 'computedOper') {
-              // This is a reactive signal - always preserve it as a function
-              normalizedChildren.push(child);
-            } else if (result === false || result === null || result === undefined) {
-              // This might be a reactive conditional - store the function for processing
-              normalizedChildren.push(child);
-            } else if (typeof result === 'object' && result.tag) {
-              // Regular function that returns a VNode
-              flatten(result);
-            } else {
-              // Regular function result
-              flatten(result);
-            }
+            const result = (child as () => any)();
+            flatten(result);
           } catch (error) {
-            // If it throws, pass through for later processing
-            normalizedChildren.push(child);
+            // If it throws, convert to string for safety
+            normalizedChildren.push(String(child));
           }
         }
       } else {
-        // Convert to string
+        // Convert to string (handles numbers, booleans, etc.)
         normalizedChildren.push(String(child));
       }
     }
   };
-  
+
   if (Array.isArray(children)) {
     children.forEach(flatten);
   } else {
     flatten(children);
   }
-  
+
   // Process reactive text fragments to handle mixed content properly
-  return processReactiveTextFragments(normalizedChildren) as (VNode | string | ReactiveSignal<string>)[];
+  return processReactiveTextFragments(normalizedChildren);
 }
 
-// Create a special reactive container for array expressions
-function createReactiveArrayContainer(reactiveArrayFn: () => VNode[]): VNode {
+// Create a special reactive container for array expressions with better types
+function createReactiveArrayContainer(reactiveArrayFn: ReactiveSignal<VNode[]>): VNode {
   const containerId = `reactive-array-${++reactiveIdCounter}`;
-  
+
   return {
     tag: 'div',
-    props: { 
+    props: {
       'data-reactive-array': 'true',
       'data-reactive-id': containerId,
       style: 'display: contents;' // Don't affect layout
@@ -250,13 +431,13 @@ function createReactiveArrayContainer(reactiveArrayFn: () => VNode[]): VNode {
     children: [],
     // Store the reactive function for hydration
     __reactiveArrayFn: reactiveArrayFn,
-  } as any;
+  } as VNode & { __reactiveArrayFn: ReactiveSignal<VNode[]> };
 }
 
-// Create a reactive container for reactive expressions
-function createReactiveExpressionContainer(reactiveExprFn: () => any): VNode {
+// Create a reactive container for reactive expressions with better types
+function createReactiveExpressionContainer(reactiveExprFn: ReactiveSignal<any>): VNode {
   const containerId = `reactive-expr-${++reactiveIdCounter}`;
-  
+
   // Evaluate the expression to get initial content
   let initialContent: (VNode | string)[] = [];
   try {
@@ -270,10 +451,10 @@ function createReactiveExpressionContainer(reactiveExprFn: () => any): VNode {
     console.warn('Failed to evaluate reactive expression:', error);
     initialContent = [];
   }
-  
+
   return {
     tag: 'div',
-    props: { 
+    props: {
       'data-reactive-expr': 'true',
       'data-reactive-id': containerId,
       style: 'display: contents;' // Don't affect layout
@@ -281,16 +462,16 @@ function createReactiveExpressionContainer(reactiveExprFn: () => any): VNode {
     children: initialContent,
     // Store the reactive function for hydration
     __reactiveExprFn: reactiveExprFn,
-  } as any;
+  } as VNode & { __reactiveExprFn: ReactiveSignal<any> };
 }
 
 // Global counter for deterministic IDs
 let reactiveIdCounter = 0;
 
-// Create a reactive text marker for inline reactive content
-function createReactiveTextMarker(reactiveExprFn: () => any): VNode {
+// Create a reactive text marker for inline reactive content with better types
+function createReactiveTextMarker(reactiveExprFn: ReactiveSignal<any>): VNode {
   const markerId = `reactive-text-${++reactiveIdCounter}`;
-  
+
   // Evaluate the expression to get initial content for SSR
   let initialContent = '';
   try {
@@ -300,10 +481,10 @@ function createReactiveTextMarker(reactiveExprFn: () => any): VNode {
     console.warn('Failed to evaluate reactive expression:', error);
     initialContent = '';
   }
-  
+
   return {
     tag: 'span',
-    props: { 
+    props: {
       'data-reactive-text': 'true',
       'data-reactive-id': markerId,
       style: 'display: contents;' // Don't affect layout
@@ -311,32 +492,32 @@ function createReactiveTextMarker(reactiveExprFn: () => any): VNode {
     children: [initialContent],
     // Store the reactive function for hydration
     __reactiveTextFn: reactiveExprFn,
-  } as any;
+  } as VNode & { __reactiveTextFn: ReactiveSignal<any> };
 }
 
-// Helper to handle reactive conditional rendering (like condition && JSX)
-function createReactiveConditional(conditionalExprFn: () => any): VNode {
+// Helper to handle reactive conditional rendering (like condition && JSX) with better types
+function createReactiveConditional(conditionalExprFn: ReactiveSignal<any>): VNode {
   const containerId = `reactive-conditional-${++reactiveIdCounter}`;
-  
+
   // Evaluate the expression to get initial content for SSR
   let initialContent: VNode[] = [];
   try {
     const result = conditionalExprFn();
-    if (result && typeof result === 'object' && result.tag) {
+    if (result && typeof result === 'object' && 'tag' in result) {
       // It's a VNode
       initialContent = [result];
     } else if (Array.isArray(result)) {
-      initialContent = result.filter(item => item && typeof item === 'object' && item.tag);
+      initialContent = result.filter(item => item && typeof item === 'object' && 'tag' in item);
     }
     // If result is false/null/undefined, initialContent stays empty
   } catch (error) {
     console.warn('Failed to evaluate reactive conditional:', error);
     initialContent = [];
   }
-  
+
   return {
     tag: 'div',
-    props: { 
+    props: {
       'data-reactive-conditional': 'true',
       'data-reactive-id': containerId,
       style: 'display: contents;' // Don't affect layout
@@ -344,44 +525,30 @@ function createReactiveConditional(conditionalExprFn: () => any): VNode {
     children: initialContent,
     // Store the reactive function for hydration
     __reactiveConditionalFn: conditionalExprFn,
-  } as any;
+  } as VNode & { __reactiveConditionalFn: ReactiveSignal<any> };
 }
 
-// Process children to detect and handle mixed reactive text
-function processReactiveTextFragments(children: (VNode | string | (() => any))[]): (VNode | string | (() => any))[] {
-  const processedChildren: (VNode | string | (() => any))[] = [];
-  
+// Process children to detect and handle mixed reactive text with better types
+function processReactiveTextFragments(
+  children: (VNode | string | ReactiveSignal<any>)[]
+): (VNode | string | ReactiveSignal<any>)[] {
+  const processedChildren: (VNode | string | ReactiveSignal<any>)[] = [];
+
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
-    
+
     if (!child) {
       continue;
     }
-    
+
     // Check if this is a function (potential reactive signal)
     if (typeof child === 'function') {
-      // Check if it's an alien-signals function by name OR if it might be a reactive function
-      const isSignal = child.name === 'bound signalOper' || child.name === 'bound computedOper' || child.name === 'signalOper' || child.name === 'computedOper';
-      
-      // Also check if it's a function that might be reactive by trying to call it
-      let isReactiveFunction = false;
-      if (!isSignal) {
-        try {
-          const testValue = child();
-          // If it returns a primitive value, it might be a reactive function
-          isReactiveFunction = typeof testValue === 'string' || typeof testValue === 'number' || typeof testValue === 'boolean';
-        } catch {
-          // If it throws, it's probably not a reactive content function
-          isReactiveFunction = false;
-        }
-      }
-      
-      if (isSignal || isReactiveFunction) {
+      if (isReactiveSignal(child)) {
         // Check if this is in a mixed text context by looking at siblings
-        const hasStringSiblings = children.some((sibling, index) => 
+        const hasStringSiblings = children.some((sibling, index) =>
           index !== i && typeof sibling === 'string' && sibling.trim().length > 0
         );
-        
+
         if (hasStringSiblings) {
           // This is mixed text context - create reactive text marker
           processedChildren.push(createReactiveTextMarker(child));
@@ -390,21 +557,63 @@ function processReactiveTextFragments(children: (VNode | string | (() => any))[]
           processedChildren.push(child);
         }
       } else {
-        // Regular function
-        processedChildren.push(child);
+        // Regular function - this shouldn't happen in normalized children
+        processedChildren.push(child as ReactiveSignal<any>);
       }
     } else {
       // Regular child (string or VNode)
       processedChildren.push(child);
     }
   }
-  
+
   return processedChildren;
 }
 
-// JSX Factory Function - used by TypeScript/Babel to transform JSX
+// Template literal helpers for reactive strings
+/**
+ * Creates a reactive template literal that automatically updates when any signals change
+ * Usage: 
+ * @example template`Clear all ${cartItemCount()} items from cart`
+ */
+export function template(strings: TemplateStringsArray, ...values: any[]): ReactiveSignal<string> {
+  return createComputed(() => {
+    let result = strings[0] || '';
+    for (let i = 0; i < values.length; i++) {
+      const value = values[i];
+      // If the value is a reactive signal, call it to get the current value
+      const resolvedValue = typeof value === 'function' && isReactiveSignal(value) ? value() : value;
+      result += String(resolvedValue) + (strings[i + 1] || '');
+    }
+    return result;
+  }) as ReactiveSignal<string>;
+}
+
+/**
+ * Alternative syntax for reactive template literals using a function wrapper
+ * Usage: r(() => `Clear all ${cartItemCount()} items from cart`)
+ */
+export function r<T>(fn: () => T): ReactiveSignal<T> {
+  return createComputed(fn);
+}
+
+// JSX Factory Function - used by TypeScript/Babel to transform JSX with improved types
+export function jsx<K extends keyof JSX.IntrinsicElements>(
+  type: K,
+  props: JSX.IntrinsicElements[K],
+  key?: string | number
+): VNode;
+export function jsx<P extends ComponentProps>(
+  type: FunctionComponent<P>,
+  props: P,
+  key?: string | number
+): VNode;
 export function jsx(
-  type: string | typeof FRAGMENT_TAG | Function,
+  type: typeof FRAGMENT_TAG,
+  props: { children?: JSXChildren },
+  key?: string | number
+): VNode;
+export function jsx(
+  type: string | typeof FRAGMENT_TAG | FunctionComponent<any>,
   props: any,
   key?: string | number
 ): VNode {
@@ -417,37 +626,47 @@ export function jsx(
       key
     };
   }
-  
+
   // Handle function components
   if (typeof type === 'function') {
-    // Call the component function with props
-    return type(props);
+    // Extract key from props if it exists
+    const { key: propsKey, ...componentProps } = props || {};
+    const resultVNode = type(componentProps);
+
+    // Apply key to the result if provided
+    if (key !== undefined || propsKey !== undefined) {
+      resultVNode.key = key ?? propsKey;
+    }
+
+    return resultVNode;
   }
-  
+
   const normalizedProps = normalizeProps(props);
   const children = normalizeChildren(props?.children);
-  
-  // Extract reactive props if they exist
-  const reactiveProps = (normalizedProps as any).__reactiveProps;
-  delete (normalizedProps as any).__reactiveProps;
-  
+
+  // Extract key and reactive props if they exist
+  const extractedKey = normalizedProps.__key;
+  const reactiveProps = normalizedProps.__reactiveProps;
+  delete normalizedProps.__key;
+  delete normalizedProps.__reactiveProps;
+
   const vnode: VNode = {
     tag: type as string,
     props: normalizedProps,
     children,
-    key
+    key: key ?? extractedKey // Use explicit key parameter or extracted key from props
   };
-  
+
   // Add reactive props if they exist
   if (reactiveProps) {
     (vnode as any).reactiveProps = reactiveProps;
   }
-  
+
   return vnode;
 }
 
-// JSX Factory for fragments
-export function Fragment(props: { children?: any }): VNode {
+// JSX Factory for fragments with better types
+export function Fragment(props: { children?: JSXChildren }): VNode {
   return {
     tag: FRAGMENT_TAG,
     props: {},
@@ -455,15 +674,16 @@ export function Fragment(props: { children?: any }): VNode {
   };
 }
 
-// Classic JSX Factory (for backwards compatibility)
+// Classic JSX Factory (for backwards compatibility) with looser typing for dynamic usage
 export function createElement(
-  type: string | typeof FRAGMENT_TAG | Function,
+  type: string | typeof FRAGMENT_TAG | FunctionComponent<any>,
   props: any,
   ...children: any[]
 ): VNode {
   const allChildren = children.length > 0 ? children : props?.children;
-  
-  return jsx(type, { ...props, children: allChildren });
+
+  // Use a type assertion since createElement is more dynamic than jsx
+  return jsx(type as any, { ...props, children: allChildren });
 }
 
 // Export for JSX automatic runtime

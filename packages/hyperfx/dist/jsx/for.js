@@ -38,7 +38,7 @@ export function For(props) {
                 return childVNode;
             });
         // Use a transparent wrapper div that can hold reactive data and be found during hydration
-        return {
+        const reactiveVNode = {
             tag: 'div',
             props: {
                 'data-reactive-for': 'true',
@@ -51,6 +51,7 @@ export function For(props) {
             __renderFn: children,
             __fallback: fallback,
         };
+        return reactiveVNode;
     }
     else {
         // For static arrays, render immediately as a fragment

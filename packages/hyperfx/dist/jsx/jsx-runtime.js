@@ -1,40 +1,98 @@
 import { FRAGMENT_TAG } from "../elem/elem";
-// Normalize props for JSX compatibility
+import { createComputed } from "../reactive/state";
+// Type guards for reactive signals
+function isReactiveSignal(fn) {
+    if (typeof fn !== 'function')
+        return false;
+    // Check for alien-signals function names (these are the most reliable)
+    const signalNames = ['bound signalOper', 'bound computedOper', 'signalOper', 'computedOper'];
+    if (signalNames.includes(fn.name)) {
+        return true;
+    }
+    // Try to call the function to see if it's reactive
+    try {
+        const result = fn();
+        // If it returns a primitive value, it's likely reactive
+        const isPrimitive = typeof result === 'string' || typeof result === 'number' || typeof result === 'boolean';
+        if (isPrimitive) {
+            // Additional check: see if the function string contains signal calls
+            const fnString = fn.toString();
+            // Look for common reactive patterns:
+            const hasReactivePattern = /\w+\(\)/.test(fnString) || // function calls ending with ()
+                /signal|computed|createSignal|createComputed/.test(fnString) || // signal creation
+                /\$\{[^}]*\(\)[^}]*\}/.test(fnString) || // template literal patterns with ${...()}
+                /\$\{[^}]*signal|computed[^}]*\}/.test(fnString) || // template literals with signal/computed
+                /`[^`]*\$\{[^}]*\}[^`]*`/.test(fnString); // template literal detection
+            return hasReactivePattern;
+        }
+        return false;
+    }
+    catch {
+        // If calling the function throws, but it looks like it might be reactive, 
+        // check if it has reactive patterns in its string representation
+        try {
+            const fnString = fn.toString();
+            return /signal|computed|createSignal|createComputed|\$\{[^}]*\(\)/.test(fnString);
+        }
+        catch {
+            return false;
+        }
+    }
+}
+function isComputedSignal(fn) {
+    if (typeof fn !== 'function')
+        return false;
+    return fn.name.includes('computedOper') || fn.name.includes('bound computedOper');
+}
+// Normalize props for JSX compatibility with better type safety
 function normalizeProps(props) {
     if (!props)
         return {};
-    const normalizedProps = {}; // Use any to avoid index signature issues
+    const normalizedProps = {};
     const reactiveProps = {};
     for (const [key, value] of Object.entries(props)) {
         if (key === 'children')
             continue; // Children are handled separately
+        if (key === 'key') {
+            // Extract key for special handling - it shouldn't be in props
+            normalizedProps.__key = value;
+            continue;
+        }
         // Convert className to class
         if (key === 'className') {
-            normalizedProps.class = value;
+            if (isReactiveSignal(value)) {
+                reactiveProps.class = value;
+                normalizedProps.class = value(); // Use current value for SSR
+            }
+            else {
+                normalizedProps.class = value;
+            }
         }
         // Convert htmlFor to for
         else if (key === 'htmlFor') {
-            normalizedProps.for = value;
+            if (isReactiveSignal(value)) {
+                reactiveProps.for = value;
+                normalizedProps.for = value(); // Use current value for SSR
+            }
+            else {
+                normalizedProps.for = value;
+            }
         }
         // Handle reactive signals and expressions
         else if (typeof value === 'function') {
             // Event handlers start with 'on' - don't call them!
-            if (key.startsWith('on')) {
+            if (key.startsWith('on') && typeof value === 'function') {
                 normalizedProps[key] = value;
             }
+            else if (isReactiveSignal(value)) {
+                // Reactive signal - extract for special handling
+                reactiveProps[key] = value;
+                normalizedProps[key] = value(); // Use current value for SSR
+            }
             else {
-                // Non-event function - check if it's a reactive signal
-                try {
-                    const testValue = value();
-                    // If the function can be called, it might be a reactive signal
-                    // Store it as a reactive prop for hydration
-                    reactiveProps[key] = value;
-                    normalizedProps[key] = testValue; // Use current value for SSR
-                }
-                catch {
-                    // If it throws, treat as a regular function
-                    normalizedProps[key] = value;
-                }
+                // Regular function - keep as is
+                normalizedProps[key] = value;
+                console.log('🔍 Regular function prop:', key, 'name:', value.name);
             }
         }
         else {
@@ -47,7 +105,7 @@ function normalizeProps(props) {
     }
     return normalizedProps;
 }
-// Normalize children to flatten arrays and handle reactive signals
+// Normalize children to flatten arrays and handle reactive signals with better type safety
 function normalizeChildren(children) {
     if (!children)
         return [];
@@ -57,48 +115,30 @@ function normalizeChildren(children) {
             child.forEach(flatten);
         }
         else if (child != null && child !== false && child !== true && child !== undefined) {
-            if (typeof child === 'object' && child.tag) {
+            if (typeof child === 'object' && 'tag' in child) {
                 // It's a VNode
                 normalizedChildren.push(child);
             }
             else if (typeof child === 'function') {
-                // Check if it's a reactive expression
-                if (child.__isReactiveExpression) {
-                    // It's a reactive expression - create a special container
-                    const reactiveContainer = createReactiveExpressionContainer(child);
-                    normalizedChildren.push(reactiveContainer);
+                if (isReactiveSignal(child)) {
+                    // This is a reactive signal - preserve it as a function
+                    // The signal could return string, number, boolean, VNode, or VNode[]
+                    normalizedChildren.push(child);
                 }
                 else {
                     // Try to evaluate the function to see what it returns
                     try {
                         const result = child();
-                        // Check if the original function name suggests it's a reactive signal
-                        if (child.name === 'bound signalOper' || child.name === 'bound computedOper' ||
-                            child.name === 'signalOper' || child.name === 'computedOper') {
-                            // This is a reactive signal - always preserve it as a function
-                            normalizedChildren.push(child);
-                        }
-                        else if (result === false || result === null || result === undefined) {
-                            // This might be a reactive conditional - store the function for processing
-                            normalizedChildren.push(child);
-                        }
-                        else if (typeof result === 'object' && result.tag) {
-                            // Regular function that returns a VNode
-                            flatten(result);
-                        }
-                        else {
-                            // Regular function result
-                            flatten(result);
-                        }
+                        flatten(result);
                     }
                     catch (error) {
-                        // If it throws, pass through for later processing
-                        normalizedChildren.push(child);
+                        // If it throws, convert to string for safety
+                        normalizedChildren.push(String(child));
                     }
                 }
             }
             else {
-                // Convert to string
+                // Convert to string (handles numbers, booleans, etc.)
                 normalizedChildren.push(String(child));
             }
         }
@@ -112,7 +152,7 @@ function normalizeChildren(children) {
     // Process reactive text fragments to handle mixed content properly
     return processReactiveTextFragments(normalizedChildren);
 }
-// Create a special reactive container for array expressions
+// Create a special reactive container for array expressions with better types
 function createReactiveArrayContainer(reactiveArrayFn) {
     const containerId = `reactive-array-${++reactiveIdCounter}`;
     return {
@@ -127,7 +167,7 @@ function createReactiveArrayContainer(reactiveArrayFn) {
         __reactiveArrayFn: reactiveArrayFn,
     };
 }
-// Create a reactive container for reactive expressions
+// Create a reactive container for reactive expressions with better types
 function createReactiveExpressionContainer(reactiveExprFn) {
     const containerId = `reactive-expr-${++reactiveIdCounter}`;
     // Evaluate the expression to get initial content
@@ -159,7 +199,7 @@ function createReactiveExpressionContainer(reactiveExprFn) {
 }
 // Global counter for deterministic IDs
 let reactiveIdCounter = 0;
-// Create a reactive text marker for inline reactive content
+// Create a reactive text marker for inline reactive content with better types
 function createReactiveTextMarker(reactiveExprFn) {
     const markerId = `reactive-text-${++reactiveIdCounter}`;
     // Evaluate the expression to get initial content for SSR
@@ -184,19 +224,19 @@ function createReactiveTextMarker(reactiveExprFn) {
         __reactiveTextFn: reactiveExprFn,
     };
 }
-// Helper to handle reactive conditional rendering (like condition && JSX)
+// Helper to handle reactive conditional rendering (like condition && JSX) with better types
 function createReactiveConditional(conditionalExprFn) {
     const containerId = `reactive-conditional-${++reactiveIdCounter}`;
     // Evaluate the expression to get initial content for SSR
     let initialContent = [];
     try {
         const result = conditionalExprFn();
-        if (result && typeof result === 'object' && result.tag) {
+        if (result && typeof result === 'object' && 'tag' in result) {
             // It's a VNode
             initialContent = [result];
         }
         else if (Array.isArray(result)) {
-            initialContent = result.filter(item => item && typeof item === 'object' && item.tag);
+            initialContent = result.filter(item => item && typeof item === 'object' && 'tag' in item);
         }
         // If result is false/null/undefined, initialContent stays empty
     }
@@ -216,7 +256,7 @@ function createReactiveConditional(conditionalExprFn) {
         __reactiveConditionalFn: conditionalExprFn,
     };
 }
-// Process children to detect and handle mixed reactive text
+// Process children to detect and handle mixed reactive text with better types
 function processReactiveTextFragments(children) {
     const processedChildren = [];
     for (let i = 0; i < children.length; i++) {
@@ -226,22 +266,7 @@ function processReactiveTextFragments(children) {
         }
         // Check if this is a function (potential reactive signal)
         if (typeof child === 'function') {
-            // Check if it's an alien-signals function by name OR if it might be a reactive function
-            const isSignal = child.name === 'bound signalOper' || child.name === 'bound computedOper' || child.name === 'signalOper' || child.name === 'computedOper';
-            // Also check if it's a function that might be reactive by trying to call it
-            let isReactiveFunction = false;
-            if (!isSignal) {
-                try {
-                    const testValue = child();
-                    // If it returns a primitive value, it might be a reactive function
-                    isReactiveFunction = typeof testValue === 'string' || typeof testValue === 'number' || typeof testValue === 'boolean';
-                }
-                catch {
-                    // If it throws, it's probably not a reactive content function
-                    isReactiveFunction = false;
-                }
-            }
-            if (isSignal || isReactiveFunction) {
+            if (isReactiveSignal(child)) {
                 // Check if this is in a mixed text context by looking at siblings
                 const hasStringSiblings = children.some((sibling, index) => index !== i && typeof sibling === 'string' && sibling.trim().length > 0);
                 if (hasStringSiblings) {
@@ -254,7 +279,7 @@ function processReactiveTextFragments(children) {
                 }
             }
             else {
-                // Regular function
+                // Regular function - this shouldn't happen in normalized children
                 processedChildren.push(child);
             }
         }
@@ -265,7 +290,31 @@ function processReactiveTextFragments(children) {
     }
     return processedChildren;
 }
-// JSX Factory Function - used by TypeScript/Babel to transform JSX
+// Template literal helpers for reactive strings
+/**
+ * Creates a reactive template literal that automatically updates when any signals change
+ * Usage:
+ * @example template`Clear all ${cartItemCount()} items from cart`
+ */
+export function template(strings, ...values) {
+    return createComputed(() => {
+        let result = strings[0] || '';
+        for (let i = 0; i < values.length; i++) {
+            const value = values[i];
+            // If the value is a reactive signal, call it to get the current value
+            const resolvedValue = typeof value === 'function' && isReactiveSignal(value) ? value() : value;
+            result += String(resolvedValue) + (strings[i + 1] || '');
+        }
+        return result;
+    });
+}
+/**
+ * Alternative syntax for reactive template literals using a function wrapper
+ * Usage: r(() => `Clear all ${cartItemCount()} items from cart`)
+ */
+export function r(fn) {
+    return createComputed(fn);
+}
 export function jsx(type, props, key) {
     // Handle fragments
     if (type === FRAGMENT_TAG || type === Fragment) {
@@ -278,19 +327,27 @@ export function jsx(type, props, key) {
     }
     // Handle function components
     if (typeof type === 'function') {
-        // Call the component function with props
-        return type(props);
+        // Extract key from props if it exists
+        const { key: propsKey, ...componentProps } = props || {};
+        const resultVNode = type(componentProps);
+        // Apply key to the result if provided
+        if (key !== undefined || propsKey !== undefined) {
+            resultVNode.key = key ?? propsKey;
+        }
+        return resultVNode;
     }
     const normalizedProps = normalizeProps(props);
     const children = normalizeChildren(props?.children);
-    // Extract reactive props if they exist
+    // Extract key and reactive props if they exist
+    const extractedKey = normalizedProps.__key;
     const reactiveProps = normalizedProps.__reactiveProps;
+    delete normalizedProps.__key;
     delete normalizedProps.__reactiveProps;
     const vnode = {
         tag: type,
         props: normalizedProps,
         children,
-        key
+        key: key ?? extractedKey // Use explicit key parameter or extracted key from props
     };
     // Add reactive props if they exist
     if (reactiveProps) {
@@ -298,7 +355,7 @@ export function jsx(type, props, key) {
     }
     return vnode;
 }
-// JSX Factory for fragments
+// JSX Factory for fragments with better types
 export function Fragment(props) {
     return {
         tag: FRAGMENT_TAG,
@@ -306,9 +363,10 @@ export function Fragment(props) {
         children: normalizeChildren(props?.children)
     };
 }
-// Classic JSX Factory (for backwards compatibility)
+// Classic JSX Factory (for backwards compatibility) with looser typing for dynamic usage
 export function createElement(type, props, ...children) {
     const allChildren = children.length > 0 ? children : props?.children;
+    // Use a type assertion since createElement is more dynamic than jsx
     return jsx(type, { ...props, children: allChildren });
 }
 // Export for JSX automatic runtime

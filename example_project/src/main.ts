@@ -126,13 +126,13 @@ RouteRegister(routerOutletElement)
           // Interactive text component with fine-grained updates
           Div({ class: "bg-gray-800 rounded-lg shadow-lg p-6 max-w-2xl mx-auto my-4 border border-gray-700" }, [
             P({ class: "text-3xl font-bold text-gray-100 mb-4" }, [
-              Span({ class: "text-purple-400" }, [t("Text: ")]),
+              Span({ class: "text-purple-400" }, [t`Text: `]),
               textDisplay, // Only this updates when text changes
             ]),
-            Label({ for: "live_type_input", class: "block text-sm font-medium text-gray-300 mb-2" }, [t("Live Update")]),
+            Label({ for: "live_type_input", class: "block text-sm font-medium text-gray-300 mb-2" }, [t`Live Update`]),
             P({ class: "text-gray-400 mb-4" }, [
               t`This is basic text with a `,
-              Span({ class: "font-bold text-purple-400" }, [t("bold")]),
+              Span({ class: "font-bold text-purple-400" }, [t`bold`]),
               t` text in the middle.`,
             ]),
             textInput, // Reactive input with value binding

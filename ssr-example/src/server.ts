@@ -1,12 +1,56 @@
 // Vinxi SSR Server Handler with File System Routing
 import { eventHandler } from "vinxi/http";
 import { getManifest } from "vinxi/manifest";
-import { SSRRenderer, SSRContext, SSRPageConfig, Div, H1, t, P, A, renderWithHydration } from 'hyperfx';
+import { SSRRenderer, SSRContext, SSRPageConfig, Div, H1, t, P, A, renderWithHydration, VNode } from 'hyperfx';
 
 // Import route components directly
 import HomePage from './routes/index.tsx';
 import AboutPage from './routes/about.tsx';
 import ProductsPage from './routes/products.tsx';
+
+// Type definitions for better type safety
+interface VinxiAsset {
+    tag: 'link' | 'script' | 'style';
+    attrs: {
+        rel?: string;
+        href?: string;
+        src?: string;
+        type?: string;
+    };
+}
+
+interface ViteManifestEntry {
+    file: string;
+    name?: string;
+    src?: string;
+    isEntry?: boolean;
+    css?: string[];
+}
+
+interface ViteManifest {
+    [key: string]: ViteManifestEntry;
+}
+
+interface RouteComponent {
+    (): VNode<any>;
+}
+
+interface RouteMap {
+    [path: string]: RouteComponent;
+}
+
+interface HtmlOptions {
+    bodyAttributes: { class: string };
+    inlineStyles: string;
+    stylesheets: string[];
+    inlineScripts?: string;
+}
+
+interface ErrorContext {
+    pathname: string;
+    error: unknown;
+    userAgent?: string;
+}
 
 
 export default eventHandler(async (event) => {
@@ -20,17 +64,18 @@ export default eventHandler(async (event) => {
     }
 
     // Get route components from direct imports
-    const routes: Record<string, () => any> = {
+    const routes: RouteMap = {
         '/': HomePage,
         '/about': AboutPage,
         '/products': ProductsPage,
     };
 
-    // Get route component
-    const RouteComponent = routes[pathname] || (() => getNotFoundComponent(pathname));
+    // Get route component with proper type handling
+    const routeResult = routes[pathname];
+    const RouteComponent: RouteComponent = routeResult || (() => getNotFoundComponent(pathname));
 
     try {
-        // Create SSR context
+        // Create SSR context with proper typing
         const context: SSRContext = {
             url: pathname,
             userAgent: event.node.req.headers['user-agent'] || '',
@@ -39,7 +84,7 @@ export default eventHandler(async (event) => {
             query: {}
         };
 
-        // Page configuration
+        // Page configuration with proper typing
         const config: SSRPageConfig = {
             title: `HyperFX SSR - ${pathname === '/' ? 'Home' : pathname.slice(1)}`,
             description: 'HyperFX Server-Side Rendering with Vinxi',
@@ -53,23 +98,23 @@ export default eventHandler(async (event) => {
 
         // Render page with hydration
         const renderer = new SSRRenderer(context, config);
-        const vnode = RouteComponent();
+        const vnode: VNode<any> = RouteComponent();
 
         // Generate HTML with hydration markers
         const { html: renderedContent, hydrationData } = renderWithHydration(vnode);
 
-        // Get client assets from Vinxi manifest
+        // Get client assets from Vinxi manifest with proper typing
         const clientManifest = getManifest("client");
-        const assets = await clientManifest.inputs[clientManifest.handler].assets();
+        const assets: VinxiAsset[] = await clientManifest.inputs[clientManifest.handler].assets();
 
-        // Convert Vinxi assets to HyperFX format
+        // Convert Vinxi assets to HyperFX format with type safety
         const stylesheets: string[] = [];
         const moduleScripts: string[] = [];
 
-        assets.forEach(asset => {
-            if (asset.tag === 'link' && asset.attrs.rel === 'stylesheet') {
+        assets.forEach((asset: VinxiAsset) => {
+            if (asset.tag === 'link' && asset.attrs.rel === 'stylesheet' && asset.attrs.href) {
                 stylesheets.push(asset.attrs.href);
-            } else if (asset.tag === 'script') {
+            } else if (asset.tag === 'script' && asset.attrs.src) {
                 // For dev mode, we need to create proper ES module imports
                 moduleScripts.push(asset.attrs.src);
             }
@@ -100,13 +145,59 @@ export default eventHandler(async (event) => {
         } else {
             // In production, use the bundled assets from manifest
             customScripts = `<script>window.__HYPERFX_HYDRATION_DATA__ = ${JSON.stringify(hydrationData)};</script>\n`;
-            moduleScripts.forEach(script => {
+
+            // Try to find the client JavaScript bundle in a more reliable way
+            if (moduleScripts.length === 0) {
+                // Look through all assets to find a JavaScript file with 'client' in the name
+                const clientJSAsset: VinxiAsset | undefined = assets.find((asset: VinxiAsset) =>
+                    asset.attrs &&
+                    asset.attrs.src &&
+                    asset.attrs.src.includes('client') &&
+                    asset.attrs.src.endsWith('.js')
+                );
+
+                if (clientJSAsset?.attrs?.src) {
+                    moduleScripts.push(clientJSAsset.attrs.src);
+                } else {
+                    // If we still can't find it, let's try to read the Vite manifest directly
+                    try {
+                        const fs = await import('fs');
+                        const path = await import('path');
+                        const viteManifestPath: string = path.resolve('.output/public/_build/.vite/manifest.json');
+
+                        if (fs.existsSync(viteManifestPath)) {
+                            const viteManifestContent: string = fs.readFileSync(viteManifestPath, 'utf-8');
+                            const viteManifest: ViteManifest = JSON.parse(viteManifestContent);
+
+                            // Look for the client entry in the Vite manifest
+                            const clientEntry: ViteManifestEntry | undefined = viteManifest['virtual:$vinxi/handler/client'];
+
+                            if (clientEntry?.file) {
+                                moduleScripts.push(`/_build/${clientEntry.file}`);
+                            } else {
+                                // Fallback: look for any entry with isEntry: true
+                                const anyEntry: ViteManifestEntry | undefined = Object.values(viteManifest).find((entry: ViteManifestEntry) =>
+                                    entry.isEntry && entry.file && entry.file.endsWith('.js')
+                                );
+
+                                if (anyEntry?.file) {
+                                    moduleScripts.push(`/_build/${anyEntry.file}`);
+                                }
+                            }
+                        }
+                    } catch (manifestError: unknown) {
+                        console.warn('Could not read Vite manifest:', manifestError);
+                    }
+                }
+            }
+
+            moduleScripts.forEach((script: string) => {
                 customScripts += `<script type="module" src="${script}"></script>\n`;
             });
         }
 
-        // HTML options with proper assets
-        const htmlOptions: any = {
+        // HTML options with proper typing
+        const htmlOptions: HtmlOptions = {
             bodyAttributes: { class: 'antialiased' },
             inlineStyles: '', // Disable default critical CSS
             stylesheets
@@ -118,14 +209,20 @@ export default eventHandler(async (event) => {
         }
 
         // Create HTML document with the pre-rendered content
-        let html = `<!DOCTYPE html>
+        const titleEscaped: string = config.title.replace(/"/g, '&quot;');
+        const descriptionEscaped: string = config.description.replace(/"/g, '&quot;');
+        const stylesheetsHtml: string = stylesheets.map((href: string) => 
+            `<link rel="stylesheet" href="${href}">`
+        ).join('\n  ');
+
+        let html: string = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${config.title}</title>
-  <meta name="description" content="${config.description}">
-  ${stylesheets.map(href => `<link rel="stylesheet" href="${href}">`).join('\n  ')}
+  <title>${titleEscaped}</title>
+  <meta name="description" content="${descriptionEscaped}">
+  ${stylesheetsHtml}
 </head>
 <body class="antialiased">
   ${renderedContent}
@@ -144,11 +241,21 @@ export default eventHandler(async (event) => {
 
         return html;
 
-    } catch (error) {
-        console.error('❌ SSR Error:', error);
+    } catch (error: unknown) {
+        const errorContext: ErrorContext = {
+            pathname,
+            error,
+            userAgent: event.node.req.headers['user-agent']
+        };
 
-        // Return a simple error page
-        const errorHtml = `<!DOCTYPE html>
+        console.error('❌ SSR Error:', errorContext);
+
+        // Create proper error message with type safety
+        const errorMessage: string = error instanceof Error ? error.message : String(error);
+        const errorStack: string = error instanceof Error ? (error.stack || '') : '';
+
+        // Return a simple error page with proper escaping
+        const errorHtml: string = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -157,13 +264,18 @@ export default eventHandler(async (event) => {
   <style>
     body { font-family: system-ui; padding: 2rem; background: #1f2937; color: #f3f4f6; }
     .error { background: #dc2626; color: white; padding: 1rem; border-radius: 0.5rem; }
+    .error-details { background: #374151; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; }
+    pre { overflow-x: auto; white-space: pre-wrap; }
   </style>
 </head>
 <body>
   <div class="error">
     <h1>Server Error</h1>
     <p>There was an error rendering this page.</p>
-    <pre>${error instanceof Error ? error.message : String(error)}</pre>
+    <div class="error-details">
+      <pre>${errorMessage}</pre>
+      ${process.env.NODE_ENV === 'development' ? `<pre>${errorStack}</pre>` : ''}
+    </div>
   </div>
 </body>
 </html>`;
@@ -173,11 +285,9 @@ export default eventHandler(async (event) => {
     }
 });
 
-// 404 Not Found component
-function getNotFoundComponent(pathname: string) {
-
-
-    return () => Div({ class: 'min-h-screen bg-gray-900 text-white flex items-center justify-center' }, [
+// 404 Not Found component with proper typing
+function getNotFoundComponent(pathname: string): VNode<any> {
+    return Div({ class: 'min-h-screen bg-gray-900 text-white flex items-center justify-center' }, [
         H1({ class: 'text-4xl font-bold text-red-400' }, [t('404 - Page Not Found')]),
         P({ class: 'text-gray-300 mt-4' }, [t(`Route "${pathname}" not found`)]),
         A({ href: '/', class: 'text-blue-400 hover:text-blue-300 mt-4 inline-block' }, [t('← Back to Home')])

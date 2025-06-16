@@ -18,13 +18,28 @@ pnpm add hyperfx
 
 After removing the vite base content inside the files you can write your HyperFX code in the src/main.ts file.
 
+## JSX Setup
+
+HyperFX now supports JSX! Update your `tsconfig.json` to enable JSX:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "hyperfx"
+  }
+}
+```
+
+Rename your `main.ts` to `main.tsx` and update your HTML:
+
 Example `./index.html`
 
 ```html
 <!doctype html>
 <html lang="en">
   <head>
-    <script type="module" src="./src/main.ts" defer></script>
+    <script type="module" src="./src/main.tsx" defer></script>
   </head>
   <body style="background-color: black; color: white">
     <div id="app">
@@ -34,13 +49,21 @@ Example `./index.html`
 </html>
 ```
 
-Example `./src/main.ts`
+Example `./src/main.tsx`
 
-```typescript
-import { P } from 'hyperfx'
+```tsx
+import { RenderToBody } from 'hyperfx'
+
+function App() {
+  return (
+    <div>
+      <p style="font-size: 120%;">This is rendered from HyperFX with JSX!</p>
+    </div>
+  );
+}
+
 const appRoot = document.getElementById("app")!;
-const myRender = P({style: 'font-size: 120%;'}, t('This is rendered from HyperFX');
-appRoot.replaceChildren(myRender);
+appRoot.replaceChildren(App());
 ```
 
 Run it with realtime updates with:

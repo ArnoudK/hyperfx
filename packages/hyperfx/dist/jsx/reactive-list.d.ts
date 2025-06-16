@@ -6,6 +6,7 @@ export interface ReactiveListProps<T> {
     keyExtractor?: (item: T, index: number) => string | number;
     className?: string;
     id?: string;
+    key?: string | number;
 }
 /**
  * ReactiveList component that properly handles reactive arrays in JSX

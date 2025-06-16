@@ -20,21 +20,8 @@ export const el = (tagName, attributes = {}, children) => {
 };
 // Div now returns VNode and uses AttributesForElement for better type safety
 export const Div = (attributes = {}, children) => el("div", attributes, children);
-/** Render text (the text content inside a tag): now returns a string for VDOM */
-export function t(text, ...values) {
-    let result = "";
-    if (typeof text === "string") {
-        result = text;
-    }
-    else {
-        for (let i = 0; i < values.length; i++) {
-            result += text[i];
-            result += String(values[i]);
-        }
-        result += text[values.length];
-    }
-    return result;
-}
+// Re-export the new reactive template function as 't' for convenience
+export { template as t, template } from '../jsx/jsx-runtime';
 // Fragment
 export const FRAGMENT_TAG = Symbol("HyperFX.Fragment"); // Unique symbol for fragment tag
 export const Fragment = (children) => {
@@ -54,6 +41,10 @@ const setElementAttributesInternal = (el, attributes) => {
         if (attrName.startsWith("on") && typeof attrValue === "function") {
             const eventName = attrName.slice(2).toLowerCase();
             el.addEventListener(eventName, attrValue);
+            continue;
+        }
+        if (attrName === "innerHTML" && typeof attrValue === 'string') {
+            el.innerHTML = attrValue;
             continue;
         }
         if (booleanAttrs.has(attrName)) {
@@ -154,6 +145,10 @@ export function mount(vnode, container, anchor = null) {
                         el.removeAttribute('checked');
                     }
                     el.checked = !!value;
+                }
+                else if (propName === 'innerHTML') {
+                    // Handle innerHTML property specially
+                    el.innerHTML = String(value);
                 }
                 else {
                     el.setAttribute(propName, String(value));
@@ -428,6 +423,10 @@ anchor = null // anchor for mount
                                 // Add new listener
                                 element.addEventListener(eventName, value);
                                 element[`__${propName}`] = value;
+                            }
+                            else if (propName === 'innerHTML') {
+                                // Handle innerHTML property specially
+                                element.innerHTML = String(value);
                             }
                             else {
                                 element.setAttribute(propName, String(value));

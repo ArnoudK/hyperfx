@@ -14,6 +14,10 @@ export function ReactiveList(props) {
             'data-reactive-list': 'true'
         },
         children: [],
+        // Store reactive data for hydration
+        __reactiveListItems: items,
+        __renderItem: renderItem,
+        __keyExtractor: keyExtractor,
     };
     // Set up reactive effect to update the container when items change
     if (typeof window !== 'undefined') {
@@ -25,6 +29,9 @@ export function ReactiveList(props) {
                 if (keyExtractor) {
                     vnode.key = keyExtractor(item, index);
                 }
+                else {
+                    vnode.key = `item-${index}`;
+                }
                 return vnode;
             });
             // Update the container's children
@@ -35,7 +42,7 @@ export function ReactiveList(props) {
                 container.dom.innerHTML = '';
                 // Mount new children
                 newChildren.forEach(child => {
-                    if (typeof child === 'object' && child.tag) {
+                    if (typeof child === 'object' && 'tag' in child) {
                         // Use dynamic import to avoid circular dependency
                         import('../elem/elem').then(({ mount }) => {
                             mount(child, container.dom);
@@ -52,6 +59,9 @@ export function ReactiveList(props) {
             const vnode = renderItem(item, index);
             if (keyExtractor) {
                 vnode.key = keyExtractor(item, index);
+            }
+            else {
+                vnode.key = `item-${index}`;
             }
             return vnode;
         });

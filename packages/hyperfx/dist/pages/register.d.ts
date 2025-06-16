@@ -1,4 +1,5 @@
 import { PageComp } from "../reactive/component";
+import { VNode } from "../elem/elem";
 type routeItem = {
     path: string;
     route: RegExp;
@@ -15,6 +16,7 @@ export declare class PageRegister {
     routes: routeItem[];
     currentPage: PageComp<any, any> | undefined;
     currentRoute: routeItem | undefined;
+    currentVNode: VNode | undefined;
     queryParams: URLSearchParams;
     /**
      * Add a route with a custom component. Those will be loaded on page load or a softnavigate with navigateTo.
