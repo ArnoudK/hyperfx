@@ -1,79 +1,75 @@
-import type { GlobalAttr } from "./attr";
+import type {
+  AttributesForElement,
+} from "./attr";
 import {
-  createE,
-  type HtmlElement_Or_Text_Children_Or_Undefined,
+  createElementWithChildren,
+  VNode,
+  VNodeChildren,
 } from "./elem";
 
 /** <caption> <thead> <tbody> <tfooter>
  * also accepts <tr> directly
- * But it seems like using a <tbody> is preffered by the new standards
+ * But it seems like using a <tbody> is preferred by the new standards
  */
-type tableChild =
-  | HTMLTableSectionElement
-  | HTMLTableCaptionElement
-  | HTMLTableRowElement;
-
+// The specific child types like HTMLTableSectionElement are too restrictive for VNode children.
+// VNodeChildren allows for more flexible composition.
 export const Table = (
-  attributes: GlobalAttr,
-  children?: readonly tableChild[]
-) => createE("table", attributes, children);
+  attributes: AttributesForElement<"table"> = {},
+  children?: VNodeChildren
+): VNode<"table"> => createElementWithChildren("table", attributes, children);
 
 export const TableHead = (
-  attributes: GlobalAttr,
-  children?: readonly HTMLTableRowElement[]
-) => createE("thead", attributes, children);
+  attributes: AttributesForElement<"thead"> = {},
+  children?: VNodeChildren // Typically VNode<"tr">[]
+): VNode<"thead"> => createElementWithChildren("thead", attributes, children);
 
 export const Thead = TableHead;
 
 export const TableBody = (
-  attributes: GlobalAttr,
-  children?: readonly HTMLTableRowElement[]
-) => createE("tbody", attributes, children);
+  attributes: AttributesForElement<"tbody"> = {},
+  children?: VNodeChildren // Typically VNode<"tr">[]
+): VNode<"tbody"> => createElementWithChildren("tbody", attributes, children);
 
 export const Tbody = TableBody;
 
 export const TableFoot = (
-  attributes: GlobalAttr,
-  children?: readonly HTMLTableRowElement[]
-) => createE("tfoot", attributes, children);
+  attributes: AttributesForElement<"tfoot"> = {},
+  children?: VNodeChildren // Typically VNode<"tr">[]
+): VNode<"tfoot"> => createElementWithChildren("tfoot", attributes, children);
 
 export const Tfoot = TableFoot;
 
-/** Only <td> and <th> */
-type tableRowChild = HTMLTableCellElement;
-
 export const TableRow = (
-  attributes: GlobalAttr,
-  children?: readonly tableRowChild[]
-) => createE("tr", attributes, children);
+  attributes: AttributesForElement<"tr"> = {},
+  children?: VNodeChildren // Typically (VNode<"td"> | VNode<"th">)[]
+): VNode<"tr"> => createElementWithChildren("tr", attributes, children);
 
 export const Tr = TableRow;
 
+/**
+ * Table data cell with type-safe attributes
+ */
 export const TableData = (
-  attributes: GlobalAttr,
-  children?: HtmlElement_Or_Text_Children_Or_Undefined
-) => createE("td", attributes, children);
+  attributes: AttributesForElement<"td"> = {},
+  children?: VNodeChildren
+): VNode<"td"> => createElementWithChildren("td", attributes, children);
 
 export const Td = TableData;
 
-/** https://developer.mozilla.org/en-US/docs/Web/HTML/Element/th#attributes */
-type tableHeaderAttributes = GlobalAttr & {
-  scope?: "row" | "col" | "rowgroup" | "colgroup";
-  abbr?: string;
-  colspan?: string;
-  headers?: string;
-  rowspan?: string;
-};
-
+/**
+ * Table header cell with enhanced type safety
+ */
 export const TableHeader = (
-  attributes: tableHeaderAttributes,
-  children?: HtmlElement_Or_Text_Children_Or_Undefined
-) => createE("th", attributes, children);
+  attributes: AttributesForElement<"th"> = {},
+  children?: VNodeChildren
+): VNode<"th"> => createElementWithChildren("th", attributes, children);
 
 export const Th = TableHeader;
 
-/* Caption for tables */
+/**
+ * Caption for tables
+ */
 export const TableCaption = (
-  attributes: GlobalAttr,
-  children?: HtmlElement_Or_Text_Children_Or_Undefined
-) => createE("caption", attributes, children);
+  attributes: AttributesForElement<"caption"> = {},
+  children?: VNodeChildren
+): VNode<"caption"> => createElementWithChildren("caption", attributes, children);

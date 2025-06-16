@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
-import  tailwindcss  from "@tailwindcss/vite";
+import tailwindcss from "@tailwindcss/vite";
+
 export default defineConfig({
   appType: "spa",
   build: {
@@ -13,6 +14,11 @@ export default defineConfig({
         compact: true,
       },
     },
+  },
+
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "hyperfx/jsx",
   },
 
   plugins: [

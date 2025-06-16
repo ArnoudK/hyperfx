@@ -1,28 +1,35 @@
+export * from "./elem/attr"; // Exports ElementAttributes (priority)
 export * from "./elem/elem";
+export * from "./elem/reactive"; // Export reactive helpers
+export * from "./elem/keyed-list"; // Export keyed list utilities
+export * from "./elem/control-flow"; // Export control flow components
 export * from "./elem/headings";
 export * from "./elem/img";
 export * from "./elem/input";
+export * from "./elem/text"; // Exports Br (priority)
 export * from "./elem/style";
-export * from "./elem/text";
 export * from "./elem/head";
 export * from "./elem/table";
 export * from "./elem/semantic";
 export * from "./reactive/component";
+export * from "./reactive/state";
 export * from "./pages/navigate";
 export * from "./pages/register";
+export * from "./pages/router"; // Export the new router
 export * from "./fetcher";
 export * from "./json_representation/hfx_object";
-/* Extension methods */
-Object.defineProperty(HTMLElement.prototype, "WithEvent$HFX", {
-    value: function (eventtype, listener) {
-        this.addEventListener(eventtype, listener);
-        return this;
-    },
-});
-Object.defineProperty(Object.prototype, "With$HFX", {
-    value: function (func) {
-        func(this);
-        return this;
-    },
-});
+// Performance and optimization exports
+export * from "./performance/optimizations";
+// Animation and transition exports
+export * from "./animation/transitions";
+// Development tools (only in development)
+export * from "./dev/dev-tools";
+// Server-Side Rendering (SSR) exports
+export * from "./ssr";
+// JSX Runtime exports (explicit re-exports to avoid conflicts)
+export { jsx, jsxs, jsxDEV, createElement as jsxCreateElement, Fragment as JSXFragment } from "./jsx/jsx-runtime";
+export { ReactiveList } from "./jsx/reactive-list";
+export { For } from "./jsx/for";
+export { reactive } from "./jsx/reactive-helper";
+export { RouterLink } from "./jsx/router-link";
 //# sourceMappingURL=index.js.map

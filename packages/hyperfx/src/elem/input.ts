@@ -1,258 +1,136 @@
-import type { GlobalAttr, targetValues } from "./attr";
+import type { 
+  InputElementAttributes,
+  FormElementAttributes,
+  SelectElementAttributes,
+  OptionElementAttributes,
+  LabelElementAttributes,
+  TextAreaElementAttributes,
+  ButtonElementAttributes,
+  AttributesForElement
+} from "./attr";
 import {
-  createE,
-  createS,
-  type HtmlElement_Or_Text_Children_Or_Undefined,
+  el,
+  VNode,
+  VNodeChildren
 } from "./elem";
 
-type inputRequired = {
-  type:
-  | "button"
-  | "checkbox"
-  | "color"
-  | "date"
-  | "datetime-local"
-  | "email"
-  | "file"
-  | "hidden"
-  | "image"
-  | "month"
-  | "password"
-  | "radio"
-  | "range"
-  | "reset"
-  | "search"
-  | "submit"
-  | "tel"
-  | "text"
-  | "time"
-  | "url"
-  | "week";
-  /**   @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#name
-        '_charset_' combined with hidden will set the value to the 'user-agent'
-        'isindex' is not allowed as name
-         */
-  name: string | "_charset_";
-  id: string;
-};
+/**
+ * Type-safe input element using standardized attributes
+ * Supports all HTML input types with proper validation
+ */
+export const Input = (
+  attributes: InputElementAttributes = {} as InputElementAttributes
+): VNode<"input"> => el("input", attributes);
 
-const inputTypes = [
-  "button",
-  "checkbox",
-  "color",
-  "date",
-  "datetime-local",
-  "email",
-  "file",
-  "hidden",
-  "image",
-  "month",
-  "password",
-  "radio",
-  "range",
-  "reset",
-  "search",
-  "submit",
-  "tel",
-  "text",
-  "time",
-  "url",
-  "week",
-] as const;
-type inputType = (typeof inputTypes)[number];
+/**
+ * Type-safe form element
+ */
+export const Form = (
+  attributes: FormElementAttributes = {} as FormElementAttributes,
+  children?: VNodeChildren
+): VNode<"form"> => el("form", attributes, children);
 
-type SteppableAttr = { value: string; max: string; min: string; step: string };
-type LengthAble = { value: string; maxlength: string; minlength: string };
-type InputAttr<inputType> = {
-  id: string;
-  name: string;
-  /**  Tell the browser the input has a valid value before it can be submitted.
-    NOT VALID ON: hidden, range, color, and buttons.
-    @TODO might be fixed in later version  */
-  required?: "required";
-} & GlobalAttr &
-  (inputType extends "button"
-    ? { type: "button"; value: string }
-    : inputType extends "checkbox"
-    ? {
-      type: "checkbox";
-      value: string;
-      checked?: "checked";
-    }
-    : inputType extends "color"
-    ? { type: "color"; value?: string }
-    : inputType extends "date"
-    ? {
-      type: "date";
-    } & Partial<SteppableAttr>
-    : inputType extends "datetime-local"
-    ? {
-      type: "datetime-local";
-    } & Partial<SteppableAttr>
-    : inputType extends "email"
-    ? {
-      type: "email";
-      multiple?: "multiple";
-      pattern?: string;
-      placeholder?: string;
-      readonly?: "readonly";
-      size?: string;
-      list?: string;
-    } & Partial<LengthAble>
-    : inputType extends "file"
-    ? {
-      type: "file";
-      value: "";
-      accept?: "string";
-      capture?: "user" | "environment";
-      multiple?: "multiple";
-      webkitdirectory?: "webkitdirectory";
-    }
-    : inputType extends "hidden"
-    ? {
-      type: "hidden";
-      // if the value is '_charset_' it will set the user-agent as value
-      value: string | "_charset_";
-    }
-    : inputType extends "image"
-    ? {
-      type: "image";
-      src?: string;
-      alt?: string;
-      formaction?: string;
-      formenctype?:
-      | "application/x-www-form-urlencoded"
-      | "multipart/form-data"
-      | "text/plain";
-      formmethod?: "get" | "post" | "dialog";
-      formnovalidate?: "formnovalidate";
-      formtarget?: targetValues;
-    }
-    : inputType extends "month"
-    ? {
-      type: "month";
-      readonly?: "readonly";
-      list?: string;
-    } & Partial<SteppableAttr>
-    : inputType extends "nubmer"
-    ? {
-      type: "number";
-      list?: string;
-      placeholder?: string;
-      readonly?: "readonly";
-    } & Partial<SteppableAttr>
-    : inputType extends "password"
-    ? {
-      type: "password";
-      pattern?: string;
-      /* please use minlength and maxlength in CSS instead*/
-      size?: string;
-      readonly?: "readonly";
-      placeholder?: string;
-      autocomplete?:
-      | "on"
-      | "off"
-      | "current-password"
-      | "new-password";
-    } & Partial<LengthAble>
-    : inputType extends "radio"
-    ? {
-      type: "radio";
-      checked?: "checked";
-    }
-    : inputType extends "range"
-    ? {
-      type: "range";
-      list: string;
-      orient?: "horizontal" | "vertical";
-    } & SteppableAttr
-    : inputType extends "reset"
-    ? {
-      type: "reset";
-    }
-    : inputType extends "search"
-    ? {
-      type: "search";
-      value?: string;
-      list: string;
-      pattern: string;
-      placeholder: string;
-      readonly: "readonly";
-      size: string;
-      autocorrect?: "on" | "off";
-      incremental?: "incremental";
-      results?: string;
-    } & Partial<LengthAble>
-    : inputType extends "submit"
-    ? {
-      type: "submit";
-      value: string;
-      disabled?: "disabled";
-      formenctype?:
-      | "application/x-www-form-urlencoded"
-      | "multipart/form-data"
-      | "text/plain";
-      formmethod?: "get" | "post" | "dialog";
-      formnovalidate?: "formnovalidate";
-      formtarget: targetValues;
-    }
-    : inputType extends "tel"
-    ? {
-      type: "tel";
-      list?: string;
-      readonly?: "readonly";
-      size?: string;
-      pattern?: string;
-    } & Partial<LengthAble>
-    : inputType extends "text"
-    ? {
-      type: "text";
-      list?: string;
-      pattern?: string;
-      readonly?: "readonly";
-      placeholder?: string;
-    } & Partial<LengthAble>
-    : inputType extends "time"
-    ? {
-      type: "time";
-      list?: string;
-      readonly: "readonly";
-    } & Partial<SteppableAttr>
-    : inputType extends "url"
-    ? {
-      type: "url";
-      list?: string;
-      pattern: string;
-      placeholder: string;
-      readonly?: "readonly";
-    } & Partial<LengthAble>
-    : inputType extends "week"
-    ? {
-      type: "week";
-      readonly?: "readonly";
-    } & Partial<SteppableAttr>
-    : {
-      type: "Error something went wrong ????";
-    });
-
-export const Input = (attrs: InputAttr<inputType>) => createS("input", attrs);
-
-type LabelAttr = GlobalAttr & { for: string };
-
+/**
+ * Type-safe label element
+ * The 'for' attribute is handled automatically (use 'htmlFor' in attributes)
+ */
 export const Label = (
-  attrs: LabelAttr,
-  children?: HtmlElement_Or_Text_Children_Or_Undefined
-) => createE("label", attrs, children);
+  attributes: LabelElementAttributes = {} as LabelElementAttributes,
+  children?: VNodeChildren
+): VNode<"label"> => el("label", attributes, children);
 
+/**
+ * Type-safe textarea element
+ */
 export const TextArea = (
-  attrs: GlobalAttr &
-    Partial<LengthAble> &
-    Partial<{ cols: number; rows: number; required: "required" }> &
-    Partial<{ name: string; id: string; value: string }>
-) => {
-  const el = createS("textarea", attrs);
-  if (attrs.value) {
-    el.value = attrs.value;
-  }
-  return el;
+  attributes: TextAreaElementAttributes = {} as TextAreaElementAttributes,
+  children?: VNodeChildren
+): VNode<"textarea"> => {
+  return el("textarea", attributes, children);
 };
+
+/**
+ * Type-safe select element
+ */
+export const Select = (
+  attributes: SelectElementAttributes = {} as SelectElementAttributes,
+  children?: VNodeChildren
+): VNode<"select"> => el("select", attributes, children);
+
+/**
+ * Type-safe option element
+ */
+export const Option = (
+  attributes: OptionElementAttributes = {} as OptionElementAttributes,
+  children?: VNodeChildren
+): VNode<"option"> => el("option", attributes, children);
+
+/**
+ * Type-safe button element
+ */
+export const Button = (
+  attributes: ButtonElementAttributes = {} as ButtonElementAttributes,
+  children?: VNodeChildren
+): VNode<"button"> => el("button", attributes, children);
+
+/**
+ * Type-safe fieldset element
+ */
+export const Fieldset = (
+  attributes: AttributesForElement<'fieldset'> = {} as AttributesForElement<'fieldset'>,
+  children?: VNodeChildren
+): VNode<"fieldset"> => el("fieldset", attributes, children);
+
+/**
+ * Type-safe legend element
+ */
+export const Legend = (
+  attributes: AttributesForElement<'legend'> = {} as AttributesForElement<'legend'>,
+  children?: VNodeChildren
+): VNode<"legend"> => el("legend", attributes, children);
+
+/**
+ * Type-safe optgroup element
+ */
+export const OptGroup = (
+  attributes: AttributesForElement<'optgroup'> & { label?: string } = {} as AttributesForElement<'optgroup'> & { label?: string },
+  children?: VNodeChildren
+): VNode<"optgroup"> => el("optgroup", attributes, children);
+
+/**
+ * Type-safe datalist element
+ */
+export const DataList = (
+  attributes: AttributesForElement<'datalist'> = {} as AttributesForElement<'datalist'>,
+  children?: VNodeChildren
+): VNode<"datalist"> => el("datalist", attributes, children);
+
+/**
+ * Type-safe progress element
+ */
+export const Progress = (
+  attributes: AttributesForElement<'progress'> & { value?: number; max?: number } = {} as AttributesForElement<'progress'> & { value?: number; max?: number },
+  children?: VNodeChildren
+): VNode<"progress"> => el("progress", attributes, children);
+
+/**
+ * Type-safe meter element
+ */
+export const Meter = (
+  attributes: AttributesForElement<'meter'> & { 
+    value?: number; 
+    min?: number; 
+    max?: number; 
+    low?: number; 
+    high?: number; 
+    optimum?: number 
+  } = {} as AttributesForElement<'meter'> & { 
+    value?: number; 
+    min?: number; 
+    max?: number; 
+    low?: number; 
+    high?: number; 
+    optimum?: number 
+  },
+  children?: VNodeChildren
+): VNode<"meter"> => el("meter", attributes, children);

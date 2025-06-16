@@ -7,6 +7,11 @@
 		"moduleDetection": "force",
 		"allowJs": true,
 		"esModuleInterop": true,
+		
+		// JSX Configuration
+		"jsx": "react-jsx",
+		"jsxImportSource": "./src/jsx",
+		
 		// Bundler Stuff
 		"moduleResolution": "Bundler",
 

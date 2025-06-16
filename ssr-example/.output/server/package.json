@@ -1,0 +1,10 @@
+{
+  "name": "hyperfx-ssr-example-prod",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "pathe": "1.1.2",
+    "vinxi": "0.5.7"
+  }
+}

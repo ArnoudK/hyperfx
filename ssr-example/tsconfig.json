@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "hyperfx",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "types": ["vinxi/types/client", "vinxi/types/server"],
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "baseUrl": "."
+  }
+}

@@ -1,8 +1,8 @@
-import { PageCompType } from "../reactive/component";
+import { PageComp } from "../reactive/component";
 type routeItem = {
     path: string;
     route: RegExp;
-    comp: PageCompType;
+    comp: PageComp<any, any>;
     params: paramItem[];
 };
 type paramItem = {
@@ -13,14 +13,14 @@ type paramItem = {
 export declare class PageRegister {
     Anchor: HTMLElement;
     routes: routeItem[];
-    currentPage: PageCompType | undefined;
+    currentPage: PageComp<any, any> | undefined;
     currentRoute: routeItem | undefined;
     queryParams: URLSearchParams;
     /**
      * Add a route with a custom component. Those will be loaded on page load or a softnavigate with navigateTo.
      * params can be added with [name] e.g.: '/mypage/[myparam]/info'
      */
-    registerRoute(route: string, comp: PageCompType): this;
+    registerRoute(route: string, comp: PageComp<any, any>): this;
     getParamValue(name: string): string | undefined;
     enable(): this;
     constructor(anchor: HTMLElement);

@@ -17,14 +17,16 @@ import {
   Title,
   navigateTo,
   t,
+  RenderToBody,
+  VNode,
+  Fragment,
 } from "hyperfx";
+
+import { DocNav, SideNavComp } from "./docnav";
 
 import { parse } from "marked";
 
-const myStr = "Hello, world!";
 import index_md from "../assets/index.md?raw";
-
-import { DocNav, SideNavComp } from "./docnav";
 
 import { docsMD } from "./docregister";
 
@@ -41,20 +43,15 @@ hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("html", html);
 hljs.registerLanguage("bash", bash);
 
-const app_root = document.getElementById("app");
-if (!app_root) {
-  throw "ERROR: app root not found??";
-}
-
-
+const myStr = "Hello, world!";
 const hello_text = parse(index_md) as string;
 
-const md_space = Main({ class: "flex flex-auto flex-col" }, []);
+const md_space_vnode: VNode = Div({ class: "flex flex-auto flex-col" });
 
-const layout = Div({ class: "flex flex-auto flex-col" }, [
+const layoutVNode: VNode = Div({ class: "flex flex-auto flex-col min-h-screen" }, [
   DocNav(),
-  md_space,
-  Footer({ class: "bg-slate-900 mx-auto w-full min-h-12 p-4 text-center" }, [
+  Main({ class: "flex flex-auto flex-col" }, [md_space_vnode]),
+  Footer({ class: "bg-slate-900 mx-auto w-full min-h-12 p-4 text-center mt-auto" }, [
     A(
       {
         href: "https://github.com/ArnoudK/hyperfx",
@@ -63,25 +60,24 @@ const layout = Div({ class: "flex flex-auto flex-col" }, [
       },
       [t("Github")]
     ),
-    Span({ class: "w-full " }, " - © Arnoud Kerkhof"),
+    Span({ class: "w-full " }, [t(" - © Arnoud Kerkhof")]),
   ]),
 ]);
 
-app_root.replaceChildren(layout);
+RenderToBody(layoutVNode);
 
-/* Register routing + it triggers popstate (url changes)
- *    register '/' to redirect to /hyperfx
- *    register '/hyperfx' to load the doc when the url changes 'popstate' and
- *              load the corresponding docs
- */
-RouteRegister(md_space)
+if (!md_space_vnode.dom) {
+  console.error("Critical: md_space_vnode.dom was not populated after RenderToBody.");
+}
+
+RouteRegister(md_space_vnode.dom as HTMLElement)
   .registerRoute(
     "/",
     PageComponent(
       RootComponent(),
-      null,  // Changed from '' to null to be more explicit about no data needed
-      () => {
-        return Article({}, [P({}, [t("Could not load??")])]);
+      null,
+      (): VNode => {
+        return Article({}, [P({}, [t("Loading...")])]);
       },
       () => {
         setTimeout(() => navigateTo("/hyperfx"), 6);
@@ -92,52 +88,64 @@ RouteRegister(md_space)
     "/hyperfx",
     PageComponent(
       RootComponent(),
-      null,  // Changed from 1 to null since we're not using the data
-      () => {
+      null,
+      (): VNode => {
         const doc = GetQueryValue("doc") || "main";
         const md_doc = docsMD.find((a) => a.route_name == doc);
 
         if (md_doc) {
-          const doc_element = Div({ class: "flex flex-auto " }, [
-            SideNavComp.currentRender,
-            Article({
-              class: "p-4 flex flex-col overflow-auto mx-auto",
-            }).With$HFX((e) => {
-              e.innerHTML = parse(md_doc.data) as string;
-            }),
+          const parsedMarkdown = parse(md_doc.data) as string;
+          const articleContentVNode = Div({
+            class: "markdown-body",
+            innerHTML: parsedMarkdown,
+          });
+
+          setTimeout(() => {
+            if (articleContentVNode.dom) {
+              const code_blocks = (articleContentVNode.dom as HTMLElement).querySelectorAll("pre code");
+              for (const code_block of code_blocks) {
+                hljs.highlightElement(code_block as HTMLElement);
+              }
+            }
+          }, 0);
+
+          const sideNavNode = SideNavComp.currentRender;
+          const sideNavContent = Array.isArray(sideNavNode) 
+            ? Fragment(sideNavNode) 
+            : sideNavNode || Fragment([]); // Use empty fragment if undefined
+
+          const doc_vnode = Div({ class: "flex flex-auto" }, [
+            sideNavContent,
+            Article(
+              { class: "p-4 flex flex-col overflow-auto mx-auto" },
+              [articleContentVNode]
+            ),
           ]);
 
-          const code_blocks = doc_element.querySelectorAll("pre code");
-
-          for (const code_block of code_blocks) {
-            hljs.highlightElement(code_block as HTMLElement);
-          }
           Title(`${md_doc.title} | HyperFX`);
           MetaDescription(`HyperFX docs about ${md_doc.title}.`);
-
-          return doc_element;
+          return doc_vnode;
         } else if (doc == "main") {
           Title("HyperFX docs");
           MetaDescription("Learn HyperFX todo and 'Read The Friendly Manual'!");
 
-          return Div({}, [
+          const mainContentVNode = Div({
+            class: "markdown-body-main",
+            innerHTML: hello_text,
+          });
 
-            Article({ class: "p-4 mx-auto" }, []).With$HFX((a) => {
-              a.innerHTML = hello_text;
-            }),
-            Div({ class: 'p-2 bg-red-950 text-white' }, [
-              P({ class: "text-xl" }, [
-                t`This is a work in progress!`,
-              ]),
-              P({ class: "text-xl" }, [
-                t`The docs are not finished yet!`,
-              ]),
+          return Div({ class: "flex-grow flex flex-col" }, [
+            Article({ class: "p-4 mx-auto" }, [mainContentVNode]),
+            Div({ class: "p-2 bg-red-950 text-white mt-4" }, [
+              P({ class: "text-xl" }, [t`This is a work in progress!`]),
+              P({ class: "text-xl" }, [t`The docs are not finished yet!`]),
               P({ class: "text-xl" }, [
                 t`Does ${myStr} template to textnode even work?`,
               ]),
-            ])
+            ]),
           ]);
-        } else Title(`Doc '${doc}' not found :( | HyperFX`);
+        }
+        Title(`Doc '${doc}' not found :( | HyperFX`);
         MetaDescription(`This docs for '${doc}' does not exist!`);
 
         return Div({ class: "text-xl p-4" }, [
@@ -148,15 +156,31 @@ RouteRegister(md_space)
           ]),
         ]);
       },
-      () => { }
+      () => {}
     )
   )
   .registerRoute(
-    "editor",
+    "hyperfx/editor",
     PageComponent(
       RootComponent(),
-      null,  // Changed from undefined to null to match ComponentData type
-      () => {
+      null,
+      (): VNode => {
+        const editorInstanceVNode = editor();
+        const codeBlockContentVNode = Code({}, [t(editor_code)]);
+        const codeBlockVNode = Pre(
+          { class: "mx-auto !max-w-[70vw] max-h-[50vw]" },
+          [codeBlockContentVNode]
+        );
+
+        setTimeout(() => {
+          if (codeBlockContentVNode.dom) {
+            hljs.highlightElement(codeBlockContentVNode.dom as HTMLElement);
+          } else if (codeBlockVNode.dom) {
+            const codeElement = (codeBlockVNode.dom as HTMLElement).querySelector("code");
+            if (codeElement) hljs.highlightElement(codeElement as HTMLElement);
+          }
+        }, 0);
+
         return Div({ class: "flex flex-col p-4 max-w-[80vw] mx-auto" }, [
           Div({ class: "p-2" }, [
             P({ class: "mx-auto" }, [
@@ -168,17 +192,13 @@ RouteRegister(md_space)
               ]),
             ]),
             Div({ class: " px-4 overflow-y-scroll overflow-x-scroll" }, [
-              Pre({ class: "mx-auto !max-w-[70vw] max-h-[50vw]" }, [
-                Code({}, [t(editor_code)]),
-              ]),
-            ]).With$HFX((div) => {
-              hljs.highlightElement(div.firstChild!.firstChild as HTMLElement);
-            }),
+              codeBlockVNode,
+            ]),
           ]),
-          editor(),
+          editorInstanceVNode,
         ]);
       },
-      () => { }
+      () => {}
     )
   )
   .enable();

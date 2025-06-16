@@ -1,0 +1,4 @@
+{
+  "main": "./jsx-runtime.js",
+  "types": "./jsx-runtime.d.ts"
+}
