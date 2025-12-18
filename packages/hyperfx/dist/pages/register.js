@@ -89,6 +89,9 @@ function onPageChange() {
     }
     reg.currentPage = undefined;
     // Clear the anchor container
+    if (!reg.Anchor) {
+        throw new Error('Register anchor is not initialized');
+    }
     while (reg.Anchor.firstChild) {
         reg.Anchor.removeChild(reg.Anchor.firstChild);
     }

@@ -1,29 +1,20 @@
-import { signal, computed, effect, startBatch, endBatch } from 'alien-signals';
+import { ReactiveSignal, createSignal, createSignal as signal_createSignal, createComputed as signal_createComputed, createEffect as signal_createEffect, batch as signal_batch } from "./signal";
 
 /**
- * State management utilities using alien-signals
+ * State management utilities using custom Signal implementation
  */
 
-/** Type for a reactive signal function */
-export type ReactiveSignal<T> = {
-  (): T;
-  (value: T): void;
-};
+/** Type for a computed signal */
+export type ComputedSignal<T> = ReactiveSignal<T>;
 
-/** Type for a computed signal function */
-export type ComputedSignal<T> = () => T;
+/** Re-export ReactiveSignal */
+export type { ReactiveSignal };
 
-/** Type for effect cleanup function */
+/** Re-export createSignal */
+export { createSignal };
+
+/** Type for signal_createEffect cleanup function */
 export type EffectCleanup = () => void;
-
-/**
- * Create a reactive signal
- * @param initialValue The initial value of the signal
- * @returns A reactive signal
- */
-export function createSignal<T>(initialValue: T): ReactiveSignal<T> {
-  return signal(initialValue);
-}
 
 /**
  * Create a computed signal based on other signals
@@ -31,16 +22,16 @@ export function createSignal<T>(initialValue: T): ReactiveSignal<T> {
  * @returns A computed signal
  */
 export function createComputed<T>(computation: () => T): ComputedSignal<T> {
-  return computed(computation);
+  return signal_createComputed(computation);
 }
 
 /**
- * Create an effect that runs when dependencies change
- * @param effectFn The effect function
+ * Create an signal_createEffect that runs when dependencies change
+ * @param effectFn The signal_createEffect function
  * @returns Cleanup function
  */
 export function createEffect(effectFn: () => void | (() => void)): EffectCleanup {
-  return effect(effectFn);
+  return signal_createEffect(effectFn);
 }
 
 /**
@@ -52,8 +43,8 @@ export class StateStore {
   private effects: EffectCleanup[] = [];
 
   /**
-   * Define a signal in the store
-   * @param key The key for the signal
+   * Define a signal_createSignal in the store
+   * @param key The key for the signal_createSignal
    * @param initialValue The initial value
    */
   defineSignal<T>(key: string, initialValue: T): ReactiveSignal<T> {
@@ -61,48 +52,48 @@ export class StateStore {
       throw new Error(`Signal with key "${key}" already exists`);
     }
     
-    const sig = signal(initialValue);
+    const sig = signal_createSignal(initialValue);
     this.signals.set(key, sig);
     return sig;
   }
 
   /**
-   * Get a signal from the store
-   * @param key The key for the signal
+   * Get a signal_createSignal from the store
+   * @param key The key for the signal_createSignal
    */
   getSignal<T>(key: string): ReactiveSignal<T> | undefined {
     return this.signals.get(key) as ReactiveSignal<T>;
   }
 
   /**
-   * Define a computed signal in the store
-   * @param key The key for the computed signal
+   * Define a signal_createComputed signal_createSignal in the store
+   * @param key The key for the signal_createComputed signal_createSignal
    * @param computation The computation function
    */
   defineComputed<T>(key: string, computation: () => T): ComputedSignal<T> {
     if (this.computedSignals.has(key)) {
-      throw new Error(`Computed signal with key "${key}" already exists`);
+      throw new Error(`Computed signal_createSignal with key "${key}" already exists`);
     }
     
-    const comp = computed(computation);
+    const comp = signal_createComputed(computation);
     this.computedSignals.set(key, comp);
     return comp;
   }
 
   /**
-   * Get a computed signal from the store
-   * @param key The key for the computed signal
+   * Get a signal_createComputed signal_createSignal from the store
+   * @param key The key for the signal_createComputed signal_createSignal
    */
   getComputed<T>(key: string): ComputedSignal<T> | undefined {
     return this.computedSignals.get(key) as ComputedSignal<T>;
   }
 
   /**
-   * Add an effect to the store
-   * @param effectFn The effect function
+   * Add an signal_createEffect to the store
+   * @param effectFn The signal_createEffect function
    */
   addEffect(effectFn: () => void | (() => void)): void {
-    const cleanup = effect(effectFn);
+    const cleanup = signal_createEffect(effectFn);
     this.effects.push(cleanup);
   }
 
@@ -110,28 +101,28 @@ export class StateStore {
    * Dispose all effects and clear the store
    */
   dispose(): void {
-    this.effects.forEach(cleanup => cleanup());
+    this.effects.forEach(cleanup => { cleanup(); });
     this.effects = [];
     this.signals.clear();
     this.computedSignals.clear();
   }
 
   /**
-   * Get all signal keys
+   * Get all signal_createSignal keys
    */
   getSignalKeys(): string[] {
     return Array.from(this.signals.keys());
   }
 
   /**
-   * Get all computed signal keys
+   * Get all signal_createComputed signal_createSignal keys
    */
   getComputedKeys(): string[] {
     return Array.from(this.computedSignals.keys());
   }
 
   /**
-   * Get a nested signal by path (e.g., ['user', 'profile', 'name'])
+   * Get a nested signal_createSignal by path (e.g., ['user', 'profile', 'name'])
    */
   getNestedSignal<T>(root: ReactiveSignal<any>, path: (string | number)[]): ReactiveSignal<T> | undefined {
     let current: any = root;
@@ -197,7 +188,7 @@ export function createStore(): StateStore {
 export function useState<T>(
   initialValue: T
 ): [() => T, (value: T | ((prev: T) => T)) => void] {
-  const sig = signal(initialValue);
+  const sig = signal_createSignal(initialValue);
   
   const getter = () => sig();
   const setter = (value: T | ((prev: T) => T)) => {
@@ -212,10 +203,10 @@ export function useState<T>(
 }
 
 /**
- * Reactive computed hook for components
+ * Reactive signal_createComputed hook for components
  */
 export function useComputed<T>(computation: () => T): () => T {
-  const comp = computed(computation);
+  const comp = signal_createComputed(computation);
   return () => comp();
 }
 
@@ -227,39 +218,34 @@ export function useEffect(
   deps?: (() => any)[]
 ): EffectCleanup {
   if (deps && deps.length > 0) {
-    // Create a computed that tracks dependencies
-    const depsComputed = computed(() => deps.map(dep => dep()));
+    // Create a signal_createComputed that tracks dependencies
+    const depsComputed = signal_createComputed(() => deps.map(dep => dep()));
     
-    return effect(() => {
-      // Access the computed to track its dependencies
+    return signal_createEffect(() => {
+      // Access the signal_createComputed to track its dependencies
       depsComputed();
       return effectFn();
     });
   } else {
-    return effect(effectFn);
+    return signal_createEffect(effectFn);
   }
 }
 
 /**
- * Batch multiple signal updates
+ * Batch multiple signal_createSignal updates
  */
 export function batch(updateFn: () => void): void {
-  startBatch();
-  try {
-    updateFn();
-  } finally {
-    endBatch();
-  }
+  signal_batch(updateFn);
 }
 
 /**
  * Utility to create derived state
  */
 export function derive<T, R>(
-  signal: ReactiveSignal<T>,
+  signal_createSignal: ReactiveSignal<T>,
   transform: (value: T) => R
 ): ComputedSignal<R> {
-  return computed(() => transform(signal()));
+  return signal_createComputed(() => transform(signal_createSignal()));
 }
 
 /**
@@ -268,5 +254,5 @@ export function derive<T, R>(
 export function combine<T extends readonly unknown[]>(
   ...signals: { readonly [K in keyof T]: ReactiveSignal<T[K]> }
 ): ComputedSignal<T> {
-  return computed(() => signals.map(sig => sig()) as unknown as T);
+  return signal_createComputed(() => signals.map(sig => sig()) as unknown as T);
 }

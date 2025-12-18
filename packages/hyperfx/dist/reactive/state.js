@@ -1,27 +1,21 @@
-import { signal, computed, effect, startBatch, endBatch } from 'alien-signals';
-/**
- * Create a reactive signal
- * @param initialValue The initial value of the signal
- * @returns A reactive signal
- */
-export function createSignal(initialValue) {
-    return signal(initialValue);
-}
+import { createSignal, createSignal as signal_createSignal, createComputed as signal_createComputed, createEffect as signal_createEffect, batch as signal_batch } from "./signal";
+/** Re-export createSignal */
+export { createSignal };
 /**
  * Create a computed signal based on other signals
  * @param computation The computation function
  * @returns A computed signal
  */
 export function createComputed(computation) {
-    return computed(computation);
+    return signal_createComputed(computation);
 }
 /**
- * Create an effect that runs when dependencies change
- * @param effectFn The effect function
+ * Create an signal_createEffect that runs when dependencies change
+ * @param effectFn The signal_createEffect function
  * @returns Cleanup function
  */
 export function createEffect(effectFn) {
-    return effect(effectFn);
+    return signal_createEffect(effectFn);
 }
 /**
  * State store class for managing related state
@@ -33,76 +27,76 @@ export class StateStore {
         this.effects = [];
     }
     /**
-     * Define a signal in the store
-     * @param key The key for the signal
+     * Define a signal_createSignal in the store
+     * @param key The key for the signal_createSignal
      * @param initialValue The initial value
      */
     defineSignal(key, initialValue) {
         if (this.signals.has(key)) {
             throw new Error(`Signal with key "${key}" already exists`);
         }
-        const sig = signal(initialValue);
+        const sig = signal_createSignal(initialValue);
         this.signals.set(key, sig);
         return sig;
     }
     /**
-     * Get a signal from the store
-     * @param key The key for the signal
+     * Get a signal_createSignal from the store
+     * @param key The key for the signal_createSignal
      */
     getSignal(key) {
         return this.signals.get(key);
     }
     /**
-     * Define a computed signal in the store
-     * @param key The key for the computed signal
+     * Define a signal_createComputed signal_createSignal in the store
+     * @param key The key for the signal_createComputed signal_createSignal
      * @param computation The computation function
      */
     defineComputed(key, computation) {
         if (this.computedSignals.has(key)) {
-            throw new Error(`Computed signal with key "${key}" already exists`);
+            throw new Error(`Computed signal_createSignal with key "${key}" already exists`);
         }
-        const comp = computed(computation);
+        const comp = signal_createComputed(computation);
         this.computedSignals.set(key, comp);
         return comp;
     }
     /**
-     * Get a computed signal from the store
-     * @param key The key for the computed signal
+     * Get a signal_createComputed signal_createSignal from the store
+     * @param key The key for the signal_createComputed signal_createSignal
      */
     getComputed(key) {
         return this.computedSignals.get(key);
     }
     /**
-     * Add an effect to the store
-     * @param effectFn The effect function
+     * Add an signal_createEffect to the store
+     * @param effectFn The signal_createEffect function
      */
     addEffect(effectFn) {
-        const cleanup = effect(effectFn);
+        const cleanup = signal_createEffect(effectFn);
         this.effects.push(cleanup);
     }
     /**
      * Dispose all effects and clear the store
      */
     dispose() {
-        this.effects.forEach(cleanup => cleanup());
+        this.effects.forEach(cleanup => { cleanup(); });
         this.effects = [];
         this.signals.clear();
         this.computedSignals.clear();
     }
     /**
-     * Get all signal keys
+     * Get all signal_createSignal keys
      */
     getSignalKeys() {
         return Array.from(this.signals.keys());
     }
     /**
-     * Get all computed signal keys
+     * Get all signal_createComputed signal_createSignal keys
      */
     getComputedKeys() {
         return Array.from(this.computedSignals.keys());
     }
     /**
-     * Get a nested signal by path (e.g., ['user', 'profile', 'name'])
+     * Get a nested signal_createSignal by path (e.g., ['user', 'profile', 'name'])
      */
     getNestedSignal(root, path) {
         let current = root;
@@ -167,7 +161,7 @@ export function createStore() {
  * Reactive state hook for components
  */
 export function useState(initialValue) {
-    const sig = signal(initialValue);
+    const sig = signal_createSignal(initialValue);
     const getter = () => sig();
     const setter = (value) => {
         if (typeof value === 'function') {
@@ -180,10 +174,10 @@ export function useState(initialValue) {
     return [getter, setter];
 }
 /**
- * Reactive computed hook for components
+ * Reactive signal_createComputed hook for components
  */
 export function useComputed(computation) {
-    const comp = computed(computation);
+    const comp = signal_createComputed(computation);
     return () => comp();
 }
 /**
@@ -191,40 +185,34 @@ export function useComputed(computation) {
  */
 export function useEffect(effectFn, deps) {
     if (deps && deps.length > 0) {
-        // Create a computed that tracks dependencies
-        const depsComputed = computed(() => deps.map(dep => dep()));
-        return effect(() => {
-            // Access the computed to track its dependencies
+        // Create a signal_createComputed that tracks dependencies
+        const depsComputed = signal_createComputed(() => deps.map(dep => dep()));
+        return signal_createEffect(() => {
+            // Access the signal_createComputed to track its dependencies
             depsComputed();
             return effectFn();
         });
     }
     else {
-        return effect(effectFn);
+        return signal_createEffect(effectFn);
     }
 }
 /**
- * Batch multiple signal updates
+ * Batch multiple signal_createSignal updates
  */
 export function batch(updateFn) {
-    startBatch();
-    try {
-        updateFn();
-    }
-    finally {
-        endBatch();
-    }
+    signal_batch(updateFn);
 }
 /**
  * Utility to create derived state
  */
-export function derive(signal, transform) {
-    return computed(() => transform(signal()));
+export function derive(signal_createSignal, transform) {
+    return signal_createComputed(() => transform(signal_createSignal()));
 }
 /**
  * Utility to combine multiple signals
  */
 export function combine(...signals) {
-    return computed(() => signals.map(sig => sig()));
+    return signal_createComputed(() => signals.map(sig => sig()));
 }
 //# sourceMappingURL=state.js.map

@@ -17,8 +17,9 @@ export default defineConfig({
   },
 
   esbuild: {
-    jsx: "automatic",
-    jsxImportSource: "hyperfx/jsx",
+    jsx: "transform",
+    jsxFactory: "jsx",
+    jsxFragment: "Fragment",
   },
 
   plugins: [

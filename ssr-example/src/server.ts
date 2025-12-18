@@ -1,7 +1,7 @@
 // Vinxi SSR Server Handler with File System Routing
 import { eventHandler } from "vinxi/http";
 import { getManifest } from "vinxi/manifest";
-import { SSRRenderer, SSRContext, SSRPageConfig, Div, H1, t, P, A, renderWithHydration, VNode } from 'hyperfx';
+import { SSRRenderer, SSRContext, SSRPageConfig, Div, H1, t, P, A, renderWithHydration, VNode, r, template } from 'hyperfx';
 
 // Import route components directly
 import HomePage from './routes/index.tsx';
@@ -211,7 +211,7 @@ export default eventHandler(async (event) => {
         // Create HTML document with the pre-rendered content
         const titleEscaped: string = config.title.replace(/"/g, '&quot;');
         const descriptionEscaped: string = config.description.replace(/"/g, '&quot;');
-        const stylesheetsHtml: string = stylesheets.map((href: string) => 
+        const stylesheetsHtml: string = stylesheets.map((href: string) =>
             `<link rel="stylesheet" href="${href}">`
         ).join('\n  ');
 
@@ -288,8 +288,8 @@ export default eventHandler(async (event) => {
 // 404 Not Found component with proper typing
 function getNotFoundComponent(pathname: string): VNode<any> {
     return Div({ class: 'min-h-screen bg-gray-900 text-white flex items-center justify-center' }, [
-        H1({ class: 'text-4xl font-bold text-red-400' }, [t('404 - Page Not Found')]),
-        P({ class: 'text-gray-300 mt-4' }, [t(`Route "${pathname}" not found`)]),
-        A({ href: '/', class: 'text-blue-400 hover:text-blue-300 mt-4 inline-block' }, [t('← Back to Home')])
+        H1({ class: 'text-4xl font-bold text-red-400' }, ['404 - Page Not Found']),
+        P({ class: 'text-gray-300 mt-4' }, [template`Route "${pathname}" not found`]),
+        A({ href: '/', class: 'text-blue-400 hover:text-blue-300 mt-4 inline-block' }, ['← Back to Home'])
     ]);
 }

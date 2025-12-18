@@ -1,52 +1,44 @@
-export * from "./elem/attr"; // Exports ElementAttributes (priority)
-export * from "./elem/elem";
-export * from "./elem/reactive"; // Export reactive helpers
-export * from "./elem/keyed-list"; // Export keyed list utilities
-export * from "./elem/control-flow"; // Export control flow components
+// Core element attributes and types
+export * from "./elem/attr";
+export * from "./elem/text";
+export * from "./elem/style";
 
+// HTML element helpers
 export * from "./elem/headings";
 export * from "./elem/img";
 export * from "./elem/input";
-
-export * from "./elem/text"; // Exports Br (priority)
-export * from "./elem/style";
-
-export * from "./elem/head";
+export { Title, Meta, Base, Link as HtmlLink } from "./elem/head";
 export * from "./elem/table";
 export * from "./elem/semantic";
-export * from "./reactive/component";
+
+// Direct DOM Component System
+export { createComponent, ClassComponent, mountComponent, unmountComponent, forwardRef } from "./reactive/component-dom";
+export { bindAttribute, bindStyle, bindClass, bindCSSVariable, bindEvent, ReactiveList, ReactiveIf, bindTwoWay, reactiveTemplate, batchDOMUpdates, debounceDOMUpdate, measureReactivePerformance, createReactiveComponent } from "./reactive/reactive-dom";
 export * from "./reactive/state";
+export * from "./reactive/reactive-dom";
+
+// Direct DOM Routing System
 export * from "./pages/navigate";
-export * from "./pages/register";
-export * from "./pages/router"; // Export the new router
+export * from "./pages/router-dom";
+export * from "./pages/router-components";
+
+// JSX Runtime for Direct DOM
+export { jsx, jsxs, jsxDEV, createElement, Fragment, r } from "./jsx/jsx-runtime";
+export { JSX } from "./jsx/jsx-runtime";
+
+// Control Flow Components
+export { For, Index, Show, Switch, Match } from "./jsx/control-flow";
+
+// Template literal helpers
+export { template as t } from "./elem/elem";
+
+// Additional features
 export * from "./fetcher";
 export * from "./json_representation/hfx_object";
-
-// Performance and optimization exports
 export * from "./performance/optimizations";
-
-// Animation and transition exports
 export * from "./animation/transitions";
-
-// Development tools (only in development)
 export * from "./dev/dev-tools";
-
-// Server-Side Rendering (SSR) exports
 export * from "./ssr";
-
-// JSX Runtime exports (explicit re-exports to avoid conflicts)
-export { jsx, jsxs, jsxDEV, createElement as jsxCreateElement, Fragment as JSXFragment } from "./jsx/jsx-runtime";
-export { ReactiveList } from "./jsx/reactive-list";
-export { For } from "./jsx/for";
-export { reactive } from "./jsx/reactive-helper";
-export { RouterLink } from "./jsx/router-link";
-
-// Template literal helpers (available from both elem and jsx)
-export { template as jsxTemplate, r } from "./jsx/jsx-runtime";
-export { template, t } from "./elem/elem";
-
-// Export JSX namespace for TypeScript
-export { JSX } from "./jsx/jsx-runtime";
 
 /* Extension methods */
 

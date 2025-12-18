@@ -255,6 +255,7 @@ export interface SelectAttributes extends WithAutocomplete {
   name: string;
   required: BooleanAttribute;
   size: NumericAttribute;
+  value: string | number;
 }
 
 /**

@@ -205,7 +205,7 @@ export function ErrorBoundary(children, fallback) {
     // Wrap in try-catch during mounting
     const originalMount = container.children;
     try {
-        return If(() => errorSignal() !== null, () => fallback(errorSignal()), container);
+        return If(errorSignal() !== null, () => fallback(errorSignal()), container);
     }
     catch (error) {
         errorSignal(error);

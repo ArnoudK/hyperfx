@@ -1,0 +1,51 @@
+/**
+ * Custom Signal Implementation for HyperFX
+ *
+ * A simple, synchronous signal system optimized for reactive DOM updates.
+ * Replaces alien-signals with a more direct approach for JSX reactive attributes.
+ */
+/**
+ * Signal function that can be called to get/set values
+ * Compatible with both callable API (signal()) and object API (signal.get())
+ */
+export type Signal<T = any> = {
+    (): T;
+    (value: T): T;
+    get(): T;
+    set(value: T): T;
+    subscribe(callback: (value: T) => void): () => void;
+    peek(): T;
+    update(updater: (current: T) => T): T;
+    subscriberCount: number;
+};
+/**
+ * Create a new signal with callable API and object methods
+ */
+export declare function createSignal<T>(initialValue: T): Signal<T>;
+/**
+ * Create a computed signal that derives from other signals
+ * Automatically tracks dependencies when accessed
+ */
+export declare function createComputed<T>(computeFn: () => T): Signal<T>;
+/**
+ * Create an effect that runs when signals change
+ */
+export declare function createEffect(effectFn: () => void | (() => void)): () => void;
+/**
+ * Batch multiple signal updates
+ */
+export declare function batch<T>(fn: () => T): T;
+/**
+ * Utility to check if a value is a Signal
+ */
+export declare function isSignal(value: any): value is Signal;
+/**
+ * Get signal value, or return value if not a signal
+ */
+export declare function unwrapSignal<T>(value: T | Signal<T>): T;
+/**
+ * Legacy compatibility exports
+ */
+export { Signal as ReactiveSignal };
+export { createSignal as signal };
+export { createComputed as computed };
