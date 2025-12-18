@@ -1,6 +1,5 @@
 import { mount, VNode, patch } from "./elem";
 import { ReactiveSignal, createSignal, createEffect } from "../reactive/state";
-import { reactiveKeyedList } from "./keyed-list";
 
 // Conditional rendering helpers
 export function If(
@@ -281,7 +280,7 @@ export function ErrorBoundary(
 
     try {
         return If(
-            () => errorSignal() !== null,
+            errorSignal() !== null,
             () => fallback(errorSignal()!),
             container
         );
