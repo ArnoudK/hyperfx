@@ -1,5 +1,5 @@
 // Client-side hydration and routing
-import { Router, Route, hydrateWithNodeIds } from 'hyperfx';
+import { Router, Route, hydrateWithNodeIds, For } from 'hyperfx';
 import { routes, getAllRoutePaths } from './routes/config';
 
 /**
@@ -20,25 +20,31 @@ function initializeClient(): void {
             console.log('✅ HyperFX: Hydration complete');
         }
 
+        console.log(routes);
+
         // Setup component-based router for subsequent navigation
-        const ClientApp = () => (
-            <Router children={
-                <>
-                    {getAllRoutePaths().map(path => {
-                        const route = routes[path];
-                        return <Route path={path} component={route.component} exact={path === '/'} />;
-                    })}
-                </>
-            } />
-        );
+        const ClientApp = () => {
+            return (
+                <Router>
+                    <>
+                        <For each={getAllRoutePaths()}>
+                            {(path) => {
+                                const route = routes[path];
+                                return <Route path={path} component={route.component} exact={path === '/'} />;
+                            }}
+                        </For>
+                    </>
+                </Router>
+            );
+        }
 
         // Mount the router (this will enable client-side navigation)
         // Note: For full hydration benefit, the server and client should share the same component tree.
         // For this example, we mount the Router over the body or app element.
         if (appElement) {
-            appElement.replaceChildren(ClientApp());
+            appElement.replaceChildren(<ClientApp />);
         } else {
-            document.body.replaceChildren(ClientApp());
+            document.body.replaceChildren(<ClientApp />);
         }
 
         console.log('🚀 HyperFX: Client app initialized with component-based router');

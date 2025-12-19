@@ -201,9 +201,9 @@ function App(): JSX.Element {
         <main class="container mx-auto px-4 py-8">
           {/* Route definitions */}
           <Route path="/" component={HomePage} exact />
-        <Route path="/about" component={AboutPage} />
-        <Route path="/test" component={FineGrainedTest} />
-        <Route path="/counter" component={() => <div>Counter component would go here</div>} />
+          <Route path="/about" component={AboutPage} />
+          <Route path="/test" component={FineGrainedTest} title="Fine Grained Reactivity" />
+          <Route path="/counter" component={() => <div>Counter component would go here</div>} />
           <Route path="/todo" component={() => <div>Todo component would go here</div>} />
           <Route path="/form" component={() => <div>Form component would go here</div>} />
 
