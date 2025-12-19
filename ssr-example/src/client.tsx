@@ -22,14 +22,14 @@ function initializeClient(): void {
 
         // Setup component-based router for subsequent navigation
         const ClientApp = () => (
-            <Router children={() => (
+            <Router children={
                 <>
                     {getAllRoutePaths().map(path => {
                         const route = routes[path];
                         return <Route path={path} component={route.component} exact={path === '/'} />;
                     })}
                 </>
-            )} />
+            } />
         );
 
         // Mount the router (this will enable client-side navigation)

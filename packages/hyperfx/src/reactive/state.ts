@@ -190,16 +190,9 @@ export function useState<T>(
 ): [() => T, (value: T | ((prev: T) => T)) => void] {
   const sig = signal_createSignal(initialValue);
   
-  const getter = () => sig();
-  const setter = (value: T | ((prev: T) => T)) => {
-    if (typeof value === 'function') {
-      sig((value as (prev: T) => T)(sig()));
-    } else {
-      sig(value);
-    }
-  };
+
   
-  return [getter, setter];
+  return [sig, sig];
 }
 
 /**

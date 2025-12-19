@@ -162,16 +162,7 @@ export function createStore() {
  */
 export function useState(initialValue) {
     const sig = signal_createSignal(initialValue);
-    const getter = () => sig();
-    const setter = (value) => {
-        if (typeof value === 'function') {
-            sig(value(sig()));
-        }
-        else {
-            sig(value);
-        }
-    };
-    return [getter, setter];
+    return [sig, sig];
 }
 /**
  * Reactive signal_createComputed hook for components
