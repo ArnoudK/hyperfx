@@ -7,8 +7,8 @@
     "skipLibCheck": true,
 
     /* JSX Configuration */
-    "jsx": "preserve",
-    "jsxImportSource": "hyperfx/jsx",
+     "jsx": "react-jsx",
+    "jsxImportSource": "hyperfx",
 
     /* Bundler mode */
     "moduleResolution": "bundler",

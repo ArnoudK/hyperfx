@@ -7,6 +7,23 @@ import { Prettify } from "../tools/type_utils";
  * Direct DOM JSX Runtime for HyperFX
  */
 
+// Global node counter for generating unique node IDs (client-side)
+let clientNodeCounter = 0;
+
+/**
+ * Check if we're in an SSR environment
+ */
+function isSSREnvironment(): boolean {
+  return typeof window === 'undefined' || typeof document === 'undefined';
+}
+
+/**
+ * Generate a unique node ID for client-side elements
+ */
+function createClientId(): string {
+  return String(++clientNodeCounter).padStart(6, '0');
+}
+
 // Event handler type (should NOT be reactive)
 export type EventHandler<E extends Event = Event> = (event: E) => void;
 
@@ -92,18 +109,34 @@ export const FRAGMENT_TAG = Symbol("HyperFX.Fragment");
 function createElement(tag: string, props?: Record<string, any> | null): HTMLElement {
   const element = document.createElement(tag);
 
+  // Add unique node ID for client-side elements (only if not in SSR)
+  if (!isSSREnvironment()) {
+    element.setAttribute('data-hfxh', createClientId());
+  }
+
   if (props) {
     for (const [key, value] of Object.entries(props)) {
       if (key === 'children') continue; // Handle children separately
       if (key === 'key') continue; // Ignore React-style keys
 
+      // Handle special properties like innerHTML and textContent
+      if (key === 'innerHTML' || key === 'textContent') {
+        const updateProp = () => {
+          const val = isSignal(value) ? value() : value;
+          (element as any)[key] = val;
+        };
+        if (isSignal(value)) {
+          value.subscribe(updateProp);
+        }
+        updateProp();
+      }
       // Handle event handlers
-      if (key.startsWith('on') && typeof value === 'function') {
+      else if (key.startsWith('on') && typeof value === 'function') {
         const eventName = key.slice(2).toLowerCase();
         element.addEventListener(eventName, value as EventListener);
       }
        // Handle reactive attributes
-       else if (isSignal(value)) {
+        else if (isSignal(value)) {
          // Reactive attribute - subscribe to changes
          const updateAttribute = () => {
            const currentValue = value();
@@ -120,6 +153,17 @@ function createElement(tag: string, props?: Record<string, any> | null): HTMLEle
                element.value = String(currentValue);
              } else if (key === 'checked' && element instanceof HTMLInputElement) {
                element.checked = Boolean(currentValue);
+             } else if (key === 'disabled' && typeof currentValue === 'boolean') {
+               // Handle disabled as a boolean attribute
+               if (currentValue) {
+                 element.setAttribute('disabled', '');
+                 (element as any).disabled = true;
+               } else {
+                 element.removeAttribute('disabled');
+                 (element as any).disabled = false;
+               }
+             } else if (key === 'class' || key === 'className') {
+               element.className = String(currentValue);
              } else {
                element.setAttribute(key, String(currentValue));
              }
@@ -134,6 +178,15 @@ function createElement(tag: string, props?: Record<string, any> | null): HTMLEle
            element.value = String(value);
          } else if (key === 'checked' && element instanceof HTMLInputElement) {
            element.checked = Boolean(value);
+         } else if (key === 'disabled' && typeof value === 'boolean') {
+           // Handle disabled as a boolean attribute
+           if (value) {
+             element.setAttribute('disabled', '');
+             (element as any).disabled = true;
+           } else {
+             element.removeAttribute('disabled');
+             (element as any).disabled = false;
+           }
          } else {
            element.setAttribute(key, String(value));
          }
@@ -220,33 +273,35 @@ function renderChildren(parent: HTMLElement | DocumentFragment, children: JSXChi
 export function jsx(
   type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
   props: Record<string, any> | null,
-  ...children: JSXChildren[]
+  key?: string | number | null
 ): JSXElement {
   // Handle fragments
-  if (type === FRAGMENT_TAG) {
+  if (type === FRAGMENT_TAG || type === Fragment) {
+    const allChildren = props?.children;
     const fragment = document.createDocumentFragment();
-    const allChildren = children.length > 0 ? children.flat() : props?.children;
     renderChildren(fragment, allChildren);
     return fragment;
   }
 
   // Handle function components
   if (typeof type === 'function') {
-    // Use props.children if available, otherwise use additional children args
-    const componentChildren = props?.children ?? (children.length > 0 ? children.flat() : undefined);
-    const componentProps = { ...props, children: componentChildren };
-    return type(componentProps);
+    return type(props);
   }
 
   // Handle regular HTML elements
   const element = createElement(type as string, props);
 
   // Handle children
-  const allChildren = children.length > 0 ? children.flat() : props?.children;
-  renderChildren(element, allChildren);
+  if (props?.children) {
+    renderChildren(element, props.children);
+  }
 
   return element;
 }
+
+// jsxs is used for multiple children in automatic runtime, same logic for us
+export const jsxs = jsx;
+export const jsxDEV = jsx;
 
 // Fragment component
 export function Fragment(props: { children?: JSXChildren }): DocumentFragment {
@@ -255,13 +310,14 @@ export function Fragment(props: { children?: JSXChildren }): DocumentFragment {
   return fragment;
 }
 
-// Classic JSX Factory (for backwards compatibility)
+// Classic JSX Factory (for transform runtime)
 export function createJSXElement(
   type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
   props: Record<string, any> | null,
   ...children: JSXChildren[]
 ): JSXElement {
-  return jsx(type, props, ...children);
+  const allProps = { ...props, children: children.length > 0 ? children.flat() : props?.children };
+  return jsx(type, allProps);
 }
 
 // Template literal helpers for reactive strings
@@ -284,9 +340,15 @@ export function r<T>(fn: () => T): Signal<T> {
 // Classic JSX Factory (for backwards compatibility)
 export { createJSXElement as createElement };
 
-// Export for JSX automatic runtime
-export const jsxs = jsx;
-export const jsxDEV = jsx;
+/**
+ * Reset client node counter (useful for testing)
+ */
+export function resetClientNodeCounter(): void {
+  clientNodeCounter = 0;
+}
+
+// Export node ID functions for external use
+export { createClientId };
 
 // JSX namespace for TypeScript
 export namespace JSX {

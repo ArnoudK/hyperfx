@@ -1,12 +1,16 @@
-import { createSignal, createEffect } from "../reactive/state";
-let currentRouterContext = null;
-export function Router({ children, initialPath }) {
-    const currentPath = createSignal(initialPath || window.location.pathname);
+import { createSignal, createEffect, createComputed } from "../reactive/state";
+/**
+ * Global router context signal
+ * This allows components like Link to be reactive to router availability
+ */
+export const routerContextSignal = createSignal(null);
+export function Router(props) {
+    const currentPath = createSignal(props.initialPath || (window.location.pathname + window.location.search));
     const historyStack = createSignal([currentPath()]);
     const historyIndex = createSignal(0);
     // Handle browser navigation
     const handlePopState = () => {
-        const newPath = window.location.pathname || '/';
+        const newPath = (window.location.pathname + window.location.search) || '/';
         currentPath(newPath);
         const stack = historyStack();
         stack[historyIndex()] = newPath;
@@ -56,95 +60,127 @@ export function Router({ children, initialPath }) {
         back,
         forward,
     };
-    // Set global context
-    currentRouterContext = context;
+    // Set global context signal immediately
+    routerContextSignal(context);
     // Create container div
     const container = document.createElement('div');
     container.className = 'router-container';
-    // Mount children
-    if (Array.isArray(children)) {
-        children.forEach((child) => {
-            container.appendChild(child);
-        });
+    // Support deferred rendering (important for bottom-up JSX execution)
+    let content;
+    if (props.component) {
+        content = props.component({});
+    }
+    else if (typeof props.children === 'function') {
+        content = props.children();
     }
     else {
-        container.appendChild(children);
+        content = props.children;
     }
-    return container;
-}
-export function Route({ path, component, children, exact = false }) {
-    if (!currentRouterContext) {
-        throw new Error('Route must be used within a Router component');
-    }
-    const { currentPath } = currentRouterContext;
-    // Create placeholder element
-    const placeholder = document.createComment(`Route: ${path}`);
-    let currentElement = null;
-    const updateRoute = () => {
-        const currentPathValue = currentPath();
-        const matches = exact
-            ? currentPathValue === path
-            : currentPathValue.startsWith(path);
-        if (matches) {
-            // Remove previous element if it exists
-            if (currentElement && placeholder.parentNode) {
-                placeholder.parentNode.removeChild(currentElement);
-            }
-            // Render new content
-            let newElement;
-            if (component) {
-                newElement = component({});
-            }
-            else if (typeof children === 'function') {
-                const childResult = children();
-                newElement = Array.isArray(childResult) ? childResult[0] || document.createComment('Empty route') : childResult;
-            }
-            else if (children) {
-                newElement = children;
-            }
-            else {
-                newElement = document.createComment('Empty route');
-            }
-            // Insert new element
-            if (placeholder.parentNode) {
-                placeholder.parentNode.insertBefore(newElement, placeholder);
-            }
-            currentElement = newElement;
+    // Mount content
+    const appendChild = (parent, child) => {
+        if (child === null || child === undefined || child === false)
+            return;
+        if (child instanceof Node) {
+            parent.appendChild(child);
+        }
+        else if (Array.isArray(child)) {
+            child.forEach(c => appendChild(parent, c));
         }
         else {
-            // Hide route by removing current element
-            if (currentElement && placeholder.parentNode) {
-                placeholder.parentNode.removeChild(currentElement);
-                currentElement = null;
+            parent.appendChild(document.createTextNode(String(child)));
+        }
+    };
+    appendChild(container, content);
+    return container;
+}
+export function Route(props) {
+    const fragment = document.createDocumentFragment();
+    const startMarker = document.createComment(`Route start: ${props.path}`);
+    const endMarker = document.createComment(`Route end: ${props.path}`);
+    fragment.appendChild(startMarker);
+    fragment.appendChild(endMarker);
+    let renderedNodes = [];
+    const updateRoute = () => {
+        const context = routerContextSignal();
+        if (!context)
+            return;
+        const currentPath = context.currentPath;
+        const currentPathValue = currentPath();
+        const matches = (props.exact !== undefined ? props.exact : false)
+            ? currentPathValue === props.path
+            : currentPathValue.startsWith(props.path);
+        const parent = startMarker.parentNode;
+        const currentParent = parent || fragment;
+        // Remove old nodes from currentParent
+        renderedNodes.forEach(node => {
+            if (node.parentNode === currentParent) {
+                currentParent.removeChild(node);
+            }
+        });
+        renderedNodes = [];
+        if (matches) {
+            // Render new content
+            let content;
+            if (props.component) {
+                content = props.component({});
+            }
+            else if (typeof props.children === 'function') {
+                content = props.children();
+            }
+            else {
+                content = props.children;
+            }
+            if (content) {
+                const nodesToAdd = Array.isArray(content) ? content : [content];
+                nodesToAdd.forEach(node => {
+                    if (node instanceof Node) {
+                        currentParent.insertBefore(node, endMarker);
+                        renderedNodes.push(node);
+                    }
+                    else if (node != null) {
+                        // Handle primitives by converting to text nodes
+                        const textNode = document.createTextNode(String(node));
+                        currentParent.insertBefore(textNode, endMarker);
+                        renderedNodes.push(textNode);
+                    }
+                });
             }
         }
     };
     createEffect(updateRoute);
-    return placeholder;
+    return fragment;
 }
-export function Link({ to, children, class: className = '', activeClass: activeClassName = 'active', exact = false, replace = false, onClick }) {
-    if (!currentRouterContext) {
-        throw new Error('Link must be used within a Router component');
-    }
-    const { currentPath, navigate } = currentRouterContext;
+export function Link(props) {
     const link = document.createElement('a');
-    link.href = to;
-    link.className = className;
+    link.href = props.to;
+    link.className = props.class !== undefined ? props.class : '';
     // Handle clicks
     const handleClick = (event) => {
         event.preventDefault();
-        if (onClick) {
-            onClick(event);
+        if (props.onClick) {
+            props.onClick(event);
         }
-        navigate(to, { replace });
+        const context = routerContextSignal();
+        if (context) {
+            context.navigate(props.to, { replace: props.replace !== undefined ? props.replace : false });
+        }
+        else {
+            // Fallback if router not initialized yet
+            window.history.pushState({}, '', props.to);
+        }
     };
     link.addEventListener('click', handleClick);
     // Update active class based on current path
     createEffect(() => {
+        const context = routerContextSignal();
+        if (!context)
+            return;
+        const currentPath = context.currentPath;
         const currentPathValue = currentPath();
-        const isActive = exact
-            ? currentPathValue === to
-            : currentPathValue.startsWith(to);
+        const isActive = (props.exact !== undefined ? props.exact : false)
+            ? currentPathValue === props.to
+            : currentPathValue.startsWith(props.to);
+        const activeClassName = props.activeClass !== undefined ? props.activeClass : 'active';
         if (isActive) {
             link.classList.add(activeClassName);
         }
@@ -153,16 +189,16 @@ export function Link({ to, children, class: className = '', activeClass: activeC
         }
     });
     // Add children
-    if (typeof children === 'string') {
-        link.textContent = children;
+    if (typeof props.children === 'string') {
+        link.textContent = props.children;
     }
-    else if (Array.isArray(children)) {
-        children.forEach((child) => {
+    else if (Array.isArray(props.children)) {
+        props.children.forEach((child) => {
             link.appendChild(child);
         });
     }
-    else {
-        link.appendChild(children);
+    else if (props.children) {
+        link.appendChild(props.children);
     }
     return link;
 }
@@ -170,8 +206,9 @@ export function Link({ to, children, class: className = '', activeClass: activeC
  * Navigate Programmatically
  */
 export function navigate(path, options = {}) {
-    if (currentRouterContext) {
-        currentRouterContext.navigate(path, options);
+    const context = routerContextSignal();
+    if (context) {
+        context.navigate(path, options);
     }
     else {
         // Fallback to direct navigation
@@ -187,32 +224,46 @@ export function navigate(path, options = {}) {
  * Use current path in components
  */
 export function usePath() {
-    if (!currentRouterContext) {
-        throw new Error('usePath must be used within a Router component');
+    const context = routerContextSignal();
+    if (!context) {
+        // Return a dummy signal if router not yet available, it will be reactive once context is set if used in effect
+        return createSignal(window.location.pathname);
     }
-    return currentRouterContext.currentPath;
+    return context.currentPath;
 }
 /**
  * Use navigation function in components
  */
 export function useNavigate() {
-    if (!currentRouterContext) {
-        throw new Error('useNavigate must be used within a Router component');
-    }
-    return currentRouterContext.navigate;
+    return (path, options) => {
+        const context = routerContextSignal();
+        if (context) {
+            context.navigate(path, options);
+        }
+        else {
+            if (options?.replace) {
+                window.history.replaceState({}, '', path);
+            }
+            else {
+                window.history.pushState({}, '', path);
+            }
+        }
+    };
 }
-export function Outlet({ children }) {
-    // For now, just return children or empty div
-    if (children) {
+/**
+ * Outlet Component - For nested routing (placeholder for future implementation)
+ */
+export function Outlet(props) {
+    if (props.children) {
         const container = document.createElement('div');
         container.className = 'router-outlet';
-        if (Array.isArray(children)) {
-            children.forEach((child) => {
+        if (Array.isArray(props.children)) {
+            props.children.forEach((child) => {
                 container.appendChild(child);
             });
         }
         else {
-            container.appendChild(children);
+            container.appendChild(props.children);
         }
         return container;
     }
@@ -221,29 +272,80 @@ export function Outlet({ children }) {
     outlet.textContent = 'Outlet placeholder';
     return outlet;
 }
-export function Switch({ children }) {
+/**
+ * Switch Component - Renders first matching route
+ */
+export function Switch(props) {
     const container = document.createElement('div');
     container.className = 'router-switch';
-    // For now, just render all children - in a real implementation,
-    // this would render only the first matching route
-    if (Array.isArray(children)) {
-        children.forEach((child) => {
+    if (Array.isArray(props.children)) {
+        props.children.forEach((child) => {
             container.appendChild(child);
         });
     }
     else {
-        container.appendChild(children);
+        container.appendChild(props.children);
     }
     return container;
 }
-export function Redirect({ to, replace = false }) {
-    if (!currentRouterContext) {
-        throw new Error('Redirect must be used within a Router component');
+/**
+ * Redirect Component - Programmatic redirect
+ */
+export function Redirect(props) {
+    const context = routerContextSignal();
+    if (context) {
+        context.navigate(props.to, { replace: props.replace !== undefined ? props.replace : false });
     }
-    // Perform redirect immediately
-    currentRouterContext.navigate(to, { replace });
-    // Return empty comment
+    else {
+        // Deferred redirect handled in effect
+        createEffect(() => {
+            const ctx = routerContextSignal();
+            if (ctx) {
+                ctx.navigate(props.to, { replace: props.replace !== undefined ? props.replace : false });
+            }
+        });
+    }
     return document.createComment('Redirect component');
+}
+/**
+ * Get query parameter value from current URL as a reactive signal
+ */
+export function getQueryValue(name) {
+    const context = routerContextSignal();
+    return createComputed(() => {
+        if (context) {
+            context.currentPath(); // Track path changes
+        }
+        const searchParams = new URLSearchParams(window.location.search);
+        return searchParams.get(name);
+    });
+}
+/**
+ * Get all query parameter values for a name as a reactive signal
+ */
+export function getQueryValues(name) {
+    const context = routerContextSignal();
+    return createComputed(() => {
+        if (context) {
+            context.currentPath(); // Track path changes
+        }
+        const searchParams = new URLSearchParams(window.location.search);
+        return searchParams.getAll(name);
+    });
+}
+/**
+ * Get route parameter (placeholder for future implementation with dynamic routes)
+ */
+export function getParam(name) {
+    const context = routerContextSignal();
+    return createComputed(() => {
+        if (context) {
+            context.currentPath(); // Track path changes
+        }
+        // Simple extraction if name is in search as fallback or until Route integration
+        const searchParams = new URLSearchParams(window.location.search);
+        return searchParams.get(name) || undefined;
+    });
 }
 // Legacy exports for compatibility
 export { Router as BrowserRouter };

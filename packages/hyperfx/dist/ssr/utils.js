@@ -1,4 +1,4 @@
-import { renderToDocument, renderWithHydration } from "./render";
+import { renderToString } from "./render";
 /**
  * Enhanced SSR renderer with common patterns
  */
@@ -10,10 +10,13 @@ export class SSRRenderer {
     /**
      * Render a page with full HTML document
      */
-    renderPage(vnode, options = {}) {
+    renderPage(element, options = {}) {
         const documentOptions = {
             title: this.config.title || 'HyperFX App',
             description: this.config.description,
+            lang: 'en',
+            charset: 'UTF-8',
+            viewport: 'width=device-width, initial-scale=1.0',
             ...options,
             // Add meta tags for SEO
             inlineStyles: [
@@ -21,27 +24,98 @@ export class SSRRenderer {
                 this.generateCriticalCSS()
             ].filter(Boolean).join('\n'),
         };
-        let html = renderToDocument(vnode, documentOptions);
-        // Add SEO meta tags
-        html = this.addSEOMetaTags(html);
-        return html;
+        return this.renderDocument(element, documentOptions);
     }
     /**
      * Render with hydration support
      */
-    renderWithHydration(vnode) {
-        const { html: vnodeHtml, hydrationData } = renderWithHydration(vnode);
+    renderWithHydration(element) {
+        const { html: elementHtml, hydrationData } = renderToString(element);
         // Helper function to create the hydration script
         function createHydrationScript(data) {
             return `<script type="application/json" id="__HYPERFX_HYDRATION_DATA__">${JSON.stringify(data)}</script>`;
         }
         const hydrationScript = createHydrationScript(hydrationData);
-        const fullDocument = this.renderPage(vnode);
+        const fullDocument = this.renderPage(element);
         return {
-            html: vnodeHtml,
+            html: elementHtml,
             hydrationScript,
             fullDocument
         };
+    }
+    /**
+     * Render a full HTML document
+     */
+    renderDocument(element, options) {
+        let elementToRender;
+        if (Array.isArray(element)) {
+            const fragment = document.createDocumentFragment();
+            element.forEach(child => {
+                fragment.appendChild(child);
+            });
+            elementToRender = fragment;
+        }
+        else {
+            elementToRender = element;
+        }
+        const { html: elementHtml } = renderToString(elementToRender);
+        const metaTags = this.generateMetaTags(options);
+        return `<!DOCTYPE html>
+<html lang="${options.lang || 'en'}">
+<head>
+  <meta charset="${options.charset || 'UTF-8'}">
+  <meta name="viewport" content="${options.viewport || 'width=device-width, initial-scale=1.0'}">
+  <title>${options.title || 'HyperFX App'}</title>
+  ${options.description ? `<meta name="description" content="${options.description}">` : ''}
+  ${options.favicon ? `<link rel="icon" href="${options.favicon}">` : ''}
+  ${metaTags}
+  ${options.inlineStyles ? `<style>\n${options.inlineStyles}\n</style>` : ''}
+</head>
+<body class="${options.bodyClass || ''}">
+${elementHtml}
+${options.inlineScripts ? `<script>\n${options.inlineScripts}\n</script>` : ''}
+</body>
+</html>`;
+    }
+    /**
+     * Generate meta tags for SEO
+     */
+    generateMetaTags(options) {
+        const tags = [];
+        // Keywords
+        if (this.config.keywords?.length) {
+            tags.push(`<meta name="keywords" content="${this.config.keywords.join(', ')}">`);
+        }
+        // Canonical URL
+        if (this.config.canonical) {
+            tags.push(`<link rel="canonical" href="${this.config.canonical}">`);
+        }
+        // Open Graph
+        if (this.config.openGraph) {
+            const og = this.config.openGraph;
+            if (og.title)
+                tags.push(`<meta property="og:title" content="${og.title}">`);
+            if (og.description)
+                tags.push(`<meta property="og:description" content="${og.description}">`);
+            if (og.image)
+                tags.push(`<meta property="og:image" content="${og.image}">`);
+            if (og.type)
+                tags.push(`<meta property="og:type" content="${og.type}">`);
+            tags.push(`<meta property="og:url" content="${this.context.url}">`);
+        }
+        // Twitter Cards
+        if (this.config.twitter) {
+            const tw = this.config.twitter;
+            if (tw.card)
+                tags.push(`<meta name="twitter:card" content="${tw.card}">`);
+            if (tw.title)
+                tags.push(`<meta name="twitter:title" content="${tw.title}">`);
+            if (tw.description)
+                tags.push(`<meta name="twitter:description" content="${tw.description}">`);
+            if (tw.image)
+                tags.push(`<meta name="twitter:image" content="${tw.image}">`);
+        }
+        return tags.join('\n  ');
     }
     /**
      * Generate critical CSS for above-the-fold content
@@ -51,53 +125,8 @@ export class SSRRenderer {
         return `
       /* Critical CSS for HyperFX SSR */
       body { margin: 0; font-family: system-ui, sans-serif; }
-      [data-hyperfx-hydrate] { /* Hydration markers */ }
+      [data-hfx-hydration] { /* Hydration markers */ }
     `;
-    }
-    /**
-     * Add SEO meta tags to HTML
-     */
-    addSEOMetaTags(html) {
-        const metaTags = [];
-        // Keywords
-        if (this.config.keywords?.length) {
-            metaTags.push(`<meta name="keywords" content="${this.config.keywords.join(', ')}">`);
-        }
-        // Canonical URL
-        if (this.config.canonical) {
-            metaTags.push(`<link rel="canonical" href="${this.config.canonical}">`);
-        }
-        // Open Graph
-        if (this.config.openGraph) {
-            const og = this.config.openGraph;
-            if (og.title)
-                metaTags.push(`<meta property="og:title" content="${og.title}">`);
-            if (og.description)
-                metaTags.push(`<meta property="og:description" content="${og.description}">`);
-            if (og.image)
-                metaTags.push(`<meta property="og:image" content="${og.image}">`);
-            if (og.type)
-                metaTags.push(`<meta property="og:type" content="${og.type}">`);
-            metaTags.push(`<meta property="og:url" content="${this.context.url}">`);
-        }
-        // Twitter Cards
-        if (this.config.twitter) {
-            const tw = this.config.twitter;
-            if (tw.card)
-                metaTags.push(`<meta name="twitter:card" content="${tw.card}">`);
-            if (tw.title)
-                metaTags.push(`<meta name="twitter:title" content="${tw.title}">`);
-            if (tw.description)
-                metaTags.push(`<meta name="twitter:description" content="${tw.description}">`);
-            if (tw.image)
-                metaTags.push(`<meta name="twitter:image" content="${tw.image}">`);
-        }
-        // Inject meta tags before closing </head>
-        if (metaTags.length > 0) {
-            const metaString = metaTags.join('\n  ');
-            html = html.replace('</head>', `  ${metaString}\n</head>`);
-        }
-        return html;
     }
     /**
      * Check if request is from a bot/crawler
@@ -138,10 +167,10 @@ export class StaticGenerator {
         const pages = new Map();
         for (const [path, component] of this.routes) {
             try {
-                const vnode = await component();
+                const element = await component();
                 const context = { url: path };
                 const renderer = new SSRRenderer(context);
-                const html = renderer.renderPage(vnode);
+                const html = renderer.renderPage(element);
                 pages.set(path, html);
             }
             catch (error) {
@@ -214,15 +243,11 @@ export const SSRUtils = {
      * Create placeholder for client-side hydration
      */
     createHydrationPlaceholder(id, tagName = 'div') {
-        return {
-            tag: tagName,
-            props: {
-                id,
-                'data-hydration-placeholder': 'true',
-                style: 'display: none;'
-            },
-            children: []
-        };
+        const element = document.createElement(tagName);
+        element.id = id;
+        element.setAttribute('data-hydration-placeholder', 'true');
+        element.style.display = 'none';
+        return element;
     }
 };
 //# sourceMappingURL=utils.js.map

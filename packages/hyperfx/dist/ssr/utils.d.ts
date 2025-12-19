@@ -1,5 +1,4 @@
-import { VNode } from "../elem/elem";
-import { HtmlDocumentOptions } from "./render";
+import { JSXElement } from "../jsx/jsx-runtime";
 /**
  * SSR context for passing server-side data
  */
@@ -34,6 +33,20 @@ export interface SSRPageConfig {
     };
 }
 /**
+ * HTML document options for full page rendering
+ */
+export interface HtmlDocumentOptions {
+    title?: string;
+    description?: string;
+    lang?: string;
+    charset?: string;
+    viewport?: string;
+    favicon?: string;
+    inlineStyles?: string;
+    inlineScripts?: string;
+    bodyClass?: string;
+}
+/**
  * Enhanced SSR renderer with common patterns
  */
 export declare class SSRRenderer {
@@ -43,23 +56,27 @@ export declare class SSRRenderer {
     /**
      * Render a page with full HTML document
      */
-    renderPage(vnode: VNode | VNode[], options?: Partial<HtmlDocumentOptions>): string;
+    renderPage(element: JSXElement | JSXElement[], options?: Partial<HtmlDocumentOptions>): string;
     /**
      * Render with hydration support
      */
-    renderWithHydration(vnode: VNode): {
+    renderWithHydration(element: JSXElement): {
         html: string;
         hydrationScript: string;
         fullDocument?: string;
     };
     /**
+     * Render a full HTML document
+     */
+    private renderDocument;
+    /**
+     * Generate meta tags for SEO
+     */
+    private generateMetaTags;
+    /**
      * Generate critical CSS for above-the-fold content
      */
     private generateCriticalCSS;
-    /**
-     * Add SEO meta tags to HTML
-     */
-    private addSEOMetaTags;
     /**
      * Check if request is from a bot/crawler
      */
@@ -73,7 +90,7 @@ export declare class StaticGenerator {
     /**
      * Register a route for static generation
      */
-    addRoute(path: string, component: () => VNode | Promise<VNode>): void;
+    addRoute(path: string, component: () => JSXElement | Promise<JSXElement>): void;
     /**
      * Generate static HTML for all routes
      */
@@ -90,17 +107,17 @@ export declare const SSRUtils: {
     /**
      * Create a server-safe component that handles client-only features
      */
-    serverSafe<T>(serverComponent: () => VNode, clientComponent: () => T, fallback?: () => VNode): () => VNode | T;
+    serverSafe<T>(serverComponent: () => JSXElement, clientComponent: () => T, fallback?: () => JSXElement): () => JSXElement | T;
     /**
      * Conditional rendering based on environment
      */
-    clientOnly<T>(component: () => T, fallback?: () => VNode): () => VNode | T | null;
+    clientOnly<T>(component: () => T, fallback?: () => JSXElement): () => JSXElement | T | null;
     /**
      * Server-only rendering
      */
-    serverOnly(component: () => VNode): () => VNode | null;
+    serverOnly(component: () => JSXElement): () => JSXElement | null;
     /**
      * Create placeholder for client-side hydration
      */
-    createHydrationPlaceholder(id: string, tagName?: string): VNode;
+    createHydrationPlaceholder(id: string, tagName?: string): JSXElement;
 };

@@ -1,13 +1,13 @@
 import {
-  GetQueryValue,
-  MetaDescription,
-  PageComponent,
-  RootComp,
-  RouteRegister,
-  Title,
-  navigateTo,
-  RenderToBody,
-  VNode,
+  getQueryValue,
+  Router,
+  Route,
+  usePath,
+  useNavigate,
+  JSX,
+  createEffect,
+  createComputed,
+  Show,
 } from "hyperfx";
 
 import { DocNav, SideNavComp } from "./docnav";
@@ -20,148 +20,131 @@ import typescript from "highlight.js/lib/languages/typescript";
 import html from "highlight.js/lib/languages/xml";
 import { editor } from "./editor";
 import editor_code from "./editor?raw";
-import { SoftNav } from "./softnav";
 
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("html", html);
 hljs.registerLanguage("bash", bash);
 
-const myStr = "Hello, world!";
-const hello_text = parse(index_md) as string;
-
-// Main layout component using JSX
-function MainLayout(): VNode {
-  return (
-    <div className="flex flex-auto flex-col min-h-screen">
-      <DocNav />
-      <main className="flex flex-auto flex-col" id="main-content">
-        {/* Content will be dynamically inserted here by RouteRegister */}
-      </main>
-      <footer className="bg-slate-900 mx-auto w-full min-h-12 p-4 text-center mt-auto">
-        <a
-          href="https://github.com/ArnoudK/hyperfx"
-          target="_blank"
-          className="underline"
-        >
-          Github
-        </a>
-        <span className="w-full "> - © Arnoud Kerkhof</span>
-      </footer>
-    </div>
-  );
+const hello_text = parse(index_md)
+// Helper functions for metadata
+function Title(title: string) {
+  document.title = title;
 }
 
-// Loading component
-function LoadingPage(): VNode {
-  return (
-    <article>
-      <p>Loading...</p>
-    </article>
-  );
+function MetaDescription(description: string) {
+  const meta = document.querySelector('meta[name="description"]');
+  if (meta) {
+    meta.setAttribute('content', description);
+  }
 }
+
 
 // Documentation page component
-function DocumentationPage(): VNode {
-  const doc = GetQueryValue("doc") || "main";
-  const md_doc = docsMD.find((a) => a.route_name == doc);
+function DocumentationPage(): JSX.Element {
+  const path = usePath();
 
-  if (md_doc) {
-    const parsedMarkdown = parse(md_doc.data) as string;
-    
-    // Create article content with parsed markdown
-    const articleContent = (
-      <div 
-        className="markdown-body"       
-        innerHTML={parsedMarkdown}
-      />
-    );
+  const docToRender = createComputed(() => {
+    const doc = getQueryValue("doc")() || "main";
+    const md_doc = docsMD.find((a) => a.route_name == doc);
+    return md_doc;
+  });
 
-    // Highlight code blocks after render
+  const parsedMarkdown = createComputed(() => {
+    const md_doc = docToRender();
+    if (md_doc) {
+      const data = parse(md_doc.data);
+      console.log('parsedMarkdown', data);
+      return data;
+    }
+    return "";
+  });
+
+  createEffect(() => {
+    const md_doc = docToRender();
+    console.log('createEffect MD_DOC', md_doc);
+    if (md_doc) {
+      Title(`${md_doc.title} | HyperFX`);
+      MetaDescription(`HyperFX docs about ${md_doc.title}.`);
+    } else {
+      Title("HyperFX");
+      MetaDescription("HyperFX docs");
+    }
+  });
+
+
+
+
+  // Highlight code blocks after render
+  createEffect(() => {
+    path(); // Track path changes
     setTimeout(() => {
       const codeBlocks = document.querySelectorAll("pre code");
       for (const codeBlock of codeBlocks) {
         hljs.highlightElement(codeBlock as HTMLElement);
       }
     }, 0);
+  });
 
-  
-
-    Title(`${md_doc.title} | HyperFX`);
-    MetaDescription(`HyperFX docs about ${md_doc.title}.`);
-    
-    return (
-      <div className="flex flex-auto">
+  return <>
+    <Show when={() => docToRender() !== undefined && docToRender()!.route_name !== "main"}>
+      <div class="flex flex-auto">
         <SideNavComp />
-        <article className="p-4 flex flex-col overflow-auto mx-auto">
-          {articleContent}
+        <article class="p-4 flex flex-col overflow-auto mx-auto w-full max-w-4xl">
+          <div class="markdown-body" innerHTML={parsedMarkdown} />
         </article>
       </div>
-    );
-  } else if (doc == "main") {
-    Title("HyperFX docs");
-    MetaDescription("Learn HyperFX todo and 'Read The Friendly Manual'!");
+    </Show>
 
-    return (
-      <div className="flex-grow flex flex-col">
-        <article className="p-4 mx-auto">
-          <div 
-            className="markdown-body-main"
+    <Show when={() => docToRender() === undefined || docToRender()!.route_name === "main"}>
+      <div class="grow flex flex-col">
+        <article class="p-4 mx-auto w-full max-w-4xl">
+          <div
+            class="markdown-body-main"
             innerHTML={hello_text}
           />
         </article>
-        <div className="p-2 bg-red-950 text-white mt-4">
-          <p className="text-xl">This is a work in progress!</p>
-          <p className="text-xl">The docs are not finished yet!</p>
-          <p className="text-xl">
-            Does {myStr} template to textnode even work?
-          </p>
+        <div class="p-2 bg-red-950 text-white mt-4 mx-auto">
+          <p class="text-xl">This is a work in progress!</p>
+          <p class="text-xl">The docs are not finished yet!</p>
         </div>
       </div>
-    );
-  }
-
-  Title(`Doc '${doc}' not found :( | HyperFX`);
-  MetaDescription(`This docs for '${doc}' does not exist!`);
-
-  return (
-    <div className="text-xl p-4">
-      <p>The docs for '{doc}' could not be found : (</p>
-      <br />
-      <SoftNav href="/hyperfx" className="underline text-blue-400"
-        text="Go back"
-      />
-    </div>
-  );
+    </Show>
+  </>
 }
 
+
+
+
 // Editor page component
-function EditorPage(): VNode {
+function EditorPage(): JSX.Element {
   const editorInstance = editor();
-  
+
   const codeBlock = (
-    <pre className="mx-auto !max-w-[70vw] max-h-[50vw]">
-      <code className='language-tsx' >{editor_code}</code>
+    <pre class="mx-auto max-w-[70vw]! max-h-[50vw]">
+      <code class='language-tsx' >{editor_code}</code>
     </pre>
   );
 
   // Highlight code after render
-  setTimeout(() => {
-    const codeElement = document.querySelector("pre code");
-    if (codeElement) {
-      hljs.highlightElement(codeElement as HTMLElement);
-    }
-  }, 0);
+  createEffect(() => {
+    setTimeout(() => {
+      const codeElement = document.querySelector("pre code");
+      if (codeElement) {
+        hljs.highlightElement(codeElement as HTMLElement);
+      }
+    }, 0);
+  });
 
   return (
-    <div className="flex flex-col p-4 max-w-[80vw] mx-auto">
-      <div className="p-2">
-        <p className="mx-auto">
+    <div class="flex flex-col p-4 max-w-[80vw] mx-auto">
+      <div class="p-2">
+        <p class="mx-auto">
           This is the code used to create the editor.
-          <span className="text-purple-500/80">
-            {" "}(The editor is far from done but it is still cool IMO. (The web standards for creating a editor with 'contenteditable' is still kinda rough, especially the `selector` thing is annoying (and I have skill issues/(not enough times)). (uhm i need to seperate a lot stuff into easier functions and stuff) ))
+          <span class="text-purple-500/80">
+            {" "}(The editor is far from done but it is still cool IMO.)
           </span>
         </p>
-        <div className="w-full">
+        <div class="w-full">
           {codeBlock}
         </div>
       </div>
@@ -170,55 +153,46 @@ function EditorPage(): VNode {
   );
 }
 
-// Render the main layout
-const layoutVNode = <MainLayout />;
-RenderToBody(layoutVNode);
+function MainLayout(): JSX.Element {
+  const navigate = useNavigate();
+  const path = usePath();
 
-// Wait for DOM to be ready and then register routes
-setTimeout(() => {
-  // Get the main content container by ID
-  const mainElement = document.getElementById("main-content");
-  if (!mainElement) {
-    console.error("Critical: main-content element was not found after RenderToBody.");
-    return;
-  }
-  const loading = document.getElementById("loading");
-  if (loading) {
-    loading.remove(); // Remove loading element if it exists
-  }
+  createEffect(() => {
+    if (path() === "/") {
+      navigate("/hyperfx");
+    }
+  });
 
-  // Register routes
-  RouteRegister(mainElement as HTMLElement)
-    .registerRoute(
-      "/",
-      PageComponent(
-        new RootComp(),
-        null,
-        LoadingPage,
-        {
-          onPageLoad: () => {
-            setTimeout(() => navigateTo("/hyperfx"), 6);
-          }
-        }
-      )
-    )
-    .registerRoute(
-      "/hyperfx",
-      PageComponent(
-        new RootComp(),
-        null,
-        DocumentationPage,
-        {}
-      )
-    )
-    .registerRoute(
-      "hyperfx/editor", 
-      PageComponent(
-        new RootComp(),
-        null,
-        EditorPage,
-        {}
-      )
-    )
-    .enable();
-}, 0);
+  return (
+    <div class="flex flex-auto flex-col min-h-screen">
+      <DocNav />
+      <main class="flex flex-auto flex-col" id="main-content">
+        <p class="p-2 bg-red-800 text-white text-center w-full! max-w-full!" >
+          A LOT OF CHANGES. DOCS ARE NOT UP TO DATE.
+        </p>
+        <Route path="/hyperfx" component={DocumentationPage} />
+        <Route path="/hyperfx/editor" component={EditorPage} />
+      </main>
+      <footer class="bg-slate-900 mx-auto w-full min-h-12 p-4 text-center mt-auto">
+        <a
+          href="https://github.com/ArnoudK/hyperfx"
+          target="_blank"
+          class="underline"
+        >
+          Github
+        </a>
+        <span class="w-full "> - © Arnoud Kerkhof</span>
+      </footer>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <Router initialPath="/hyperfx" children={() => <MainLayout />} />
+  );
+}
+
+// Mount the app
+const appContainer = document.getElementById('app')!;
+appContainer.replaceChildren(App() as unknown as Node);

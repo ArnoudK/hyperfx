@@ -1,5 +1,4 @@
-import { mount } from "../elem/elem";
-import { createSignal, createEffect } from "../reactive/state";
+import { createSignal } from "../reactive/state";
 // Predefined easing functions
 export const easings = {
     linear: (t) => t,
@@ -7,16 +6,24 @@ export const easings = {
     easeOut: (t) => t * (2 - t),
     easeInOut: (t) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
     easeInCubic: (t) => t * t * t,
-    easeOutCubic: (t) => (--t) * t * t + 1,
+    easeOutCubic: (t) => {
+        const adjustedT = --t;
+        return adjustedT * adjustedT * adjustedT + 1;
+    },
     easeInOutCubic: (t) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1,
     bounce: (t) => {
         if (t < 1 / 2.75)
             return 7.5625 * t * t;
-        if (t < 2 / 2.75)
-            return 7.5625 * (t -= 1.5 / 2.75) * t + 0.75;
-        if (t < 2.5 / 2.75)
-            return 7.5625 * (t -= 2.25 / 2.75) * t + 0.9375;
-        return 7.5625 * (t -= 2.625 / 2.75) * t + 0.984375;
+        if (t < 2 / 2.75) {
+            const adjustedT = t - 1.5 / 2.75;
+            return 7.5625 * adjustedT * adjustedT + 0.75;
+        }
+        if (t < 2.5 / 2.75) {
+            const adjustedT = t - 2.25 / 2.75;
+            return 7.5625 * adjustedT * adjustedT + 0.9375;
+        }
+        const adjustedT = t - 2.625 / 2.75;
+        return 7.5625 * adjustedT * adjustedT + 0.984375;
     }
 };
 // Create animated value that smoothly transitions between states
@@ -29,187 +36,209 @@ export function createAnimatedValue(initialValue, options = {}) {
             if (animationId) {
                 cancelAnimationFrame(animationId);
             }
-            const start = currentValue();
-            const distance = target - start;
             const duration = options.duration || 300;
-            const easing = typeof options.easing === 'string' ?
-                easings[options.easing] || easings.easeInOut :
-                options.easing || easings.easeInOut;
-            const startTime = performance.now();
-            isAnimating = true;
-            const animate = (currentTime) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easedProgress = easing(progress);
-                currentValue(start + distance * easedProgress);
+            const delay = options.delay || 0;
+            const easingFn = typeof options.easing === 'function' ? options.easing : easings.linear;
+            let startTime = null;
+            const animate = (timestamp) => {
+                if (!startTime)
+                    startTime = timestamp;
+                const elapsed = timestamp - startTime;
+                if (elapsed < delay) {
+                    animationId = requestAnimationFrame(animate);
+                    return;
+                }
+                const progress = Math.min((elapsed - delay) / duration, 1);
+                const easedProgress = easingFn(progress);
+                const startValue = initialValue;
+                const endValue = target;
+                const newValue = startValue + (endValue - startValue) * easedProgress;
+                currentValue(newValue);
                 if (progress < 1) {
                     animationId = requestAnimationFrame(animate);
                 }
                 else {
-                    isAnimating = false;
                     animationId = null;
+                    isAnimating = false;
                     resolve();
                 }
             };
-            if (options.delay) {
-                setTimeout(() => {
-                    animationId = requestAnimationFrame(animate);
-                }, options.delay);
+            isAnimating = true;
+            animationId = requestAnimationFrame(animate);
+        });
+    };
+    return Object.assign(currentValue, { animateTo });
+}
+// Animate DOM element properties
+export function animateElement(element, properties, options = {}) {
+    const animations = Object.entries(properties).map(([property, targetValue]) => {
+        const currentValue = parseFloat(getComputedStyle(element)[property] || '0');
+        const animatedValue = createAnimatedValue(currentValue, options);
+        return animatedValue.animateTo(targetValue).then(() => {
+            const value = animatedValue();
+            element.style[property] = `${value}px`;
+        });
+    });
+    return Promise.all(animations).then(() => { });
+}
+// CSS transitions for smooth property changes
+export function transition(element, properties, options = {}) {
+    return new Promise((resolve) => {
+        const duration = options.duration || 300;
+        const easing = typeof options.easing === 'string' ? options.easing : 'ease';
+        // Store original transition
+        const originalTransition = element.style.transition;
+        // Set transition
+        const transitionValue = Object.keys(properties)
+            .map(prop => `${prop} ${duration}ms ${easing}`)
+            .join(', ');
+        element.style.transition = transitionValue;
+        // Apply properties
+        Object.entries(properties).forEach(([property, value]) => {
+            element.style[property] = value;
+        });
+        // Wait for transition to complete
+        const handleTransitionEnd = () => {
+            element.style.transition = originalTransition;
+            element.removeEventListener('transitionend', handleTransitionEnd);
+            resolve();
+        };
+        element.addEventListener('transitionend', handleTransitionEnd);
+        // Fallback timeout
+        setTimeout(() => {
+            element.removeEventListener('transitionend', handleTransitionEnd);
+            element.style.transition = originalTransition;
+            resolve();
+        }, duration + 50);
+    });
+}
+// Animate element entrance
+export function fadeIn(element, options = {}) {
+    element.style.opacity = '0';
+    element.style.display = '';
+    return transition(element, { opacity: 1 }, {
+        duration: options.duration || 300,
+        easing: options.easing || 'ease-out'
+    });
+}
+export function fadeOut(element, options = {}) {
+    return transition(element, { opacity: 0 }, {
+        duration: options.duration || 300,
+        easing: options.easing || 'ease-out'
+    }).then(() => {
+        element.style.display = 'none';
+    });
+}
+export function slideIn(element, direction = 'left', options = {}) {
+    const transforms = {
+        left: 'translateX(-100%)',
+        right: 'translateX(100%)',
+        up: 'translateY(-100%)',
+        down: 'translateY(100%)'
+    };
+    element.style.transform = transforms[direction];
+    element.style.display = '';
+    return transition(element, {
+        transform: 'translateX(0) translateY(0)'
+    }, {
+        duration: options.duration || 300,
+        easing: options.easing || 'ease-out'
+    });
+}
+export function slideOut(element, direction = 'left', options = {}) {
+    const transforms = {
+        left: 'translateX(-100%)',
+        right: 'translateX(100%)',
+        up: 'translateY(-100%)',
+        down: 'translateY(100%)'
+    };
+    return transition(element, { transform: transforms[direction] }, {
+        duration: options.duration || 300,
+        easing: options.easing || 'ease-out'
+    }).then(() => {
+        element.style.display = 'none';
+    });
+}
+// Animate list items with staggered timing
+export function animateListItems(container, items, entrance = 'fade', stagger = 100, options = {}) {
+    const animations = items.map((item, index) => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                if (entrance === 'fade') {
+                    fadeIn(item, options).then(resolve);
+                }
+                else {
+                    slideIn(item, options.direction || 'left', options).then(resolve);
+                }
+            }, index * stagger);
+        });
+    });
+    return Promise.all(animations).then(() => { });
+}
+// Create animated component wrapper
+export function AnimatedComponent(children, animationOptions = {}) {
+    const container = document.createElement('div');
+    if (children instanceof HTMLElement) {
+        container.appendChild(children);
+    }
+    else if (children instanceof DocumentFragment) {
+        container.appendChild(children);
+    }
+    // Apply entrance animation if specified
+    if (animationOptions.entrance && animationOptions.entrance !== 'none') {
+        // Add to DOM first
+        document.body.appendChild(container);
+        setTimeout(() => {
+            if (animationOptions.entrance === 'fade') {
+                fadeIn(container, animationOptions);
             }
             else {
-                animationId = requestAnimationFrame(animate);
+                slideIn(container, animationOptions.direction || 'left', animationOptions);
             }
-        });
-    };
-    const enhancedSignal = currentValue;
-    enhancedSignal.animateTo = animateTo;
-    enhancedSignal.isAnimating = () => isAnimating;
-    return enhancedSignal;
-}
-// Transition element between states
-export function Transition(show, children, enterTransition = {}, exitTransition = {}) {
-    const isVisible = createSignal(show());
-    const isAnimating = createSignal(false);
-    const container = {
-        tag: 'div',
-        props: {
-            style: `transition: ${getTransitionString(enterTransition)}`
-        },
-        children: []
-    };
-    createEffect(() => {
-        const shouldShow = show();
-        if (shouldShow && !isVisible()) {
-            // Enter animation
-            isAnimating(true);
-            isVisible(true);
-            if (container.dom) {
-                container.children = [children];
-                mount(children, container.dom);
-                // Apply enter transition
-                requestAnimationFrame(() => {
-                    applyTransition(container.dom, enterTransition, () => {
-                        isAnimating(false);
-                    });
-                });
+            // Remove from body and let parent handle it
+            if (container.parentNode === document.body) {
+                document.body.removeChild(container);
             }
-        }
-        else if (!shouldShow && isVisible()) {
-            // Exit animation
-            isAnimating(true);
-            if (container.dom) {
-                applyTransition(container.dom, exitTransition, () => {
-                    isVisible(false);
-                    isAnimating(false);
-                    // Remove children after exit animation
-                    while (container.dom.firstChild) {
-                        container.dom.removeChild(container.dom.firstChild);
-                    }
-                    container.children = [];
-                });
-            }
-        }
-    });
+        }, 0);
+    }
     return container;
 }
-function getTransitionString(options) {
-    const duration = options.duration || 300;
-    const property = options.property || 'all';
-    const easing = typeof options.easing === 'string' ? options.easing : 'ease';
-    const delay = options.delay || 0;
-    return `${property} ${duration}ms ${easing} ${delay}ms`;
-}
-function applyTransition(element, options, onComplete) {
-    const { duration = 300, property = 'opacity', from, to } = options;
-    if (from !== undefined) {
-        element.style[property] = from;
-    }
-    requestAnimationFrame(() => {
-        if (to !== undefined) {
-            element.style[property] = to;
+// Performance monitoring for animations
+export function createPerformanceMonitor() {
+    const metrics = {};
+    const measureAnimation = async (name, animation) => {
+        const startTime = performance.now();
+        try {
+            const result = await animation();
+            const duration = performance.now() - startTime;
+            if (!metrics[name]) {
+                metrics[name] = { totalDuration: 0, count: 0 };
+            }
+            metrics[name].totalDuration += duration;
+            metrics[name].count += 1;
+            return result;
         }
-        setTimeout(onComplete, duration);
-    });
-}
-// Fade in/out transitions
-export function FadeTransition(show, children, duration = 300) {
-    return Transition(show, children, { property: 'opacity', from: '0', to: '1', duration }, { property: 'opacity', from: '1', to: '0', duration });
-}
-// Slide up/down transitions
-export function SlideTransition(show, children, duration = 300, direction = 'down') {
-    const transforms = {
-        up: { from: 'translateY(100%)', to: 'translateY(0)' },
-        down: { from: 'translateY(-100%)', to: 'translateY(0)' },
-        left: { from: 'translateX(100%)', to: 'translateX(0)' },
-        right: { from: 'translateX(-100%)', to: 'translateX(0)' }
-    };
-    const { from, to } = transforms[direction];
-    return Transition(show, children, { property: 'transform', from, to, duration }, { property: 'transform', from: to, to: from, duration });
-}
-// Scale transition
-export function ScaleTransition(show, children, duration = 300) {
-    return Transition(show, children, { property: 'transform', from: 'scale(0)', to: 'scale(1)', duration }, { property: 'transform', from: 'scale(1)', to: 'scale(0)', duration });
-}
-// Spring physics for natural animations
-export function createSpring(initialValue, config = {}) {
-    const { stiffness = 100, damping = 10, mass = 1 } = config;
-    const currentValue = createSignal(initialValue);
-    let velocity = 0;
-    let target = initialValue;
-    let animationId = null;
-    const animate = () => {
-        const current = currentValue();
-        const spring = -stiffness * (current - target);
-        const damper = -damping * velocity;
-        const acceleration = (spring + damper) / mass;
-        velocity += acceleration * 0.016; // Assume 60fps
-        const newValue = current + velocity * 0.016;
-        currentValue(newValue);
-        // Continue animation if not settled
-        if (Math.abs(velocity) > 0.01 || Math.abs(newValue - target) > 0.01) {
-            animationId = requestAnimationFrame(animate);
-        }
-        else {
-            currentValue(target);
-            animationId = null;
+        catch (error) {
+            const duration = performance.now() - startTime;
+            if (!metrics[name]) {
+                metrics[name] = { totalDuration: 0, count: 0 };
+            }
+            metrics[name].totalDuration += duration;
+            metrics[name].count += 1;
+            throw error;
         }
     };
-    const setTarget = (newTarget) => {
-        target = newTarget;
-        if (!animationId) {
-            animationId = requestAnimationFrame(animate);
-        }
+    const getMetrics = () => {
+        return Object.fromEntries(Object.entries(metrics).map(([name, { totalDuration, count }]) => [
+            name,
+            { duration: totalDuration / count, count }
+        ]));
     };
-    const springSignal = currentValue;
-    springSignal.setTarget = setTarget;
-    return springSignal;
-}
-// Stagger animation for lists
-export function staggerAnimation(elements, animation, delay = 100) {
-    Array.from(elements).forEach((element, index) => {
-        setTimeout(() => {
-            animation(element, index);
-        }, index * delay);
-    });
-}
-// Intersection observer for scroll-triggered animations
-export function createScrollTrigger(target, animation, options = {}) {
-    const element = typeof target === 'string' ?
-        document.querySelector(target) :
-        target;
-    if (!element) {
-        console.warn('Scroll trigger target not found:', target);
-        return () => { };
-    }
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            animation(entry.isIntersecting);
+    const reset = () => {
+        Object.keys(metrics).forEach(key => {
+            delete metrics[key];
         });
-    }, {
-        threshold: 0.1,
-        ...options
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
+    };
+    return { measureAnimation, getMetrics, reset };
 }
 //# sourceMappingURL=transitions.js.map

@@ -2,7 +2,7 @@
 
 ## Creating HTML with JSX
 
-HyperFX now supports JSX for creating HTML elements with a familiar syntax:
+HyperFX is built around JSX, providing a familiar and powerful way to create HTML elements directly in your code. Unlike other frameworks, HyperFX JSX returns **actual DOM elements**, not virtual nodes.
 
 ```tsx
 function MyComponent() {
@@ -15,55 +15,50 @@ function MyComponent() {
 }
 ```
 
-## Traditional Function API
+## Natural DOM Integration
 
-You can still use the traditional function API if preferred:
-
-```typescript
-import { Span, Div, Main, Footer, P, t } from "hyperfx";
-```
-
-These functions accept attributes and children if applicable.
-Text can be added directly as strings or JSX text nodes.
+Because HyperFX components return real DOM nodes, you can use them anywhere you'd use a standard element:
 
 ```tsx
-// Old imperative style (deprecated)
-// P({}, [
-//   t("This is basic text with a "),
-//   Span({ style: "font-weight: bold;" }, [t("bold")]),
-//   t(" text in the middle."),
-// ]);
+const app = document.getElementById("app")!;
+const myElement = <MyComponent />;
 
-// Modern JSX style (recommended)
-<p>
-  This is basic text with a{" "}
-  <span style="font-weight: bold;">bold</span>{" "}
-  text in the middle.
-</p>
+// It's just a div!
+console.log(myElement instanceof HTMLDivElement); // true
+
+app.appendChild(myElement);
 ```
 
-## JSX Syntax (Recommended)
+## Reactive Text and Attributes
 
-The same result using JSX syntax:
+You can embed logic directly in your JSX. When you use a signal, HyperFX automatically tracks the dependency and updates only that specific part of the DOM.
 
 ```tsx
-function TextExample() {
+import { createSignal } from "hyperfx";
+
+function Greeting() {
+  const name = createSignal("World");
+
   return (
-    <p>
-      This is basic text with a{" "}
-      <span style="font-weight: bold;">bold</span>
-      {" "}text in the middle.
-    </p>
+    <div>
+      <input 
+        value={name} 
+        onInput={(e) => name(e.target.value)} 
+      />
+      <h1>Hello, {name}!</h1>
+    </div>
   );
 }
 ```
 
-Results in
+## Styling
 
-```html
-<p>
-  This is basic text with a
-  <span style="font-weight: bold;">bold</span>
-  text in the middle.
-</p>
+Styles can be strings or reactive objects:
+
+```tsx
+const color = createSignal("red");
+
+<div style={{ color: color, fontWeight: "bold" }}>
+  Reactive styles!
+</div>
 ```

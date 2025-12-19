@@ -128,7 +128,14 @@ export function memo(component, areEqual) {
 }
 export function forwardRef(renderFn) {
     return function (props) {
-        const { ref, ...restProps } = props;
+        const ref = props.ref;
+        const restProps = {};
+        // Copy all properties except 'ref' to restProps
+        for (const key in props) {
+            if (key !== 'ref' && Object.prototype.hasOwnProperty.call(props, key)) {
+                restProps[key] = props[key];
+            }
+        }
         return renderFn(restProps, ref || { current: null });
     };
 }

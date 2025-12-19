@@ -1,4 +1,3 @@
-// Developer tools and debugging utilities for hyperfx
 import { performanceMonitor } from "../performance/optimizations";
 // Development mode flag
 export const isDev = () => process.env.NODE_ENV === 'development' ||
@@ -14,235 +13,265 @@ class DevTools {
         this.enabled = true;
         if (typeof window !== 'undefined') {
             window.__HYPERFX_DEVTOOLS__ = this;
-            console.log('🚀 HyperFX DevTools enabled');
+            this.createDevToolsUI();
         }
     }
     disable() {
         this.enabled = false;
         if (typeof window !== 'undefined') {
             delete window.__HYPERFX_DEVTOOLS__;
+            this.removeDevToolsUI();
         }
     }
-    isEnabled() {
-        return this.enabled && isDev();
-    }
-    // Track component in the tree
-    trackComponent(id, type, props, parentId) {
-        if (!this.isEnabled())
+    // Track component rendering
+    trackComponent(id, type, props, children, renderTime) {
+        if (!this.enabled)
             return;
+        // Update render count
+        const currentCount = this.renderCounts.get(id) || 0;
+        this.renderCounts.set(id, currentCount + 1);
+        // Create component node
         const node = {
             id,
             type,
-            props: { ...props },
-            children: [],
-            updateCount: this.renderCounts.get(id) || 0
+            props: this.sanitizeProps(props),
+            children: this.analyzeChildren(children),
+            renderTime,
+            updateCount: currentCount + 1
         };
         this.componentMap.set(id, node);
-        if (parentId) {
-            const parent = this.componentMap.get(parentId);
-            if (parent) {
-                parent.children.push(node);
+        this.updateComponentTree();
+        this.refreshDevToolsUI();
+    }
+    // Clean props for display (remove circular references)
+    sanitizeProps(props) {
+        const sanitized = {};
+        for (const [key, value] of Object.entries(props)) {
+            if (typeof value === 'function') {
+                sanitized[key] = '[Function]';
+            }
+            else if (value instanceof HTMLElement) {
+                sanitized[key] = `[HTMLElement: ${value.tagName}]`;
+            }
+            else if (value && typeof value === 'object') {
+                try {
+                    // Try to serialize to check for circular references
+                    JSON.stringify(value);
+                    sanitized[key] = value;
+                }
+                catch {
+                    sanitized[key] = '[Object]';
+                }
+            }
+            else {
+                sanitized[key] = value;
             }
         }
-        else {
-            this.componentTree = node;
-        }
+        return sanitized;
     }
-    // Update component render count
-    trackRender(id, renderTime) {
-        if (!this.isEnabled())
-            return;
-        const count = this.renderCounts.get(id) || 0;
-        this.renderCounts.set(id, count + 1);
-        const node = this.componentMap.get(id);
-        if (node) {
-            node.renderTime = renderTime;
-            node.updateCount = count + 1;
-        }
-    }
-    // Remove component from tracking
-    untrackComponent(id) {
-        if (!this.isEnabled())
-            return;
-        this.componentMap.delete(id);
-        this.renderCounts.delete(id);
-    }
-    // Get component tree
-    getComponentTree() {
-        return this.componentTree;
-    }
-    // Log component tree to console
-    logComponentTree() {
-        if (!this.isEnabled())
-            return;
-        console.group('🌲 Component Tree');
-        this.logNode(this.componentTree, 0);
-        console.groupEnd();
-    }
-    logNode(node, depth) {
-        if (!node)
-            return;
-        const indent = '  '.repeat(depth);
-        const renderInfo = node.renderTime ? ` (${node.renderTime.toFixed(2)}ms)` : '';
-        const updateInfo = node.updateCount ? ` [${node.updateCount} updates]` : '';
-        console.log(`${indent}${node.type}#${node.id}${renderInfo}${updateInfo}`, node.props);
-        node.children.forEach(child => this.logNode(child, depth + 1));
-    }
-    // Find components that render frequently
-    getFrequentlyUpdatingComponents(threshold = 10) {
-        const frequent = [];
-        this.componentMap.forEach(node => {
-            if ((node.updateCount || 0) > threshold) {
-                frequent.push(node);
+    // Analyze children for the component tree
+    analyzeChildren(children) {
+        const result = [];
+        for (const child of children) {
+            if (child instanceof HTMLElement) {
+                result.push({
+                    id: `dom-${child.tagName.toLowerCase()}-${Date.now()}-${Math.random()}`,
+                    type: child.tagName.toLowerCase(),
+                    props: this.getElementAttributes(child),
+                    children: this.analyzeDOMChildren(child)
+                });
             }
-        });
-        return frequent.sort((a, b) => (b.updateCount || 0) - (a.updateCount || 0));
+            else if (child instanceof DocumentFragment) {
+                result.push({
+                    id: `fragment-${Date.now()}-${Math.random()}`,
+                    type: 'DocumentFragment',
+                    props: {},
+                    children: this.analyzeDOMChildren(child)
+                });
+            }
+            else if (child instanceof Text) {
+                result.push({
+                    id: `text-${Date.now()}-${Math.random()}`,
+                    type: 'Text',
+                    props: { content: child.textContent },
+                    children: []
+                });
+            }
+        }
+        return result;
     }
-    // Performance analysis
-    analyzePerformance() {
-        if (!this.isEnabled())
+    // Get element attributes as props object
+    getElementAttributes(element) {
+        const props = {};
+        for (const attr of element.attributes) {
+            props[attr.name] = attr.value;
+        }
+        return props;
+    }
+    // Analyze DOM children recursively
+    analyzeDOMChildren(element) {
+        const children = [];
+        for (const child of element.children) {
+            children.push(child);
+        }
+        return this.analyzeChildren(children);
+    }
+    // Update the main component tree
+    updateComponentTree() {
+        // Find root nodes (nodes without parents in the map)
+        const allNodes = Array.from(this.componentMap.values());
+        const childIds = new Set();
+        allNodes.forEach(node => {
+            node.children.forEach(child => childIds.add(child.id));
+        });
+        const rootNodes = allNodes.filter(node => !childIds.has(node.id));
+        this.componentTree = {
+            id: 'root',
+            type: 'Application',
+            props: {},
+            children: rootNodes
+        };
+    }
+    // Create dev tools UI
+    createDevToolsUI() {
+        if (document.getElementById('hyperfx-devtools'))
             return;
-        console.group('📊 Performance Analysis');
-        // Overall metrics
-        performanceMonitor.logMetrics();
-        // Frequently updating components
-        const frequent = this.getFrequentlyUpdatingComponents();
-        if (frequent.length > 0) {
-            console.warn('Components with high update frequency:');
-            frequent.forEach(node => {
-                console.warn(`${node.type}#${node.id}: ${node.updateCount} updates`);
-            });
-        }
-        // Slow rendering components
-        const slow = Array.from(this.componentMap.values())
-            .filter(node => (node.renderTime || 0) > 16) // Slower than 60fps
-            .sort((a, b) => (b.renderTime || 0) - (a.renderTime || 0));
-        if (slow.length > 0) {
-            console.warn('Components with slow render times:');
-            slow.forEach(node => {
-                console.warn(`${node.type}#${node.id}: ${node.renderTime?.toFixed(2)}ms`);
-            });
-        }
-        console.groupEnd();
-    }
-}
-export const devTools = new DevTools();
-// Initialize in development
-if (isDev()) {
-    devTools.enable();
-}
-// Debugging utilities
-export function debugVNode(vnode, label) {
-    if (!isDev())
-        return vnode;
-    const originalVNode = { ...vnode };
-    console.group(`🔍 ${label || 'VNode Debug'}`);
-    console.log('Tag:', vnode.tag);
-    console.log('Props:', vnode.props);
-    console.log('Children:', vnode.children);
-    if (vnode.reactiveProps) {
-        console.log('Reactive Props:', Object.keys(vnode.reactiveProps));
-    }
-    if (vnode.dom) {
-        console.log('DOM:', vnode.dom);
-    }
-    console.groupEnd();
-    return originalVNode;
-}
-export function debugSignal(signal, label) {
-    if (!isDev())
-        return signal;
-    const originalSignal = signal;
-    // Wrap the signal to log value changes
-    const debugSignal = ((...args) => {
-        if (args.length === 0) {
-            // Getter
-            const value = originalSignal();
-            console.log(`📡 Signal ${label || 'read'}:`, value);
-            return value;
-        }
-        else {
-            // Setter
-            const newValue = args[0];
-            console.log(`📡 Signal ${label || 'write'}:`, newValue);
-            return originalSignal(newValue);
-        }
-    });
-    return debugSignal;
-}
-// Component boundary for error catching in development
-export function DevBoundary(children) {
-    if (!isDev()) {
-        return Array.isArray(children) ?
-            { tag: 'div', props: {}, children } :
-            children;
-    }
-    const container = {
-        tag: 'div',
-        props: {
-            style: 'border: 2px dashed #ff6b6b; padding: 8px; margin: 4px;',
-            'data-dev-boundary': 'true'
-        },
-        children: Array.isArray(children) ? children : [children]
-    };
-    return container;
-}
-// Hot reload support
-export function enableHotReload() {
-    if (!isDev() || typeof module === 'undefined')
-        return;
-    if (module.hot) {
-        module.hot.accept(() => {
-            console.log('🔥 Hot reloading HyperFX components...');
-            // Trigger re-render of all tracked components
-            devTools.getComponentTree() && window.location.reload();
-        });
-    }
-}
-// Visual debugging overlay
-export function createDebugOverlay() {
-    if (!isDev()) {
-        return document.createElement('div');
-    }
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    font-family: monospace;
-    font-size: 12px;
-    z-index: 10000;
-    max-width: 300px;
-  `;
-    const updateOverlay = () => {
-        const metrics = performanceMonitor.getMetrics();
-        const componentCount = devTools.getComponentTree() ?
-            Array.from(devTools.getComponentTree().children).length : 0;
-        overlay.innerHTML = `
-      <div><strong>HyperFX Debug</strong></div>
-      <div>Components: ${componentCount}</div>
-      <div>Renders: ${metrics.renderCount}</div>
-      <div>Avg Time: ${metrics.averageRenderTime.toFixed(2)}ms</div>
-      <div>Memory: ${metrics.memoryUsage ?
-            (metrics.memoryUsage / 1024 / 1024).toFixed(2) + 'MB' : 'N/A'}</div>
+        const devTools = document.createElement('div');
+        devTools.id = 'hyperfx-devtools';
+        devTools.style.cssText = `
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 400px;
+      height: 300px;
+      background: #1e1e1e;
+      color: #fff;
+      font-family: monospace;
+      font-size: 12px;
+      border-left: 1px solid #444;
+      border-bottom: 1px solid #444;
+      z-index: 10000;
+      display: none;
+      overflow: auto;
     `;
-    };
-    updateOverlay();
-    setInterval(updateOverlay, 1000);
-    return overlay;
+        const header = document.createElement('div');
+        header.style.cssText = `
+      background: #333;
+      padding: 8px;
+      border-bottom: 1px solid #444;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    `;
+        header.innerHTML = '<span>HyperFX DevTools</span>';
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    `;
+        closeBtn.onclick = () => {
+            devTools.style.display = 'none';
+        };
+        header.appendChild(closeBtn);
+        const content = document.createElement('div');
+        content.id = 'hyperfx-devtools-content';
+        content.style.cssText = `
+      padding: 10px;
+    `;
+        devTools.appendChild(header);
+        devTools.appendChild(content);
+        document.body.appendChild(devTools);
+        // Add toggle button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'hyperfx-devtools-toggle';
+        toggleBtn.textContent = 'DevTools';
+        toggleBtn.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 410px;
+      background: #1e1e1e;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 5px 10px;
+      cursor: pointer;
+      z-index: 10000;
+      font-family: monospace;
+      font-size: 12px;
+    `;
+        toggleBtn.onclick = () => {
+            const isVisible = devTools.style.display !== 'none';
+            devTools.style.display = isVisible ? 'none' : 'block';
+            toggleBtn.style.right = isVisible ? '410px' : '10px';
+        };
+        document.body.appendChild(toggleBtn);
+    }
+    // Remove dev tools UI
+    removeDevToolsUI() {
+        const devTools = document.getElementById('hyperfx-devtools');
+        const toggleBtn = document.getElementById('hyperfx-devtools-toggle');
+        if (devTools)
+            devTools.remove();
+        if (toggleBtn)
+            toggleBtn.remove();
+    }
+    // Refresh dev tools UI
+    refreshDevToolsUI() {
+        const content = document.getElementById('hyperfx-devtools-content');
+        if (!content || !this.componentTree)
+            return;
+        // Display performance metrics
+        const metrics = performanceMonitor.getMetrics();
+        let html = `
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Performance Metrics</h4>
+        <pre style="margin: 0; font-size: 11px;">${JSON.stringify(metrics, null, 2)}</pre>
+      </div>
+    `;
+        // Display component tree
+        html += `
+      <div>
+        <h4 style="margin: 0 0 5px 0; color: #2196F3;">Component Tree</h4>
+        <pre style="margin: 0; font-size: 11px;">${JSON.stringify(this.componentTree, null, 2)}</pre>
+      </div>
+    `;
+        content.innerHTML = html;
+    }
+    // Get component info for debugging
+    getComponentInfo(id) {
+        return this.componentMap.get(id) || null;
+    }
+    // Get all components
+    getAllComponents() {
+        return Array.from(this.componentMap.values());
+    }
+    // Clear component tracking
+    clearTracking() {
+        this.componentMap.clear();
+        this.renderCounts.clear();
+        this.componentTree = null;
+        this.refreshDevToolsUI();
+    }
 }
-// Export utilities for browser console
-if (typeof window !== 'undefined' && isDev()) {
-    window.HyperFXDebug = {
-        devTools,
-        performanceMonitor,
-        debugVNode,
-        debugSignal,
-        createDebugOverlay
-    };
+// Global dev tools instance
+const devTools = new DevTools();
+// Export public API
+export const enableDevTools = () => devTools.enable();
+export const disableDevTools = () => devTools.disable();
+export const trackComponent = (id, type, props, children, renderTime) => devTools.trackComponent(id, type, props, children, renderTime);
+export const getComponentInfo = (id) => devTools.getComponentInfo(id);
+export const getAllComponents = () => devTools.getAllComponents();
+export const clearComponentTracking = () => devTools.clearTracking();
+// Auto-enable in development
+if (isDev()) {
+    if (typeof window !== 'undefined') {
+        // Enable dev tools after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            devTools.enable();
+        }, 100);
+    }
 }
 //# sourceMappingURL=dev-tools.js.map

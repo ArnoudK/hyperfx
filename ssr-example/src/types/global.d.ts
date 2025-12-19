@@ -2,16 +2,6 @@
 
 declare global {
     interface Window {
-        __HYPERFX_HYDRATION_DATA__?: {
-            markers: Array<{
-                index: number;
-                tag: string;
-                props: Record<string, any>;
-                hasReactiveProps: boolean;
-                hasEventHandlers: boolean;
-            }>;
-            version: string;
-        };
         __hyperfx_client_navigated__?: boolean;
     }
 
@@ -24,9 +14,10 @@ declare global {
     }
 }
 
-// HyperFX specific types
+// HyperFX specific types (matching new API)
 export interface HydrationMarker {
     index: number;
+    nodeId: string;
     tag: string;
     props: Record<string, any>;
     hasReactiveProps: boolean;
@@ -40,7 +31,7 @@ export interface HydrationData {
 
 // Route types
 export interface RouteComponent {
-    (): import('hyperfx').VNode<any>;
+    (): JSX.Element;
 }
 
 export interface Route {

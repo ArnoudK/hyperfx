@@ -1,6 +1,8 @@
 // Component-specific type definitions
 
-import { VNode } from 'hyperfx';
+import { JSX } from 'hyperfx/jsx/jsx-runtime';
+
+
 
 // Product related types
 export interface Product {
@@ -143,8 +145,6 @@ export interface ApiError {
     details?: Record<string, any>;
 }
 
-// Utility types for components
-export type ComponentChildren = VNode<any> | VNode<any>[] | string | number | null | undefined;
 
 export type ClassNameProp = string | string[] | Record<string, boolean> | null | undefined;
 
@@ -156,10 +156,5 @@ export interface BaseComponentProps {
     style?: StyleProp;
     id?: string;
     'data-testid'?: string;
-    children?: ComponentChildren;
+    children?: JSX.Element;
 }
-
-// Export all types
-export type {
-    VNode
-} from 'hyperfx';

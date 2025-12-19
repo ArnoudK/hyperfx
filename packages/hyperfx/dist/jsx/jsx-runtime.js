@@ -1,4 +1,21 @@
 import { isSignal, createComputed as signal_createComputed } from "../reactive/signal";
+/**
+ * Direct DOM JSX Runtime for HyperFX
+ */
+// Global node counter for generating unique node IDs (client-side)
+let clientNodeCounter = 0;
+/**
+ * Check if we're in an SSR environment
+ */
+function isSSREnvironment() {
+    return typeof window === 'undefined' || typeof document === 'undefined';
+}
+/**
+ * Generate a unique node ID for client-side elements
+ */
+function createClientId() {
+    return String(++clientNodeCounter).padStart(6, '0');
+}
 // Type guard for reactive signals
 function isReactiveSignal(fn) {
     if (typeof fn !== 'function')
@@ -11,14 +28,29 @@ export const FRAGMENT_TAG = Symbol("HyperFX.Fragment");
 // Create a DOM element with reactive attributes
 function createElement(tag, props) {
     const element = document.createElement(tag);
+    // Add unique node ID for client-side elements (only if not in SSR)
+    if (!isSSREnvironment()) {
+        element.setAttribute('data-hfxh', createClientId());
+    }
     if (props) {
         for (const [key, value] of Object.entries(props)) {
             if (key === 'children')
                 continue; // Handle children separately
             if (key === 'key')
                 continue; // Ignore React-style keys
+            // Handle special properties like innerHTML and textContent
+            if (key === 'innerHTML' || key === 'textContent') {
+                const updateProp = () => {
+                    const val = isSignal(value) ? value() : value;
+                    element[key] = val;
+                };
+                if (isSignal(value)) {
+                    value.subscribe(updateProp);
+                }
+                updateProp();
+            }
             // Handle event handlers
-            if (key.startsWith('on') && typeof value === 'function') {
+            else if (key.startsWith('on') && typeof value === 'function') {
                 const eventName = key.slice(2).toLowerCase();
                 element.addEventListener(eventName, value);
             }
@@ -45,6 +77,20 @@ function createElement(tag, props) {
                         else if (key === 'checked' && element instanceof HTMLInputElement) {
                             element.checked = Boolean(currentValue);
                         }
+                        else if (key === 'disabled' && typeof currentValue === 'boolean') {
+                            // Handle disabled as a boolean attribute
+                            if (currentValue) {
+                                element.setAttribute('disabled', '');
+                                element.disabled = true;
+                            }
+                            else {
+                                element.removeAttribute('disabled');
+                                element.disabled = false;
+                            }
+                        }
+                        else if (key === 'class' || key === 'className') {
+                            element.className = String(currentValue);
+                        }
                         else {
                             element.setAttribute(key, String(currentValue));
                         }
@@ -60,6 +106,17 @@ function createElement(tag, props) {
                 }
                 else if (key === 'checked' && element instanceof HTMLInputElement) {
                     element.checked = Boolean(value);
+                }
+                else if (key === 'disabled' && typeof value === 'boolean') {
+                    // Handle disabled as a boolean attribute
+                    if (value) {
+                        element.setAttribute('disabled', '');
+                        element.disabled = true;
+                    }
+                    else {
+                        element.removeAttribute('disabled');
+                        element.disabled = false;
+                    }
                 }
                 else {
                     element.setAttribute(key, String(value));
@@ -142,37 +199,39 @@ function renderChildren(parent, children) {
     }
 }
 // JSX Factory Function - creates actual DOM elements
-export function jsx(type, props, ...children) {
+export function jsx(type, props, key) {
     // Handle fragments
-    if (type === FRAGMENT_TAG) {
+    if (type === FRAGMENT_TAG || type === Fragment) {
+        const allChildren = props?.children;
         const fragment = document.createDocumentFragment();
-        const allChildren = children.length > 0 ? children.flat() : props?.children;
         renderChildren(fragment, allChildren);
         return fragment;
     }
     // Handle function components
     if (typeof type === 'function') {
-        // Use props.children if available, otherwise use additional children args
-        const componentChildren = props?.children ?? (children.length > 0 ? children.flat() : undefined);
-        const componentProps = { ...props, children: componentChildren };
-        return type(componentProps);
+        return type(props);
     }
     // Handle regular HTML elements
     const element = createElement(type, props);
     // Handle children
-    const allChildren = children.length > 0 ? children.flat() : props?.children;
-    renderChildren(element, allChildren);
+    if (props?.children) {
+        renderChildren(element, props.children);
+    }
     return element;
 }
+// jsxs is used for multiple children in automatic runtime, same logic for us
+export const jsxs = jsx;
+export const jsxDEV = jsx;
 // Fragment component
 export function Fragment(props) {
     const fragment = document.createDocumentFragment();
     renderChildren(fragment, props.children);
     return fragment;
 }
-// Classic JSX Factory (for backwards compatibility)
+// Classic JSX Factory (for transform runtime)
 export function createJSXElement(type, props, ...children) {
-    return jsx(type, props, ...children);
+    const allProps = { ...props, children: children.length > 0 ? children.flat() : props?.children };
+    return jsx(type, allProps);
 }
 // Template literal helpers for reactive strings
 export function template(strings, ...values) {
@@ -191,7 +250,12 @@ export function r(fn) {
 }
 // Classic JSX Factory (for backwards compatibility)
 export { createJSXElement as createElement };
-// Export for JSX automatic runtime
-export const jsxs = jsx;
-export const jsxDEV = jsx;
+/**
+ * Reset client node counter (useful for testing)
+ */
+export function resetClientNodeCounter() {
+    clientNodeCounter = 0;
+}
+// Export node ID functions for external use
+export { createClientId };
 //# sourceMappingURL=jsx-runtime.js.map

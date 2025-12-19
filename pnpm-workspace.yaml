@@ -1,6 +1,7 @@
 packages:
   - packages/**
   - example_project
+  - ssr-example
   - docs
 onlyBuiltDependencies:
   - esbuild

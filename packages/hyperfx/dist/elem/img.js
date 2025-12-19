@@ -1,4 +1,4 @@
-import { createElement } from "./elem";
+import { createElement } from "../jsx/jsx-runtime";
 /**
  * Type-safe image element with required src and alt attributes
  * Uses the strict image attributes from attr.ts for better type safety

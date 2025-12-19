@@ -4,23 +4,16 @@ export function CounterPage() {
   const count = createSignal(0);
   const step = createSignal(1);
 
-   // Computed values
-   const isEven = createComputed(() => count() % 2 === 0);
-   const doubleCount = createComputed(() => count() * 2);
-   const status = createComputed(() => {
-     const c = count();
-     if (c === 0) return "Zero";
-     if (c > 0) return "Positive";
-     return "Negative";
-   });
-   const evenOddText = createComputed(() => isEven() ? 'Even' : 'Odd');
-   const evenOddColor = createComputed(() => isEven() ? 'text-blue-400' : 'text-purple-400');
-
-   const statusColor = createComputed(() => {
-     const s = status();
-     return s === 'Positive' ? 'text-green-400' :
-            s === 'Negative' ? 'text-red-400' : 'text-gray-300';
-    });
+  // Computed values
+  const isEven = createComputed(() => count() % 2 === 0);
+  const doubleCount = createComputed(() => count() * 2);
+  const status = createComputed(() => {
+    const c = count();
+    if (c === 0) return "Zero";
+    if (c > 0) return "Positive";
+    return "Negative";
+  });
+  const evenOddText = createComputed(() => isEven() ? 'Even' : 'Odd');
 
   // Reactive step buttons
   const stepButtons = createComputed(() =>
@@ -47,22 +40,22 @@ export function CounterPage() {
           <div class="text-6xl font-bold text-yellow-400">
             {count}
           </div>
-          
+
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-lg">
             <div class="p-4 bg-gray-700 rounded-lg">
               <div class="text-sm text-gray-400">Status</div>
-               <div class={`font-semibold ${statusColor()}`}>
-                 {status as any}
-               </div>
+              <div class="font-semibold">
+                {status}
+              </div>
             </div>
-            
+
             <div class="p-4 bg-gray-700 rounded-lg">
               <div class="text-sm text-gray-400">Even/Odd</div>
-               <div class={`font-semibold ${evenOddColor()}`}>
-                 {evenOddText as any}
-               </div>
+              <div class="font-semibold">
+                {evenOddText}
+              </div>
             </div>
-            
+
             <div class="p-4 bg-gray-700 rounded-lg">
               <div class="text-sm text-gray-400">Double</div>
               <div class="font-semibold text-cyan-400">
@@ -80,7 +73,7 @@ export function CounterPage() {
           <h2 class="text-2xl font-semibold text-green-400 mb-4">
             Counter Controls
           </h2>
-          
+
           <div class="space-y-4">
             <div class="flex justify-center space-x-2">
               <button
@@ -88,14 +81,14 @@ export function CounterPage() {
                 onClick={() => count(count() + step())}
                 class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
               >
-                   +{step}
+                +{step}
               </button>
               <button
                 type="button"
                 onClick={() => count(count() - step())}
                 class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
               >
-                   -{step}
+                -{step}
               </button>
               <button
                 type="button"
@@ -105,7 +98,7 @@ export function CounterPage() {
                 Reset
               </button>
             </div>
-            
+
             <div class="flex justify-center space-x-2">
               <button
                 type="button"
@@ -137,27 +130,26 @@ export function CounterPage() {
           <h2 class="text-2xl font-semibold text-blue-400 mb-4">
             Step Size: {step}
           </h2>
-          
+
           <div class="space-y-4">
-             <div class="grid grid-cols-3 gap-2">
-               <For each={stepButtons}>
-                 {({ value, isActive }) => (
-                   <button
-                     type="button"
-                     key={value}
-                     onClick={() => step(value)}
-                     class={`px-3 py-2 rounded-md transition-colors ${
-                       isActive
-                         ? 'bg-blue-600 text-white'
-                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                     }`}
-                   >
-                     {value}
-                   </button>
-                 )}
-               </For>
+            <div class="grid grid-cols-3 gap-2">
+              <For each={stepButtons}>
+                {({ value, isActive }) => (
+                  <button
+                    type="button"
+                    key={value}
+                    onClick={() => step(value)}
+                    class={`px-3 py-2 rounded-md transition-colors ${isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                  >
+                    {value}
+                  </button>
+                )}
+              </For>
             </div>
-            
+
             <div>
               <label htmlFor="step-input" class="block text-sm font-medium text-gray-300 mb-2">
                 Custom Step:

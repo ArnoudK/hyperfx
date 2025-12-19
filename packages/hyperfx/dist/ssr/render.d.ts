@@ -1,15 +1,12 @@
-import { VNode } from "../elem/elem";
-import { ReactiveSignal } from "../reactive/state";
+import { JSXElement } from "../jsx/jsx-runtime";
 /**
  * Hydration context for tracking elements with event handlers
  */
-/**
- * Hydration context for tracking elements with event handlers during SSR
- */
 export interface HydrationMarker {
     index: number;
+    nodeId: string;
     tag: string;
-    props: Record<string, any>;
+    props: Record<string, unknown>;
     hasReactiveProps: boolean;
     hasEventHandlers: boolean;
 }
@@ -25,46 +22,32 @@ export declare function createHydrationContext(): {
     currentIndex: number;
 };
 /**
- * Render a VNode, string, or reactive signal to HTML string
+ * Generate a unique node ID for SSR elements
  */
-export declare function renderToString(vnode: VNode | string | ReactiveSignal<string>): string;
+export declare function createNodeId(): string;
 /**
- * Render multiple VNodes to HTML string
+ * Reset global node counter (useful for testing)
  */
-export declare function renderArrayToString(vnodes: (VNode | string | ReactiveSignal<string>)[]): string;
+export declare function resetNodeCounter(): void;
 /**
- * Generate a complete HTML document with the rendered VNode
+ * Render a JSX element to HTML string for SSR
  */
-export interface HtmlDocumentOptions {
-    title?: string;
-    lang?: string;
-    charset?: string;
-    viewport?: string;
-    description?: string;
-    stylesheets?: string[];
-    scripts?: string[];
-    inlineStyles?: string;
-    inlineScripts?: string;
-    bodyAttributes?: Record<string, string>;
-    htmlAttributes?: Record<string, string>;
-}
-export declare function renderToDocument(vnode: VNode | VNode[], options?: HtmlDocumentOptions): string;
-/**
- * Create a streaming HTML renderer (useful for large documents)
- */
-export declare class StreamRenderer {
-    private chunks;
-    write(chunk: string): void;
-    renderVNode(vnode: VNode | string | ReactiveSignal<string>): void;
-    renderArray(vnodes: (VNode | string | ReactiveSignal<string>)[]): void;
-    getResult(): string;
-    clear(): void;
-}
-/**
- * Generate hydration markers for client-side mounting
- * Only tracks elements that actually need hydration (have event handlers or reactive props)
- */
-export declare function renderWithHydration(vnode: VNode): {
+export declare function renderToString(element: JSXElement): {
     html: string;
     hydrationData: HydrationData;
+};
+/**
+ * Render hydration data as JSON script tag
+ */
+export declare function renderHydrationData(hydrationData: HydrationData): string;
+/**
+ * Full SSR rendering with hydration data included
+ */
+export declare function renderWithHydration(element: JSXElement): string;
+/**
+ * Stream rendering interface for large components
+ */
+export declare function createSSRStream(element: JSXElement): {
+    html: AsyncIterable<string>;
+    hydrationData: Promise<HydrationData>;
 };

@@ -1,3 +1,3 @@
 export * from './render';
-export * from './hydrate';
 export * from './utils';
+export { hydrate, hydrateElement, hydrateManual, hydrateWithNodeIds, createHydrationContext as createClientHydrationContext, parseHydrationData, findHydrationMarkers, findElementByNodeId, findAllNodeIds, cleanupHydration, isHydrated, rehydrate } from './hydrate';

@@ -6,14 +6,17 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowImportingTsExtensions": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "hyperfx",
+   
+    
+    /* JSX Configuration */
+    "jsx": "preserve",
+    "jsxImportSource": "hyperfx/jsx",
+   
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
-    "types": ["vinxi/types/client", "vinxi/types/server"],
+    "types": [],
     "isolatedModules": true,
-    "skipLibCheck": true,
-    "baseUrl": "."
+    "skipLibCheck": true
   }
 }

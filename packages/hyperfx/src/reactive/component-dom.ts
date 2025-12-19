@@ -207,8 +207,17 @@ export function forwardRef<T = HTMLElement, P extends ComponentProps = Component
   renderFn: (props: P, ref: Ref<T>) => JSXElement
 ): Component<P & { ref?: Ref<T> }> {
   return function(props: P & { ref?: Ref<T> }): JSXElement {
-    const { ref, ...restProps } = props;
-    return renderFn(restProps as P, ref || { current: null });
+    const ref = props.ref;
+    const restProps = {} as P;
+    
+    // Copy all properties except 'ref' to restProps
+    for (const key in props) {
+      if (key !== 'ref' && Object.prototype.hasOwnProperty.call(props, key)) {
+        (restProps as any)[key] = (props as any)[key];
+      }
+    }
+    
+    return renderFn(restProps, ref || { current: null });
   };
 }
 

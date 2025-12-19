@@ -1,10 +1,8 @@
 # HyperFX
 
 HyperFX (hypermedia functions) is a simple library for DOM manipulation by using functions.
+Right now it's JSX based. And it is not production ready.   
 
 ## Use case
 
-### Alternative for WebComponents
-
-Since HyperFX exports as a load create a component using HyperFX and load it an existing site.
-You can create a simple interactive experience with a few lines of JavaScript/TypeScript and ship a bundle of 2 kilobytes.
+Absolutely none, it is just a fun project.

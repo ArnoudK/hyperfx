@@ -1,5 +1,3 @@
-// Server-Side Rendering (SSR) module for HyperFX
-import { FRAGMENT_TAG, resolveReactiveValue } from "../elem/elem";
 // HTML void elements that should not have closing tags
 const VOID_ELEMENTS = new Set([
     'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
@@ -21,231 +19,226 @@ export function createHydrationContext() {
     };
 }
 /**
+ * Global node counter for generating unique node IDs
+ */
+let globalNodeCounter = 0;
+/**
+ * Generate a unique node ID for SSR elements
+ */
+export function createNodeId() {
+    return String(++globalNodeCounter).padStart(6, '0');
+}
+/**
+ * Reset global node counter (useful for testing)
+ */
+export function resetNodeCounter() {
+    globalNodeCounter = 0;
+}
+/**
  * Escape HTML special characters to prevent XSS
  */
 function escapeHtml(text) {
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 /**
- * Escape HTML attribute values
+ * Check if an attribute is an event handler
  */
-function escapeAttribute(value) {
-    return value
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+function isEventHandler(attr) {
+    return attr.startsWith('on') && attr.length > 2;
 }
 /**
- * Render VNode attributes to HTML string
+ * Check if a value is a reactive signal
  */
-function renderAttributes(props) {
-    const attributes = [];
-    for (const [key, value] of Object.entries(props)) {
-        // Skip event handlers and other non-HTML attributes
-        if (key.startsWith('on') || key === 'key' || key === 'ref') {
-            continue;
+function isReactiveSignal(value) {
+    return typeof value === 'function' &&
+        'subscribe' in value &&
+        typeof value.subscribe === 'function';
+}
+/**
+ * Convert DOM element to HTML string
+ */
+function elementToString(element, hydrationContext) {
+    const tagName = element.tagName.toLowerCase();
+    // Handle document fragments
+    if (element instanceof DocumentFragment) {
+        let html = '';
+        for (let i = 0; i < element.children.length; i++) {
+            html += elementToString(element.children[i], hydrationContext);
         }
-        // Resolve reactive values
-        const resolvedValue = resolveReactiveValue(value);
-        // Handle boolean attributes
-        if (BOOLEAN_ATTRIBUTES.has(key)) {
-            if (resolvedValue === true || resolvedValue === '' || resolvedValue === key) {
-                attributes.push(key);
+        return html;
+    }
+    // Handle text nodes
+    if (element instanceof Text) {
+        return escapeHtml(element.textContent || '');
+    }
+    // Handle comment nodes
+    if (element instanceof Comment) {
+        return `<!--${escapeHtml(element.textContent || '')}-->`;
+    }
+    // Start opening tag and add unique node ID
+    const nodeId = createNodeId();
+    let html = `<${tagName} data-hfxh="${nodeId}"`;
+    // Process attributes
+    const attributes = element.attributes;
+    const props = {};
+    let hasReactiveProps = false;
+    let hasEventHandlers = false;
+    // Extract all properties including non-attribute properties
+    for (const key in element) {
+        if (Object.prototype.hasOwnProperty.call(element, key) && key !== 'innerHTML' && key !== 'outerHTML') {
+            const value = element[key];
+            if (isReactiveSignal(value)) {
+                hasReactiveProps = true;
             }
+            if (isEventHandler(key) && typeof value === 'function') {
+                hasEventHandlers = true;
+            }
+            props[key] = value;
+        }
+    }
+    // Add DOM attributes
+    for (let i = 0; i < attributes.length; i++) {
+        const attr = attributes[i];
+        if (!attr)
             continue;
+        const name = attr.name;
+        const value = attr.value;
+        if (isEventHandler(name)) {
+            hasEventHandlers = true;
+            continue; // Skip event handlers in HTML
         }
-        // Handle regular attributes
-        if (resolvedValue != null && resolvedValue !== false) {
-            const attrValue = String(resolvedValue);
-            attributes.push(`${key}="${escapeAttribute(attrValue)}"`);
+        if (BOOLEAN_ATTRIBUTES.has(name)) {
+            html += ` ${name}`;
+        }
+        else if (value !== null && value !== undefined && value !== '') {
+            html += ` ${name}="${escapeHtml(String(value))}"`;
         }
     }
-    return attributes.length > 0 ? ` ${attributes.join(' ')}` : '';
-}
-/**
- * Render children to HTML string
- */
-function renderChildren(children) {
-    const result = children
-        .map((child, index) => {
-        const rendered = renderToString(child);
-        return rendered;
-    })
-        .join('');
-    return result;
-}
-/**
- * Render a VNode, string, or reactive signal to HTML string
- */
-export function renderToString(vnode) {
-    // Handle reactive signals
-    if (typeof vnode === 'function') {
-        const resolvedValue = resolveReactiveValue(vnode);
-        return escapeHtml(String(resolvedValue));
+    // Add hydration marker if needed
+    if (hasReactiveProps || hasEventHandlers) {
+        const marker = {
+            index: hydrationContext.currentIndex++,
+            nodeId,
+            tag: tagName,
+            props,
+            hasReactiveProps,
+            hasEventHandlers
+        };
+        hydrationContext.markers.push(marker);
+        html += ` data-hfx-hydration="${marker.index}"`;
     }
-    // Handle plain strings
-    if (typeof vnode === 'string') {
-        return escapeHtml(vnode);
-    }
-    // Handle VNodes
-    const { tag, props, children } = vnode;
-    // Handle fragments
-    if (tag === FRAGMENT_TAG) {
-        return renderChildren(children);
-    }
-    // Handle regular elements
-    const tagName = String(tag);
-    const attributes = renderAttributes(props);
-    const childrenHtml = renderChildren(children);
-    // Handle void elements
+    // Check if void element
     if (VOID_ELEMENTS.has(tagName)) {
-        return `<${tagName}${attributes} />`;
+        html += '>';
+        return html;
     }
-    // Handle regular elements
-    return `<${tagName}${attributes}>${childrenHtml}</${tagName}>`;
+    html += '>';
+    // Add children
+    for (let i = 0; i < element.childNodes.length; i++) {
+        const child = element.childNodes[i];
+        if (child instanceof HTMLElement) {
+            html += elementToString(child, hydrationContext);
+        }
+        else if (child instanceof Text) {
+            html += escapeHtml(child.textContent || '');
+        }
+        else if (child instanceof Comment) {
+            html += `<!--${escapeHtml(child.textContent || '')}-->`;
+        }
+    }
+    // Close tag
+    html += `</${tagName}>`;
+    return html;
 }
 /**
- * Render multiple VNodes to HTML string
+ * Render a JSX element to HTML string for SSR
  */
-export function renderArrayToString(vnodes) {
-    return vnodes.map(vnode => renderToString(vnode)).join('');
-}
-export function renderToDocument(vnode, options = {}) {
-    const { title = 'HyperFX App', lang = 'en', charset = 'UTF-8', viewport = 'width=device-width, initial-scale=1.0', description, stylesheets = [], scripts = [], inlineStyles, inlineScripts, bodyAttributes = {}, htmlAttributes = {} } = options;
-    const htmlAttrs = renderAttributes(htmlAttributes);
-    const bodyAttrs = renderAttributes(bodyAttributes);
-    const head = [
-        `<meta charset="${charset}">`,
-        `<meta name="viewport" content="${viewport}">`,
-        `<title>${escapeHtml(title)}</title>`,
-        description ? `<meta name="description" content="${escapeAttribute(description)}">` : '',
-        ...stylesheets.map(href => `<link rel="stylesheet" href="${escapeAttribute(href)}">`),
-        inlineStyles ? `<style>${inlineStyles}</style>` : '',
-        ...scripts.map(src => `<script src="${escapeAttribute(src)}"></script>`),
-        inlineScripts ? `<script>${inlineScripts}</script>` : ''
-    ].filter(Boolean).join('\n  ');
-    const bodyContent = Array.isArray(vnode)
-        ? renderArrayToString(vnode)
-        : renderToString(vnode);
-    return `<!DOCTYPE html>
-<html${htmlAttrs} lang="${lang}">
-<head>
-  ${head}
-</head>
-<body${bodyAttrs}>
-  ${bodyContent}
-</body>
-</html>`;
+export function renderToString(element) {
+    const hydrationContext = createHydrationContext();
+    let html;
+    if (element instanceof HTMLElement) {
+        html = elementToString(element, hydrationContext);
+    }
+    else if (element instanceof DocumentFragment) {
+        html = elementToString(element, hydrationContext);
+    }
+    else if (element instanceof Text) {
+        html = escapeHtml(element.textContent || '');
+    }
+    else if (element instanceof Comment) {
+        html = `<!--${escapeHtml(element.textContent || '')}-->`;
+    }
+    else {
+        html = '';
+    }
+    const hydrationData = {
+        markers: hydrationContext.markers,
+        version: '1.0.0'
+    };
+    return { html, hydrationData };
 }
 /**
- * Create a streaming HTML renderer (useful for large documents)
+ * Render hydration data as JSON script tag
  */
-export class StreamRenderer {
-    constructor() {
-        this.chunks = [];
-    }
-    write(chunk) {
-        this.chunks.push(chunk);
-    }
-    renderVNode(vnode) {
-        this.write(renderToString(vnode));
-    }
-    renderArray(vnodes) {
-        vnodes.forEach(vnode => this.renderVNode(vnode));
-    }
-    getResult() {
-        return this.chunks.join('');
-    }
-    clear() {
-        this.chunks = [];
-    }
+export function renderHydrationData(hydrationData) {
+    return `<script type="application/hyperfx-hydration">${JSON.stringify(hydrationData)}</script>`;
 }
 /**
- * Generate hydration markers for client-side mounting
- * Only tracks elements that actually need hydration (have event handlers or reactive props)
+ * Full SSR rendering with hydration data included
  */
-export function renderWithHydration(vnode) {
-    const hydrationMarkers = [];
-    let markerIndex = 0;
-    function addHydrationMarker(vnodeData) {
-        const hasEventHandlers = Object.keys(vnodeData.props).some(key => key.startsWith('on'));
-        const hasReactiveProps = !!vnodeData.reactiveProps;
-        const needsHydration = hasEventHandlers || hasReactiveProps;
-        if (needsHydration) {
-            const marker = {
-                index: markerIndex,
-                tag: String(vnodeData.tag),
-                props: vnodeData.props,
-                hasReactiveProps,
-                hasEventHandlers
-            };
-            hydrationMarkers.push(marker);
-            const result = hasEventHandlers ? `data-hyperfx-hydrate="${markerIndex}"` : '';
-            markerIndex++;
-            return result;
-        }
-        return '';
-    }
-    function renderWithMarkers(node) {
-        if (typeof node === 'string' || typeof node === 'function') {
-            return renderToString(node);
-        }
-        const { tag, props, children } = node;
-        if (tag === FRAGMENT_TAG) {
-            return children.map(child => renderWithMarkers(child)).join('');
-        }
-        // Handle reactive array containers (For components)
-        if (props && props['data-reactive-for'] === 'true') {
-            // Use the pre-computed children from the For component instead of re-executing the reactive function
-            if (children && Array.isArray(children)) {
-                const arrayHtml = children.map(child => renderWithMarkers(child)).join('');
-                // This is a reactive container, so it needs hydration
-                const hydrationMarker = addHydrationMarker(node);
-                const tagName = String(tag);
-                const baseAttributes = renderAttributes(props);
-                const attributes = hydrationMarker ? `${baseAttributes} ${hydrationMarker}` : baseAttributes;
-                return `<${tagName}${attributes}>${arrayHtml}</${tagName}>`;
+export function renderWithHydration(element) {
+    const { html, hydrationData } = renderToString(element);
+    return html + renderHydrationData(hydrationData);
+}
+/**
+ * Stream rendering interface for large components
+ */
+export function createSSRStream(element) {
+    const hydrationContext = createHydrationContext();
+    async function* generateHTML() {
+        if (element instanceof HTMLElement) {
+            const tagName = element.tagName.toLowerCase();
+            // Start opening tag and add node ID
+            const nodeId = createNodeId();
+            yield `<${tagName} data-hfxh="${nodeId}"`;
+            // Process attributes
+            const attributes = element.attributes;
+            for (let i = 0; i < attributes.length; i++) {
+                const attr = attributes[i];
+                if (!attr)
+                    continue;
+                const name = attr.name;
+                const value = attr.value;
+                if (!isEventHandler(name)) {
+                    if (BOOLEAN_ATTRIBUTES.has(name)) {
+                        yield ` ${name}`;
+                    }
+                    else if (value !== null && value !== undefined && value !== '') {
+                        yield ` ${name}="${escapeHtml(String(value))}"`;
+                    }
+                }
             }
-            // Fallback to empty container
-            const hydrationMarker = addHydrationMarker(node);
-            const tagName = String(tag);
-            const baseAttributes = renderAttributes(props);
-            const attributes = hydrationMarker ? `${baseAttributes} ${hydrationMarker}` : baseAttributes;
-            return `<${tagName}${attributes}></${tagName}>`;
+            // Close opening tag
+            yield '>';
+            // Process children
+            for (let i = 0; i < element.children.length; i++) {
+                yield elementToString(element.children[i], hydrationContext);
+            }
+            // Close tag
+            if (!VOID_ELEMENTS.has(tagName)) {
+                yield `</${tagName}>`;
+            }
         }
-        // Handle reactive expression containers
-        if (props && props['data-reactive-expr'] === 'true' && node.__reactiveExprFn) {
-            // This is a reactive container, so it needs hydration
-            const hydrationMarker = addHydrationMarker(node);
-            const tagName = String(tag);
-            const baseAttributes = renderAttributes(props);
-            const attributes = hydrationMarker ? `${baseAttributes} ${hydrationMarker}` : baseAttributes;
-            const childrenHtml = children.map(child => renderWithMarkers(child)).join('');
-            return `<${tagName}${attributes}>${childrenHtml}</${tagName}>`;
-        }
-        // For regular elements, only add markers if they need hydration
-        const hydrationMarker = addHydrationMarker(node);
-        const tagName = String(tag);
-        const baseAttributes = renderAttributes(props);
-        const attributes = hydrationMarker ? `${baseAttributes} ${hydrationMarker}` : baseAttributes;
-        const childrenHtml = children.map(child => renderWithMarkers(child)).join('');
-        if (VOID_ELEMENTS.has(tagName)) {
-            return `<${tagName}${attributes} />`;
-        }
-        return `<${tagName}${attributes}>${childrenHtml}</${tagName}>`;
     }
-    const html = renderWithMarkers(vnode);
+    const hydrationData = Promise.resolve({
+        markers: hydrationContext.markers,
+        version: '1.0.0'
+    });
     return {
-        html,
-        hydrationData: {
-            markers: hydrationMarkers,
-            version: '1.0'
-        }
+        html: generateHTML(),
+        hydrationData
     };
 }
 //# sourceMappingURL=render.js.map

@@ -1,12 +1,11 @@
 /**
- * Type guard to check if a value is a VNode
+ * Type guard to check if a value is a valid JSX element
  */
-export function isVNode(value) {
-    return typeof value === 'object' &&
-        value !== null &&
-        'tag' in value &&
-        'props' in value &&
-        'children' in value;
+export function isJSXElement(value) {
+    return value instanceof HTMLElement ||
+        value instanceof DocumentFragment ||
+        value instanceof Text ||
+        value instanceof Comment;
 }
 /**
  * Type guard to check if a value is valid JSX children
@@ -21,7 +20,7 @@ export function isValidJSXChild(value) {
         typeof value === 'number') {
         return true;
     }
-    if (isVNode(value)) {
+    if (isJSXElement(value)) {
         return true;
     }
     if (typeof value === 'function') {

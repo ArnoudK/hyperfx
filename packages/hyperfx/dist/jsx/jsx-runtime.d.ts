@@ -2,8 +2,9 @@ import type { Signal } from "../reactive/signal";
 import { ComputedSignal } from "../reactive/state";
 import { Prettify } from "../tools/type_utils";
 /**
- * Direct DOM JSX Runtime for HyperFX
+ * Generate a unique node ID for client-side elements
  */
+declare function createClientId(): string;
 export type EventHandler<E extends Event = Event> = (event: E) => void;
 export type JSXElement = HTMLElement | DocumentFragment | Text | Comment;
 export type JSXChildPrimitive = string | number | boolean | null | undefined;
@@ -43,7 +44,9 @@ export type ReactiveString = ReactiveValue<string>;
 export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
 export declare const FRAGMENT_TAG: unique symbol;
-export declare function jsx(type: string | FunctionComponent<any> | typeof FRAGMENT_TAG, props: Record<string, any> | null, ...children: JSXChildren[]): JSXElement;
+export declare function jsx(type: string | FunctionComponent<any> | typeof FRAGMENT_TAG, props: Record<string, any> | null, key?: string | number | null): JSXElement;
+export declare const jsxs: typeof jsx;
+export declare const jsxDEV: typeof jsx;
 export declare function Fragment(props: {
     children?: JSXChildren;
 }): DocumentFragment;
@@ -51,8 +54,11 @@ export declare function createJSXElement(type: string | FunctionComponent<any> |
 export declare function template(strings: TemplateStringsArray, ...values: any[]): Signal<string>;
 export declare function r<T>(fn: () => T): Signal<T>;
 export { createJSXElement as createElement };
-export declare const jsxs: typeof jsx;
-export declare const jsxDEV: typeof jsx;
+/**
+ * Reset client node counter (useful for testing)
+ */
+export declare function resetClientNodeCounter(): void;
+export { createClientId };
 export declare namespace JSX {
     type Element = JSXElement;
     interface ElementChildrenAttribute {

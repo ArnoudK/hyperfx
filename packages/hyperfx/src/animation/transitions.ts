@@ -1,7 +1,6 @@
-import { mount, VNode } from "../elem/elem";
+// Enhanced animation utilities for the hyperfx framework - Direct DOM Implementation
+import { JSXElement } from "../jsx/jsx-runtime";
 import { ReactiveSignal, createSignal, createEffect } from "../reactive/state";
-
-// Enhanced animation utilities for the hyperfx framework
 
 export interface AnimationOptions {
   duration?: number;
@@ -25,13 +24,23 @@ export const easings = {
   easeOut: (t: number) => t * (2 - t),
   easeInOut: (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
   easeInCubic: (t: number) => t * t * t,
-  easeOutCubic: (t: number) => (--t) * t * t + 1,
+  easeOutCubic: (t: number) => {
+    const adjustedT = --t;
+    return adjustedT * adjustedT * adjustedT + 1;
+  },
   easeInOutCubic: (t: number) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1,
   bounce: (t: number) => {
     if (t < 1 / 2.75) return 7.5625 * t * t;
-    if (t < 2 / 2.75) return 7.5625 * (t -= 1.5 / 2.75) * t + 0.75;
-    if (t < 2.5 / 2.75) return 7.5625 * (t -= 2.25 / 2.75) * t + 0.9375;
-    return 7.5625 * (t -= 2.625 / 2.75) * t + 0.984375;
+    if (t < 2 / 2.75) {
+      const adjustedT = t - 1.5 / 2.75;
+      return 7.5625 * adjustedT * adjustedT + 0.75;
+    }
+    if (t < 2.5 / 2.75) {
+      const adjustedT = t - 2.25 / 2.75;
+      return 7.5625 * adjustedT * adjustedT + 0.9375;
+    }
+    const adjustedT = t - 2.625 / 2.75;
+    return 7.5625 * adjustedT * adjustedT + 0.984375;
   }
 };
 
@@ -50,272 +59,287 @@ export function createAnimatedValue(
         cancelAnimationFrame(animationId);
       }
 
-      const start = currentValue();
-      const distance = target - start;
       const duration = options.duration || 300;
-      const easing = typeof options.easing === 'string' ? 
-                     easings[options.easing as keyof typeof easings] || easings.easeInOut :
-                     options.easing || easings.easeInOut;
+      const delay = options.delay || 0;
+      const easingFn = typeof options.easing === 'function' ? options.easing : easings.linear;
 
-      const startTime = performance.now();
-      isAnimating = true;
+      let startTime: number | null = null;
 
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = easing(progress);
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+
+        if (elapsed < delay) {
+          animationId = requestAnimationFrame(animate);
+          return;
+        }
+
+        const progress = Math.min((elapsed - delay) / duration, 1);
+        const easedProgress = easingFn(progress);
         
-        currentValue(start + distance * easedProgress);
+        const startValue = initialValue;
+        const endValue = target;
+        const newValue = startValue + (endValue - startValue) * easedProgress;
+        
+        currentValue(newValue);
 
         if (progress < 1) {
           animationId = requestAnimationFrame(animate);
         } else {
-          isAnimating = false;
           animationId = null;
+          isAnimating = false;
           resolve();
         }
       };
 
-      if (options.delay) {
-        setTimeout(() => {
-          animationId = requestAnimationFrame(animate);
-        }, options.delay);
-      } else {
-        animationId = requestAnimationFrame(animate);
-      }
+      isAnimating = true;
+      animationId = requestAnimationFrame(animate);
     });
   };
 
-  const enhancedSignal = currentValue as any;
-  enhancedSignal.animateTo = animateTo;
-  enhancedSignal.isAnimating = () => isAnimating;
-
-  return enhancedSignal;
+  return Object.assign(currentValue, { animateTo });
 }
 
-// Transition element between states
-export function Transition(
-  show: ReactiveSignal<boolean>,
-  children: VNode,
-  enterTransition: TransitionOptions = {},
-  exitTransition: TransitionOptions = {}
-): VNode {
-  const isVisible = createSignal(show());
-  const isAnimating = createSignal(false);
+// Animate DOM element properties
+export function animateElement(
+  element: HTMLElement,
+  properties: Record<string, number>,
+  options: AnimationOptions = {}
+): Promise<void> {
+  const animations = Object.entries(properties).map(([property, targetValue]) => {
+    const currentValue = parseFloat(getComputedStyle(element)[property as any] || '0');
+    const animatedValue = createAnimatedValue(currentValue, options);
+    
+    return animatedValue.animateTo(targetValue).then(() => {
+      const value = animatedValue();
+      (element.style as any)[property] = `${value}px`;
+    });
+  });
 
-  const container: VNode = {
-    tag: 'div',
-    props: {
-      style: `transition: ${getTransitionString(enterTransition)}`
-    },
-    children: []
+  return Promise.all(animations).then(() => {});
+}
+
+// CSS transitions for smooth property changes
+export function transition(
+  element: HTMLElement,
+  properties: Record<string, string | number>,
+  options: TransitionOptions = {}
+): Promise<void> {
+  return new Promise((resolve) => {
+    const duration = options.duration || 300;
+    const easing = typeof options.easing === 'string' ? options.easing : 'ease';
+    
+    // Store original transition
+    const originalTransition = element.style.transition;
+    
+    // Set transition
+    const transitionValue = Object.keys(properties)
+      .map(prop => `${prop} ${duration}ms ${easing}`)
+      .join(', ');
+    
+    element.style.transition = transitionValue;
+
+    // Apply properties
+    Object.entries(properties).forEach(([property, value]) => {
+      (element.style as any)[property] = value;
+    });
+
+    // Wait for transition to complete
+    const handleTransitionEnd = () => {
+      element.style.transition = originalTransition;
+      element.removeEventListener('transitionend', handleTransitionEnd);
+      resolve();
+    };
+
+    element.addEventListener('transitionend', handleTransitionEnd);
+
+    // Fallback timeout
+    setTimeout(() => {
+      element.removeEventListener('transitionend', handleTransitionEnd);
+      element.style.transition = originalTransition;
+      resolve();
+    }, duration + 50);
+  });
+}
+
+// Animate element entrance
+export function fadeIn(
+  element: HTMLElement,
+  options: AnimationOptions = {}
+): Promise<void> {
+  element.style.opacity = '0';
+  element.style.display = '';
+  
+  return transition(element, { opacity: 1 }, {
+    duration: options.duration || 300,
+    easing: options.easing || 'ease-out'
+  });
+}
+
+export function fadeOut(
+  element: HTMLElement,
+  options: AnimationOptions = {}
+): Promise<void> {
+  return transition(element, { opacity: 0 }, {
+    duration: options.duration || 300,
+    easing: options.easing || 'ease-out'
+  }).then(() => {
+    element.style.display = 'none';
+  });
+}
+
+export function slideIn(
+  element: HTMLElement,
+  direction: 'left' | 'right' | 'up' | 'down' = 'left',
+  options: AnimationOptions = {}
+): Promise<void> {
+  const transforms = {
+    left: 'translateX(-100%)',
+    right: 'translateX(100%)',
+    up: 'translateY(-100%)',
+    down: 'translateY(100%)'
   };
 
-  createEffect(() => {
-    const shouldShow = show();
-    
-    if (shouldShow && !isVisible()) {
-      // Enter animation
-      isAnimating(true);
-      isVisible(true);
-      
-      if (container.dom) {
-        container.children = [children];
-        mount(children, container.dom);
-        
-        // Apply enter transition
-        requestAnimationFrame(() => {
-          applyTransition(container.dom as HTMLElement, enterTransition, () => {
-            isAnimating(false);
-          });
-        });
-      }
-    } else if (!shouldShow && isVisible()) {
-      // Exit animation
-      isAnimating(true);
-      
-      if (container.dom) {
-        applyTransition(container.dom as HTMLElement, exitTransition, () => {
-          isVisible(false);
-          isAnimating(false);
-          
-          // Remove children after exit animation
-          while (container.dom!.firstChild) {
-            container.dom!.removeChild(container.dom!.firstChild);
-          }
-          container.children = [];
-        });
-      }
-    }
+  element.style.transform = transforms[direction];
+  element.style.display = '';
+
+  return transition(element, { 
+    transform: 'translateX(0) translateY(0)'
+  }, {
+    duration: options.duration || 300,
+    easing: options.easing || 'ease-out'
   });
+}
+
+export function slideOut(
+  element: HTMLElement,
+  direction: 'left' | 'right' | 'up' | 'down' = 'left',
+  options: AnimationOptions = {}
+): Promise<void> {
+  const transforms = {
+    left: 'translateX(-100%)',
+    right: 'translateX(100%)',
+    up: 'translateY(-100%)',
+    down: 'translateY(100%)'
+  };
+
+  return transition(element, { transform: transforms[direction] }, {
+    duration: options.duration || 300,
+    easing: options.easing || 'ease-out'
+  }).then(() => {
+    element.style.display = 'none';
+  });
+}
+
+// Animate list items with staggered timing
+export function animateListItems(
+  container: HTMLElement,
+  items: HTMLElement[],
+  entrance: 'fade' | 'slide' = 'fade',
+  stagger: number = 100,
+  options: AnimationOptions = {}
+): Promise<void> {
+  const animations = items.map((item, index) => {
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        if (entrance === 'fade') {
+          fadeIn(item, options).then(resolve);
+        } else {
+          slideIn(item, (options.direction as 'left' | 'right' | 'up' | 'down') || 'left', options).then(resolve);
+        }
+      }, index * stagger);
+    });
+  });
+
+  return Promise.all(animations).then(() => {});
+}
+
+// Create animated component wrapper
+export function AnimatedComponent(
+  children: JSXElement,
+  animationOptions: AnimationOptions & {
+    entrance?: 'fade' | 'slide' | 'none';
+    direction?: 'left' | 'right' | 'up' | 'down';
+  } = {}
+): JSXElement {
+  const container = document.createElement('div');
+  
+  if (children instanceof HTMLElement) {
+    container.appendChild(children);
+  } else if (children instanceof DocumentFragment) {
+    container.appendChild(children);
+  }
+
+  // Apply entrance animation if specified
+  if (animationOptions.entrance && animationOptions.entrance !== 'none') {
+    // Add to DOM first
+    document.body.appendChild(container);
+    
+    setTimeout(() => {
+      if (animationOptions.entrance === 'fade') {
+        fadeIn(container, animationOptions);
+      } else {
+        slideIn(container, animationOptions.direction || 'left', animationOptions);
+      }
+      
+      // Remove from body and let parent handle it
+      if (container.parentNode === document.body) {
+        document.body.removeChild(container);
+      }
+    }, 0);
+  }
 
   return container;
 }
 
-function getTransitionString(options: TransitionOptions): string {
-  const duration = options.duration || 300;
-  const property = options.property || 'all';
-  const easing = typeof options.easing === 'string' ? options.easing : 'ease';
-  const delay = options.delay || 0;
-  
-  return `${property} ${duration}ms ${easing} ${delay}ms`;
-}
+// Performance monitoring for animations
+export function createPerformanceMonitor(): {
+  measureAnimation<T>(name: string, animation: () => Promise<T>): Promise<T>;
+  getMetrics(): Record<string, { duration: number; count: number }>;
+  reset(): void;
+} {
+  const metrics: Record<string, { totalDuration: number; count: number }> = {};
 
-function applyTransition(
-  element: HTMLElement,
-  options: TransitionOptions,
-  onComplete: () => void
-): void {
-  const { duration = 300, property = 'opacity', from, to } = options;
-  
-  if (from !== undefined) {
-    (element.style as any)[property] = from;
-  }
-  
-  requestAnimationFrame(() => {
-    if (to !== undefined) {
-      (element.style as any)[property] = to;
-    }
-    
-    setTimeout(onComplete, duration);
-  });
-}
-
-// Fade in/out transitions
-export function FadeTransition(
-  show: ReactiveSignal<boolean>,
-  children: VNode,
-  duration: number = 300
-): VNode {
-  return Transition(
-    show,
-    children,
-    { property: 'opacity', from: '0', to: '1', duration },
-    { property: 'opacity', from: '1', to: '0', duration }
-  );
-}
-
-// Slide up/down transitions
-export function SlideTransition(
-  show: ReactiveSignal<boolean>,
-  children: VNode,
-  duration: number = 300,
-  direction: 'up' | 'down' | 'left' | 'right' = 'down'
-): VNode {
-  const transforms = {
-    up: { from: 'translateY(100%)', to: 'translateY(0)' },
-    down: { from: 'translateY(-100%)', to: 'translateY(0)' },
-    left: { from: 'translateX(100%)', to: 'translateX(0)' },
-    right: { from: 'translateX(-100%)', to: 'translateX(0)' }
-  };
-
-  const { from, to } = transforms[direction];
-
-  return Transition(
-    show,
-    children,
-    { property: 'transform', from, to, duration },
-    { property: 'transform', from: to, to: from, duration }
-  );
-}
-
-// Scale transition
-export function ScaleTransition(
-  show: ReactiveSignal<boolean>,
-  children: VNode,
-  duration: number = 300
-): VNode {
-  return Transition(
-    show,
-    children,
-    { property: 'transform', from: 'scale(0)', to: 'scale(1)', duration },
-    { property: 'transform', from: 'scale(1)', to: 'scale(0)', duration }
-  );
-}
-
-// Spring physics for natural animations
-export function createSpring(
-  initialValue: number,
-  config: { stiffness?: number; damping?: number; mass?: number } = {}
-): ReactiveSignal<number> & { setTarget: (target: number) => void } {
-  const { stiffness = 100, damping = 10, mass = 1 } = config;
-  const currentValue = createSignal(initialValue);
-  
-  let velocity = 0;
-  let target = initialValue;
-  let animationId: number | null = null;
-
-  const animate = () => {
-    const current = currentValue();
-    const spring = -stiffness * (current - target);
-    const damper = -damping * velocity;
-    const acceleration = (spring + damper) / mass;
-    
-    velocity += acceleration * 0.016; // Assume 60fps
-    const newValue = current + velocity * 0.016;
-    
-    currentValue(newValue);
-    
-    // Continue animation if not settled
-    if (Math.abs(velocity) > 0.01 || Math.abs(newValue - target) > 0.01) {
-      animationId = requestAnimationFrame(animate);
-    } else {
-      currentValue(target);
-      animationId = null;
+  const measureAnimation = async <T>(name: string, animation: () => Promise<T>): Promise<T> => {
+    const startTime = performance.now();
+    try {
+      const result = await animation();
+      const duration = performance.now() - startTime;
+      
+      if (!metrics[name]) {
+        metrics[name] = { totalDuration: 0, count: 0 };
+      }
+      metrics[name].totalDuration += duration;
+      metrics[name].count += 1;
+      
+      return result;
+    } catch (error) {
+      const duration = performance.now() - startTime;
+      
+      if (!metrics[name]) {
+        metrics[name] = { totalDuration: 0, count: 0 };
+      }
+      metrics[name].totalDuration += duration;
+      metrics[name].count += 1;
+      
+      throw error;
     }
   };
 
-  const setTarget = (newTarget: number) => {
-    target = newTarget;
-    if (!animationId) {
-      animationId = requestAnimationFrame(animate);
-    }
+  const getMetrics = () => {
+    return Object.fromEntries(
+      Object.entries(metrics).map(([name, { totalDuration, count }]) => [
+        name,
+        { duration: totalDuration / count, count }
+      ])
+    );
   };
 
-  const springSignal = currentValue as any;
-  springSignal.setTarget = setTarget;
-  
-  return springSignal;
-}
-
-// Stagger animation for lists
-export function staggerAnimation(
-  elements: NodeListOf<HTMLElement> | HTMLElement[],
-  animation: (element: HTMLElement, index: number) => void,
-  delay: number = 100
-): void {
-  Array.from(elements).forEach((element, index) => {
-    setTimeout(() => {
-      animation(element, index);
-    }, index * delay);
-  });
-}
-
-// Intersection observer for scroll-triggered animations
-export function createScrollTrigger(
-  target: HTMLElement | string,
-  animation: (isVisible: boolean) => void,
-  options: IntersectionObserverInit = {}
-): () => void {
-  const element = typeof target === 'string' ? 
-                  document.querySelector(target) as HTMLElement : 
-                  target;
-
-  if (!element) {
-    console.warn('Scroll trigger target not found:', target);
-    return () => {};
-  }
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      animation(entry.isIntersecting);
+  const reset = () => {
+    Object.keys(metrics).forEach(key => {
+      delete metrics[key];
     });
-  }, {
-    threshold: 0.1,
-    ...options
-  });
+  };
 
-  observer.observe(element);
-
-  return () => observer.disconnect();
+  return { measureAnimation, getMetrics, reset };
 }

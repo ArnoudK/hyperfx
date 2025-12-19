@@ -1,4 +1,4 @@
-import { VNode } from "../elem/elem";
+import { JSXElement } from "../jsx/jsx-runtime";
 import { ReactiveSignal } from "../reactive/state";
 export interface AnimationOptions {
     duration?: number;
@@ -26,16 +26,22 @@ export declare const easings: {
 export declare function createAnimatedValue(initialValue: number, options?: AnimationOptions): ReactiveSignal<number> & {
     animateTo: (target: number) => Promise<void>;
 };
-export declare function Transition(show: ReactiveSignal<boolean>, children: VNode, enterTransition?: TransitionOptions, exitTransition?: TransitionOptions): VNode;
-export declare function FadeTransition(show: ReactiveSignal<boolean>, children: VNode, duration?: number): VNode;
-export declare function SlideTransition(show: ReactiveSignal<boolean>, children: VNode, duration?: number, direction?: 'up' | 'down' | 'left' | 'right'): VNode;
-export declare function ScaleTransition(show: ReactiveSignal<boolean>, children: VNode, duration?: number): VNode;
-export declare function createSpring(initialValue: number, config?: {
-    stiffness?: number;
-    damping?: number;
-    mass?: number;
-}): ReactiveSignal<number> & {
-    setTarget: (target: number) => void;
+export declare function animateElement(element: HTMLElement, properties: Record<string, number>, options?: AnimationOptions): Promise<void>;
+export declare function transition(element: HTMLElement, properties: Record<string, string | number>, options?: TransitionOptions): Promise<void>;
+export declare function fadeIn(element: HTMLElement, options?: AnimationOptions): Promise<void>;
+export declare function fadeOut(element: HTMLElement, options?: AnimationOptions): Promise<void>;
+export declare function slideIn(element: HTMLElement, direction?: 'left' | 'right' | 'up' | 'down', options?: AnimationOptions): Promise<void>;
+export declare function slideOut(element: HTMLElement, direction?: 'left' | 'right' | 'up' | 'down', options?: AnimationOptions): Promise<void>;
+export declare function animateListItems(container: HTMLElement, items: HTMLElement[], entrance?: 'fade' | 'slide', stagger?: number, options?: AnimationOptions): Promise<void>;
+export declare function AnimatedComponent(children: JSXElement, animationOptions?: AnimationOptions & {
+    entrance?: 'fade' | 'slide' | 'none';
+    direction?: 'left' | 'right' | 'up' | 'down';
+}): JSXElement;
+export declare function createPerformanceMonitor(): {
+    measureAnimation<T>(name: string, animation: () => Promise<T>): Promise<T>;
+    getMetrics(): Record<string, {
+        duration: number;
+        count: number;
+    }>;
+    reset(): void;
 };
-export declare function staggerAnimation(elements: NodeListOf<HTMLElement> | HTMLElement[], animation: (element: HTMLElement, index: number) => void, delay?: number): void;
-export declare function createScrollTrigger(target: HTMLElement | string, animation: (isVisible: boolean) => void, options?: IntersectionObserverInit): () => void;

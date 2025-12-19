@@ -1,13 +1,33 @@
 import { ReactiveSignal } from "../reactive/state";
-import type { JSXElement, FunctionComponent } from "../jsx/jsx-runtime";
+import type { JSXElement, FunctionComponent, JSXChildren } from "../jsx/jsx-runtime";
+/**
+ * Component-Based Routing System for HyperFX
+ *
+ * This provides React Router-style component-based routing with
+ * <Router>, <Route>, <Link>, and <Outlet> components.
+ */
+interface RouterContext {
+    currentPath: ReactiveSignal<string>;
+    navigate: (path: string, options?: {
+        replace?: boolean;
+    }) => void;
+    back: () => void;
+    forward: () => void;
+}
+/**
+ * Global router context signal
+ * This allows components like Link to be reactive to router availability
+ */
+export declare const routerContextSignal: ReactiveSignal<RouterContext | null>;
 /**
  * Router Component - Root routing context provider
  */
 interface RouterProps {
-    children: JSXElement | JSXElement[];
+    children?: JSXChildren;
+    component?: FunctionComponent;
     initialPath?: string;
 }
-export declare function Router({ children, initialPath }: RouterProps): JSXElement;
+export declare function Router(props: RouterProps): JSXElement;
 /**
  * Route Component - Renders content based on path matching
  */
@@ -17,7 +37,7 @@ interface RouteProps {
     children?: JSXElement | JSXElement[] | (() => JSXElement | JSXElement[]);
     exact?: boolean;
 }
-export declare function Route({ path, component, children, exact }: RouteProps): JSXElement;
+export declare function Route(props: RouteProps): DocumentFragment;
 /**
  * Link Component - Navigation link
  */
@@ -30,7 +50,7 @@ interface LinkProps {
     replace?: boolean;
     onClick?: (event: MouseEvent) => void;
 }
-export declare function Link({ to, children, class: className, activeClass: activeClassName, exact, replace, onClick }: LinkProps): JSXElement;
+export declare function Link(props: LinkProps): JSXElement;
 /**
  * Navigate Programmatically
  */
@@ -50,25 +70,34 @@ export declare function useNavigate(): (path: string, options?: {
 /**
  * Outlet Component - For nested routing (placeholder for future implementation)
  */
-interface OutletProps {
+export declare function Outlet(props: {
     children?: JSXElement | JSXElement[];
-}
-export declare function Outlet({ children }: OutletProps): JSXElement;
+}): JSXElement;
 /**
  * Switch Component - Renders first matching route
  */
-interface SwitchProps {
+export declare function Switch(props: {
     children: JSXElement | JSXElement[];
-}
-export declare function Switch({ children }: SwitchProps): JSXElement;
+}): JSXElement;
 /**
  * Redirect Component - Programmatic redirect
  */
-interface RedirectProps {
+export declare function Redirect(props: {
     to: string;
     replace?: boolean;
-}
-export declare function Redirect({ to, replace }: RedirectProps): JSXElement;
+}): JSXElement;
+/**
+ * Get query parameter value from current URL as a reactive signal
+ */
+export declare function getQueryValue(name: string): ReactiveSignal<string | null>;
+/**
+ * Get all query parameter values for a name as a reactive signal
+ */
+export declare function getQueryValues(name: string): ReactiveSignal<string[]>;
+/**
+ * Get route parameter (placeholder for future implementation with dynamic routes)
+ */
+export declare function getParam(name: string): ReactiveSignal<string | undefined>;
 export { Router as BrowserRouter };
 export { Route as RouteComponent };
 export { Link as NavLink };
