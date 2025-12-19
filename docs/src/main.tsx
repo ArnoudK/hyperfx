@@ -53,7 +53,7 @@ function DocumentationPage(): JSX.Element {
     const md_doc = docToRender();
     if (md_doc) {
       const data = parse(md_doc.data);
-      console.log('parsedMarkdown', data);
+
       return data;
     }
     return "";
@@ -61,7 +61,7 @@ function DocumentationPage(): JSX.Element {
 
   createEffect(() => {
     const md_doc = docToRender();
-    console.log('createEffect MD_DOC', md_doc);
+
     if (md_doc) {
       Title(`${md_doc.title} | HyperFX`);
       MetaDescription(`HyperFX docs about ${md_doc.title}.`);
@@ -130,7 +130,8 @@ function EditorPage(): JSX.Element {
     setTimeout(() => {
       const codeElement = document.querySelector("pre code");
       if (codeElement) {
-        hljs.highlightElement(codeElement as HTMLElement);
+        if (codeElement.attributes.getNamedItem('data-highlighted')?.value != 'yes')
+          hljs.highlightElement(codeElement as HTMLElement);
       }
     }, 0);
   });
@@ -181,7 +182,7 @@ function MainLayout(): JSX.Element {
         >
           Github
         </a>
-        <span class="w-full "> - © Arnoud Kerkhof</span>
+        <span class="w-full "> - © {new Date().getFullYear()} Arnoud Kerkhof</span>
       </footer>
     </div>
   );

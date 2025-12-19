@@ -5,21 +5,34 @@ import { createSignal, createEffect, createComputed } from "../reactive/state";
  */
 export const routerContextSignal = createSignal(null);
 export function Router(props) {
+    // Handle re-initialization (e.g. HMR or remounting)
+    if (routerContextSignal()) {
+        console.warn('Router: Router already initialized, resetting context');
+        // We could either bail out or reset. Resetting is safer for HMR.
+        routerContextSignal(null);
+    }
     const currentPath = createSignal(props.initialPath || (window.location.pathname + window.location.search));
     const historyStack = createSignal([currentPath()]);
     const historyIndex = createSignal(0);
-    // Handle browser navigation
-    const handlePopState = () => {
-        const newPath = (window.location.pathname + window.location.search) || '/';
-        currentPath(newPath);
-        const stack = historyStack();
-        stack[historyIndex()] = newPath;
-        historyStack(stack);
-    };
     // Set up navigation effects
     createEffect(() => {
+        // Handle browser navigation
+        const handlePopState = () => {
+            const newPath = (window.location.pathname + window.location.search) || '/';
+            currentPath(newPath);
+            const stack = historyStack();
+            stack[historyIndex()] = newPath;
+            historyStack(stack);
+            console.log('Router: Path changed to', newPath);
+        };
+        console.log('Router: Setting up popstate listener');
         window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
+        return () => {
+            console.log('Router: Removing popstate listener');
+            window.removeEventListener('popstate', handlePopState);
+            // Clean up global context on unmount to allow re-initialization
+            routerContextSignal(null);
+        };
     });
     const navigate = (path, options = {}) => {
         if (options.replace) {
@@ -35,6 +48,7 @@ export function Router(props) {
             historyIndex(historyIndex() + 1);
         }
         currentPath(path);
+        // Context is stable, no need to update it
     };
     const back = () => {
         if (historyIndex() > 0) {
@@ -44,6 +58,7 @@ export function Router(props) {
             window.history.back();
             currentPath(path);
         }
+        // Context is stable, no need to update it
     };
     const forward = () => {
         if (historyIndex() < historyStack().length - 1) {
@@ -53,6 +68,7 @@ export function Router(props) {
             window.history.forward();
             currentPath(path);
         }
+        // Context is stable, no need to update it
     };
     const context = {
         currentPath,
@@ -67,10 +83,7 @@ export function Router(props) {
     container.className = 'router-container';
     // Support deferred rendering (important for bottom-up JSX execution)
     let content;
-    if (props.component) {
-        content = props.component({});
-    }
-    else if (typeof props.children === 'function') {
+    if (typeof props.children === 'function') {
         content = props.children();
     }
     else {
@@ -100,35 +113,45 @@ export function Route(props) {
     fragment.appendChild(startMarker);
     fragment.appendChild(endMarker);
     let renderedNodes = [];
-    const updateRoute = () => {
+    let wasMatched = false;
+    // Extract Route-specific props, pass the rest to the child component
+    const { path, component, children, exact, ...restProps } = props;
+    createEffect(() => {
         const context = routerContextSignal();
+        // console.log('router context:', context);
         if (!context)
             return;
         const currentPath = context.currentPath;
         const currentPathValue = currentPath();
-        const matches = (props.exact !== undefined ? props.exact : false)
-            ? currentPathValue === props.path
-            : currentPathValue.startsWith(props.path);
+        const matches = (exact !== undefined ? exact : false)
+            ? currentPathValue === path
+            : currentPathValue.startsWith(path);
+        if (matches === wasMatched) {
+            return; // No change in match state, do nothing
+        }
+        wasMatched = matches;
         const parent = startMarker.parentNode;
         const currentParent = parent || fragment;
         // Remove old nodes from currentParent
         renderedNodes.forEach(node => {
             if (node.parentNode === currentParent) {
-                currentParent.removeChild(node);
+                // console.log('Removed old node:', node);
+                node.parentNode?.removeChild(node);
             }
         });
         renderedNodes = [];
         if (matches) {
             // Render new content
             let content;
-            if (props.component) {
-                content = props.component({});
+            if (component) {
+                // Pass the rest of the props to the component
+                content = component({ ...restProps });
             }
-            else if (typeof props.children === 'function') {
-                content = props.children();
+            else if (typeof children === 'function') {
+                content = children();
             }
             else {
-                content = props.children;
+                content = children;
             }
             if (content) {
                 const nodesToAdd = Array.isArray(content) ? content : [content];
@@ -146,8 +169,7 @@ export function Route(props) {
                 });
             }
         }
-    };
-    createEffect(updateRoute);
+    });
     return fragment;
 }
 export function Link(props) {
@@ -173,8 +195,10 @@ export function Link(props) {
     // Update active class based on current path
     createEffect(() => {
         const context = routerContextSignal();
-        if (!context)
+        if (!context) {
             return;
+        }
+        ;
         const currentPath = context.currentPath;
         const currentPathValue = currentPath();
         const isActive = (props.exact !== undefined ? props.exact : false)

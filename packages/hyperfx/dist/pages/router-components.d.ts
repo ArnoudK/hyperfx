@@ -24,7 +24,6 @@ export declare const routerContextSignal: ReactiveSignal<RouterContext | null>;
  */
 interface RouterProps {
     children?: JSXChildren;
-    component?: FunctionComponent;
     initialPath?: string;
 }
 export declare function Router(props: RouterProps): JSXElement;
@@ -36,6 +35,7 @@ interface RouteProps {
     component?: FunctionComponent;
     children?: JSXElement | JSXElement[] | (() => JSXElement | JSXElement[]);
     exact?: boolean;
+    [key: string]: any;
 }
 export declare function Route(props: RouteProps): DocumentFragment;
 /**

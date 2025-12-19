@@ -1,14 +1,25 @@
 import { createSignal } from "hyperfx";
 
 // Test fine-grained reactivity with JSX
-function FineGrainedTest(): JSX.Element {
+interface FineGrainedTestProps {
+  title?: string;
+  [key: string]: any;
+}
+
+function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
   const count1 = createSignal(0);
   const count2 = createSignal(0);
   const status = createSignal('idle');
 
+  console.log('FineGrainedTest mounted');
+
+
   return (
     <div class="space-y-6">
-      <h2 class="text-2xl font-bold text-blue-400">Fine-Grained Reactivity Test</h2>
+      <h2 class="text-2xl font-bold text-blue-400">
+        {props.title || "Fine-Grained Reactivity Test"}
+      </h2>
+      {props.message && <p class="text-green-400">{props.message}</p>}
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Count 1 Section */}

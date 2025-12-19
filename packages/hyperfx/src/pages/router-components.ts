@@ -27,28 +27,42 @@ export const routerContextSignal = createSignal<RouterContext | null>(null);
  */
 interface RouterProps {
   children?: JSXChildren;
-  component?: FunctionComponent;
   initialPath?: string;
 }
 
 export function Router(props: RouterProps): JSXElement {
+
+  // Handle re-initialization (e.g. HMR or remounting)
+  if (routerContextSignal()) {
+    console.warn('Router: Router already initialized, resetting context');
+    // We could either bail out or reset. Resetting is safer for HMR.
+    routerContextSignal(null);
+  }
+
   const currentPath = createSignal(props.initialPath || (window.location.pathname + window.location.search));
   const historyStack = createSignal<string[]>([currentPath()]);
   const historyIndex = createSignal(0);
 
-  // Handle browser navigation
-  const handlePopState = (): void => {
-    const newPath = (window.location.pathname + window.location.search) || '/';
-    currentPath(newPath);
-    const stack = historyStack();
-    stack[historyIndex()] = newPath;
-    historyStack(stack);
-  };
 
   // Set up navigation effects
   createEffect(() => {
+    // Handle browser navigation
+    const handlePopState = (): void => {
+      const newPath = (window.location.pathname + window.location.search) || '/';
+      currentPath(newPath);
+      const stack = historyStack();
+      stack[historyIndex()] = newPath;
+      historyStack(stack);
+      console.log('Router: Path changed to', newPath);
+    };
+    console.log('Router: Setting up popstate listener');
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    return () => {
+      console.log('Router: Removing popstate listener');
+      window.removeEventListener('popstate', handlePopState);
+      // Clean up global context on unmount to allow re-initialization
+      routerContextSignal(null);
+    }
   });
 
   const navigate = (path: string, options: { replace?: boolean } = {}): void => {
@@ -64,6 +78,7 @@ export function Router(props: RouterProps): JSXElement {
       historyIndex(historyIndex() + 1);
     }
     currentPath(path);
+    // Context is stable, no need to update it
   };
 
   const back = (): void => {
@@ -74,6 +89,7 @@ export function Router(props: RouterProps): JSXElement {
       window.history.back();
       currentPath(path);
     }
+    // Context is stable, no need to update it
   };
 
   const forward = (): void => {
@@ -84,6 +100,7 @@ export function Router(props: RouterProps): JSXElement {
       window.history.forward();
       currentPath(path);
     }
+    // Context is stable, no need to update it
   };
 
   const context: RouterContext = {
@@ -102,9 +119,7 @@ export function Router(props: RouterProps): JSXElement {
 
   // Support deferred rendering (important for bottom-up JSX execution)
   let content: any;
-  if (props.component) {
-    content = props.component({} as ComponentProps);
-  } else if (typeof props.children === 'function') {
+  if (typeof props.children === 'function') {
     content = props.children();
   } else {
     content = props.children;
@@ -113,7 +128,7 @@ export function Router(props: RouterProps): JSXElement {
   // Mount content
   const appendChild = (parent: HTMLElement, child: any) => {
     if (child === null || child === undefined || child === false) return;
-    
+
     if (child instanceof Node) {
       parent.appendChild(child);
     } else if (Array.isArray(child)) {
@@ -136,6 +151,7 @@ interface RouteProps {
   component?: FunctionComponent;
   children?: JSXElement | JSXElement[] | (() => JSXElement | JSXElement[]);
   exact?: boolean;
+  [key: string]: any; // Allow passing props to the component
 }
 
 export function Route(props: RouteProps): DocumentFragment {
@@ -147,16 +163,26 @@ export function Route(props: RouteProps): DocumentFragment {
   fragment.appendChild(endMarker);
 
   let renderedNodes: Node[] = [];
+  let wasMatched = false;
 
-  const updateRoute = (): void => {
+  // Extract Route-specific props, pass the rest to the child component
+  const { path, component, children, exact, ...restProps } = props;
+
+  createEffect(() => {
     const context = routerContextSignal();
+    // console.log('router context:', context);
     if (!context) return;
 
     const currentPath = context.currentPath;
     const currentPathValue = currentPath();
-    const matches = (props.exact !== undefined ? props.exact : false)
-      ? currentPathValue === props.path
-      : currentPathValue.startsWith(props.path);
+    const matches = (exact !== undefined ? exact : false)
+      ? currentPathValue === path
+      : currentPathValue.startsWith(path);
+
+    if (matches === wasMatched) {
+      return; // No change in match state, do nothing
+    }
+    wasMatched = matches;
 
     const parent = startMarker.parentNode;
     const currentParent = parent || fragment;
@@ -164,7 +190,9 @@ export function Route(props: RouteProps): DocumentFragment {
     // Remove old nodes from currentParent
     renderedNodes.forEach(node => {
       if (node.parentNode === currentParent) {
-        currentParent.removeChild(node);
+        // console.log('Removed old node:', node);
+        node.parentNode?.removeChild(node);
+
       }
     });
     renderedNodes = [];
@@ -172,12 +200,13 @@ export function Route(props: RouteProps): DocumentFragment {
     if (matches) {
       // Render new content
       let content: any;
-      if (props.component) {
-        content = props.component({} as ComponentProps);
-      } else if (typeof props.children === 'function') {
-        content = props.children();
+      if (component) {
+        // Pass the rest of the props to the component
+        content = component({ ...restProps } as ComponentProps);
+      } else if (typeof children === 'function') {
+        content = children();
       } else {
-        content = props.children;
+        content = children;
       }
 
       if (content) {
@@ -195,9 +224,8 @@ export function Route(props: RouteProps): DocumentFragment {
         });
       }
     }
-  };
 
-  createEffect(updateRoute);
+  });
 
   return fragment;
 }
@@ -242,7 +270,9 @@ export function Link(props: LinkProps): JSXElement {
   // Update active class based on current path
   createEffect(() => {
     const context = routerContextSignal();
-    if (!context) return;
+    if (!context) {
+      return;
+    };
 
     const currentPath = context.currentPath;
     const currentPathValue = currentPath();
