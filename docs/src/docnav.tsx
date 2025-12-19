@@ -1,59 +1,73 @@
-import { createSignal, VNode } from "hyperfx";
+import { createSignal, JSX, Link, For, createComputed } from "hyperfx";
 import { docsMD, prefix_md_doc } from "./docregister";
-import { SoftNav } from "./softnav";
 
-export function DocNav(): VNode {
+export function DocNav(): JSX.Element {
+
   return (
-    <nav className="flex text-2xl p-2 bg-slate-950 text-gray-200">
-      <SoftNav className="p-2" href="/hyperfx"
-        text="Home"
-      />
-      <SoftNav className="p-2" href={`${prefix_md_doc}${docsMD[0].route_name}`}
-        text={docsMD[0].title}
-      />
-      
-      <SoftNav className="p-2" href="/hyperfx/editor"
-        text="Example"
-      />
+    <nav class="flex text-xl p-3 bg-slate-950 text-gray-200 border-b border-indigo-950/50 shadow-lg">
+      <Link
+        class="px-4 py-2 rounded-lg transition-all duration-200 hover:bg-slate-800 text-gray-400"
+        to="/hyperfx"
+      >
+        Home
+      </Link>
+      <Link
+        class="px-4 py-2 rounded-lg transition-all duration-200 hover:bg-slate-800 text-gray-400"
+        to="/hyperfx?doc=get_started"
+      >
+        Docs
+      </Link>
+      <Link
+        class="px-4 py-2 rounded-lg transition-all duration-200 hover:bg-slate-800 text-gray-400"
+        to="/hyperfx/editor"
+      >
+        Example
+      </Link>
     </nav>
   );
 }
 
 const expandSignal = createSignal(false);
 function handleToggle() {
-  console.log("Toggling side nav");
-  const currentExpand = expandSignal();
-
-  expandSignal(!currentExpand);
-
+  console.log(expandSignal(!expandSignal()));
 }
 
-export function SideNavComp(){
-    return (
-      <aside className="bg-slate-900 text-gray-100 text-xl border-r border-indigo-950 p-2">
+export function SideNavComp(): JSX.Element {
+  const expandClass = createComputed(() => {
+    return `flex-col sm:flex gap-1 ${expandSignal() ? "flex" : "hidden"}`
+  })
+
+  return (
+    <aside class="bg-slate-900 text-gray-100  border-r border-indigo-950/50 p-2 sm:p-4 shadow-xl">
+      <div class="flex items-center justify-between mb-6 sm:hidden">
         <button
-          className="text-indigo-300 border border-indigo-300 p-2 rounded-xl sm:hidden"
+          class="text-indigo-300 border border-indigo-800/50 p-2 rounded-xl active:scale-95 transition-transform"
           title="Toggle Navigation"
           onclick={handleToggle}
         >
-          <span className="text-2xl">☰</span>
-          <span className="sr-only">Toggle Navigation</span>
+          <span class="text-lg">☰</span>
+          <span class="sr-only">Toggle Navigation</span>
         </button>
+      </div>
 
-        <nav className={() => `flex-col flex-auto flex-grow sm:flex ${expandSignal() ? "flex" : "hidden"}`}>
-          {docsMD.map((a) => (
-            <SoftNav
-              key={a.route_name}
-              className="p-2 w-min underline text-blue-300"
-              href={`${prefix_md_doc}${a.route_name}`}
-              text={a.title}
+      <nav class={expandClass}>
+        <p class="hidden sm:block text-xs font-bold uppercase min-w-64 tracking-widest text-indigo-400/40 mb-3 px-3">
+          Fundamentals
+        </p>
+        <For each={docsMD}>
+          {a => (
+            <Link
+              class="px-3 py-2 rounded-lg text-base transition-all duration-200 no-underline block"
+              to={`${prefix_md_doc}${a.route_name}`}
             >
-            </SoftNav>
-          ))}
-        </nav>
-      </aside>
-    );
-  }
+              {a.title}
+            </Link>
+          )}
+        </For>
+      </nav>
+    </aside>
+  );
+}
 
 
 

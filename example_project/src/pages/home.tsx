@@ -3,21 +3,21 @@ import { createSignal, createComputed } from "hyperfx";
 export function HomePage() {
   const name = createSignal('');
   const count = createSignal(0);
-  
+
   // Computed greeting that updates when name changes
   const greeting = createComputed(() =>
     `Hello, ${name() || 'Anonymous'}! Welcome to HyperFX.`
   );
 
-   const increment = () => count(count() + 1);
-   const decrement = () => count(count() - 1);
-   const reset = () => count(0);
+  const increment = () => count(count() + 1);
+  const decrement = () => count(count() - 1);
+  const reset = () => count(0);
 
-   const counterText = createComputed(() => {
-     const c = count();
-     if (c === 0) return "Counter is at zero.";
-     return c > 0 ? "Counter is positive." : "Counter is negative.";
-   });
+  const counterText = createComputed(() => {
+    const c = count();
+    if (c === 0) return "Counter is at zero.";
+    return c > 0 ? "Counter is positive." : "Counter is negative.";
+  });
 
   return (
     <div class="space-y-8">
@@ -46,12 +46,12 @@ export function HomePage() {
                 type="text"
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Your name..."
-                 value={name}
+                value={name}
                 onInput={(e) => name((e.target as HTMLInputElement).value)}
               />
             </div>
             <div class="p-4 bg-gray-700 rounded-md">
-               <p class="text-lg text-blue-300">{greeting()}</p>
+              <p class="text-lg text-blue-300">{greeting()}</p>
             </div>
           </div>
         </div>
@@ -63,9 +63,9 @@ export function HomePage() {
           </h2>
           <div class="space-y-4">
             <div class="text-center">
-               <div class="text-4xl font-bold text-yellow-400 mb-4">
-                 {count}
-               </div>
+              <div class="text-4xl font-bold text-yellow-400 mb-4">
+                {count}
+              </div>
               <div class="space-x-2">
                 <button
                   type="button"
@@ -91,10 +91,10 @@ export function HomePage() {
               </div>
             </div>
             <div class="text-center text-sm text-gray-400">
-                <p>{count}</p>
-                <p>
-                {counterText as any}
-        </p>
+              <p>{count}</p>
+              <p>
+                {counterText}
+              </p>
 
             </div>
           </div>

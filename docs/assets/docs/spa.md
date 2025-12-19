@@ -1,114 +1,118 @@
-# SPA (Single Page Application)
+# Routing & SPA
 
-Build single page applications with HyperFX routing.
+HyperFX provides a declarative, component-based routing system that allows you to build Single Page Applications (SPAs) with ease.
 
-## SPA Status
+## Core Components
 
-The routing system is functional but still evolving. Page refresh handling and server-side routing registration are ongoing improvements.
 
-## Behavior
+### `<Router>`
 
-The routing system automatically intercepts navigation for internal links when a route register is active.
+The `<Router>` component is the root of your routing system. It manages the current path and provides routing context to its children.
 
-## Current Usage
+### `<Route>`
 
-```tsx
-import { RouteRegister, createSignal } from "hyperfx";
-
-// Create a container element for page content
-const pageSpace = document.getElementById('page-space')!;
-
-// Register routes using JSX components
-RouteRegister(pageSpace)
-  .registerRoute(
-    "/", // route path
-    () => {
-      // Component function for this route
-      return (
-        <article>
-          <p>Welcome to the home page!</p>
-        </article>
-      );
-    }
-  )
-  .registerRoute(
-    "/about",
-    () => {
-      const [count, setCount] = createSignal(0);
-      
-      return (
-        <article>
-          <h1>About Page</h1>
-          <p>Counter: {count}</p>
-          <button onClick={() => setCount(count() + 1)}>
-            Increment
-          </button>
-        </article>
-      );
-    }
-  )
-  .enable(); // Start the routing system
-```
-
-### Dynamic Content with Query Parameters
-
-You can create dynamic routes that respond to query parameters:
+The `<Route>` component renders its content only when the current path matches its `path` prop.
 
 ```tsx
-import { GetQueryValue, createSignal, createComputed } from "hyperfx";
+import { Router, Route } from "hyperfx";
 
-RouteRegister(pageSpace)
-  .registerRoute(
-    "/docs",
-    () => {
-      const [currentDoc, setCurrentDoc] = createSignal(
-        GetQueryValue("doc") || "main"
-      );
-      
-      // Computed content based on the current doc
-      const docContent = createComputed(() => {
-        const doc = currentDoc();
-        const mdDoc = docsMD.find((d) => d.route_name === doc);
-        
-        if (mdDoc) {
-          return mdDoc.data;
-        } else if (doc === "main") {
-          return "Welcome to HyperFX documentation!";
-        } else {
-          return `Documentation for '${doc}' not found.`;
-        }
-      });
-
-      return (
-        <div class="flex flex-auto">
-          <aside class="navigation">
-            {/* Navigation sidebar */}
-          </aside>
-          <article 
-            class="p-4 flex flex-col overflow-auto mx-auto"
-            innerHTML={docContent}
-          />
-        </div>
-      );
-    }
-  )
-  .enable();
-```
-
-### Navigation
-
-Use regular anchor tags for navigation. The router will automatically handle internal links:
-
-```tsx
-function Navigation() {
+function App() {
   return (
-    <nav>
-      <a href="/" class="nav-link">Home</a>
-      <a href="/about" class="nav-link">About</a>
-      <a href="/docs?doc=getting-started" class="nav-link">
-        Getting Started
-      </a>
-    </nav>
+    <Router>
+      <Route path="/" component={HomePage} />
+      <Route path="/about" component={AboutPage} />
+      {/* Catch-all route */}
+      <Route path="*" component={NotFoundPage} />
+    </Router>
   );
+}
+```
+
+
+### `<Link>`
+
+The `<Link>` component provides a declarative way to navigate between routes. It prevents full page reloads and updates the URL.
+
+```tsx
+<nav>
+  <Link to="/">Home</Link>
+  <Link to="/about" activeClass="font-bold">About</Link>
+</nav>
+```
+
+---
+
+## Routing Hooks
+
+
+### `usePath()`
+
+Returns a reactive signal containing the current URL path.
+
+```tsx
+import { usePath } from "hyperfx";
+
+function PathDisplay() {
+  const path = usePath();
+  return <p>Current path is: {path}</p>;
+}
+```
+
+
+### `useNavigate()`
+
+Returns a function that can be used to programmatically navigate.
+
+```tsx
+import { useNavigate } from "hyperfx";
+
+function LogoutButton() {
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    auth.logout();
+    navigate("/");
+  };
+  
+  return <button onClick={handleLogout}>Logout</button>;
+}
+```
+
+---
+
+## Query Parameters & Params
+
+
+### `getQueryValue(key)`
+
+Returns the value of a query parameter from the current URL.
+
+```tsx
+import { getQueryValue } from "hyperfx";
+
+function Docs() {
+  const doc = getQueryValue("doc") || "home";
+  // ...
+}
+```
+
+
+### `getParam(key)` (In progress)
+
+Used for extracting parameters from dynamic routes (e.g., `/user/:id`). Note: Full dynamic route support is currently being refined.
+
+---
+
+## Manual Navigation
+
+If you need to navigate outside of a component, you can use the `navigateTo` function:
+
+```tsx
+import { navigateTo } from "hyperfx";
+
+function checkAuth() {
+  if (!isLoggedIn) {
+    navigateTo("/login");
+  }
 }
 ```

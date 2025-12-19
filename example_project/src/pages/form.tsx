@@ -43,9 +43,9 @@ export function FormPage() {
 
   const isFormValid = createComputed(() => {
     return name().trim().length > 0 &&
-           isValidEmail() &&
-           isValidAge() &&
-           country().length > 0;
+      isValidEmail() &&
+      isValidAge() &&
+      country().length > 0;
   });
 
   // Reactive visibility classes for validation messages
@@ -119,7 +119,7 @@ export function FormPage() {
           <h2 class="text-2xl font-semibold text-green-400 mb-6">
             User Registration
           </h2>
-          
+
           <form onSubmit={handleSubmit} class="space-y-6">
             {/* Name */}
             <div>
@@ -132,7 +132,7 @@ export function FormPage() {
                 required
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="Enter your name"
-                 value={name}
+                value={name}
                 onInput={(e) => name((e.target as HTMLInputElement).value)}
               />
             </div>
@@ -146,18 +146,17 @@ export function FormPage() {
                 id="email"
                 type="email"
                 required
-                class={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 ${
-                  email() && !isValidEmail() 
-                    ? 'border-red-500 focus:border-red-500' 
+                class={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 ${email() && !isValidEmail()
+                    ? 'border-red-500 focus:border-red-500'
                     : 'border-gray-600 focus:border-green-500'
-                }`}
+                  }`}
                 placeholder="Enter your email"
-                 value={email}
+                value={email}
                 onInput={(e) => email((e.target as HTMLInputElement).value)}
               />
-               <p class={`mt-1 text-sm text-red-400 ${emailErrorVisible() ? '' : 'hidden'}`}>
-                 Please enter a valid email
-               </p>
+              <p class={`mt-1 text-sm text-red-400 ${emailErrorVisible() ? '' : 'hidden'}`}>
+                Please enter a valid email
+              </p>
             </div>
 
             {/* Age */}
@@ -171,17 +170,16 @@ export function FormPage() {
                 min="13"
                 max="120"
                 required
-                class={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 ${
-                  !isValidAge() 
-                    ? 'border-red-500 focus:border-red-500' 
+                class={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 ${!isValidAge()
+                    ? 'border-red-500 focus:border-red-500'
                     : 'border-gray-600 focus:border-green-500'
-                }`}
+                  }`}
                 value={age().toString()}
                 onInput={(e) => age(parseInt((e.target as HTMLInputElement).value) || 18)}
               />
-               <p class={`mt-1 text-sm text-red-400 ${ageErrorVisible() ? '' : 'hidden'}`}>
-                 Age must be between 13 and 120
-               </p>
+              <p class={`mt-1 text-sm text-red-400 ${ageErrorVisible() ? '' : 'hidden'}`}>
+                Age must be between 13 and 120
+              </p>
             </div>
 
             {/* Country */}
@@ -228,7 +226,7 @@ export function FormPage() {
               <label class="flex items-center">
                 <input
                   type="checkbox"
-                   checked={newsletter}
+                  checked={newsletter}
                   onChange={(e) => newsletter((e.target as HTMLInputElement).checked)}
                   class="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500 focus:ring-2"
                 />
@@ -246,7 +244,7 @@ export function FormPage() {
                 rows={4}
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="Any additional comments..."
-                 value={comments}
+                value={comments}
                 onInput={(e) => comments((e.target as HTMLTextAreaElement).value)}
               />
             </div>
@@ -255,12 +253,11 @@ export function FormPage() {
             <div class="flex space-x-2">
               <button
                 type="submit"
-                 disabled={!isFormValid()}
-                class={`flex-1 px-4 py-2 rounded-md transition-colors ${
-                  isFormValid()
+                disabled={!isFormValid()}
+                class={`flex-1 px-4 py-2 rounded-md transition-colors ${isFormValid()
                     ? 'bg-green-600 text-white hover:bg-green-700'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 Submit
               </button>
@@ -280,52 +277,52 @@ export function FormPage() {
           <h2 class="text-2xl font-semibold text-purple-400 mb-6">
             Form Data Preview
           </h2>
-          
+
           <div class="space-y-4">
-            <div class={`p-4 rounded-md ${formStatusClass as any}`}>
-               <div class="text-sm font-medium">
-                 Form Status: {formStatusText as any}
+            <div class={`p-4 rounded-md ${formStatusClass}`}>
+              <div class="text-sm font-medium">
+                Form Status: {formStatusText}
               </div>
             </div>
 
             <div class="bg-gray-700 p-4 rounded-md">
               <h3 class="font-semibold text-gray-200 mb-2">Current Data:</h3>
-               <pre class="text-sm text-gray-300 overflow-x-auto whitespace-pre-wrap">
-                 {formDataJson}
-               </pre>
+              <pre class="text-sm text-gray-300 overflow-x-auto whitespace-pre-wrap">
+                {formDataJson}
+              </pre>
             </div>
 
             <div class="space-y-2 text-sm">
-               <div class="flex justify-between">
-                 <span class="text-gray-400">Name:</span>
-                 <span class="text-white">{previewName}</span>
-               </div>
-               <div class="flex justify-between">
-                 <span class="text-gray-400">Email:</span>
-                 <span class={emailValidationColor()}>
-                   {previewEmail}
+              <div class="flex justify-between">
+                <span class="text-gray-400">Name:</span>
+                <span class="text-white">{previewName}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Email:</span>
+                <span class={emailValidationColor()}>
+                  {previewEmail}
                 </span>
               </div>
-               <div class="flex justify-between">
-                 <span class="text-gray-400">Age:</span>
-                 <span class={ageValidationColor()}>
-                   {previewAge}
-                 </span>
-               </div>
-               <div class="flex justify-between">
-                 <span class="text-gray-400">Country:</span>
-                 <span class={countryValidationColor()}>
-                   {previewCountry}
-                 </span>
-               </div>
-               <div class="flex justify-between">
-                 <span class="text-gray-400">Interests:</span>
-                 <span class="text-white">{previewInterests}</span>
-               </div>
-               <div class="flex justify-between">
-                 <span class="text-gray-400">Newsletter:</span>
-                 <span class="text-white">{previewNewsletter}</span>
-               </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Age:</span>
+                <span class={ageValidationColor()}>
+                  {previewAge}
+                </span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Country:</span>
+                <span class={countryValidationColor()}>
+                  {previewCountry}
+                </span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Interests:</span>
+                <span class="text-white">{previewInterests}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Newsletter:</span>
+                <span class="text-white">{previewNewsletter}</span>
+              </div>
             </div>
           </div>
         </div>

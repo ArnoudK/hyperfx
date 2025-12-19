@@ -1,7 +1,7 @@
 import {
   HFXObjectToElement,
   nodeToHFXObject,
-  VNode,
+  JSX,
   createSignal,
   createComputed,
 } from "hyperfx";
@@ -16,7 +16,7 @@ const previewHtml = createComputed(() => {
   if (typeof articleContent === 'string' || !articleContent) {
     return '<p class="border rounded-md p-2">Start editing to get a preview!</p>';
   }
-  
+
   const render = HFXObjectToElement(articleContent);
   if (render instanceof Text) {
     return '<p class="border rounded-md p-2">Start editing to get a preview!</p>';
@@ -28,27 +28,27 @@ const previewHtml = createComputed(() => {
 
 const editor_content_id = "editor_content" as const;
 
-export function editor(): VNode {
+export function editor(): JSX.Element {
   const handleBoldClick = (e: MouseEvent) => {
     e.preventDefault();
-    
+
     // Get the current selection
     const selection = document.getSelection();
     if (!selection || selection.rangeCount === 0) return;
-    
+
     const range = selection.getRangeAt(0);
     if (range.collapsed) return; // No text selected
-    
+
     // Create a bold element
     const boldElement = document.createElement('strong');
-    
+
     try {
       // Wrap the selected content in a bold element
       range.surroundContents(boldElement);
-      
+
       // Clear the selection
       selection.removeAllRanges();
-      
+
       // Update the article signal with the new content
       updateArticleFromEditor();
     } catch (error) {
@@ -58,10 +58,10 @@ export function editor(): VNode {
         const contents = range.extractContents();
         boldElement.appendChild(contents);
         range.insertNode(boldElement);
-        
+
         // Clear the selection
         selection.removeAllRanges();
-        
+
         // Update the article signal
         updateArticleFromEditor();
       } catch (innerError) {
@@ -83,20 +83,20 @@ export function editor(): VNode {
   };
 
   return (
-    <div className="p-2 w-full flex flex-auto gap-4 flex-col">
+    <div class="p-2 w-full flex flex-auto gap-4 flex-col">
       <div id="article_editor">
-        <div id="edit_buttons" className="p-2 flex gap-2">
+        <div id="edit_buttons" class="p-2 flex gap-2">
           <span>Formatting:</span>
           <button
-            className="p-2 rounded-md bg-zinc-800 border-2 border-zinc-950 font-bold text-white hover:bg-zinc-700"
+            class="p-2 rounded-md bg-zinc-800 border-2 border-zinc-950 font-bold text-white hover:bg-zinc-700"
             onMouseDown={handleBoldClick}
             title="Bold selected text"
           >
             <strong>B</strong>
           </button>
         </div>
-        <div className="border-2 rounded-md p-2 bg-white text-black">
-          <div id={editor_content_id} className="">
+        <div class="border-2 rounded-md p-2 bg-white text-black">
+          <div id={editor_content_id} class="">
             <article contenteditable="true" onInput={handleInput}>
               <p>Edit me! Select some text and click the <strong>B</strong> button to make it bold.</p>
             </article>
@@ -104,16 +104,16 @@ export function editor(): VNode {
         </div>
       </div>
       <div>
-        <p className="text-xl font-semibold">Preview:</p>
-        <div className="p-2 border-2 bg-white text-black">
+        <p class="text-xl font-semibold">Preview:</p>
+        <div class="p-2 border-2 bg-white text-black">
           <div innerHTML={previewHtml}></div>
         </div>
       </div>
-      <div className="p-2 bg-purple-950 rounded-md">
-        <p className="text-xl font-semibold">JSON:</p>
-        <div className="bg-black/20 p-2 border-2 border-gray-500 rounded-md">
-          <output className="" name="json_output" htmlFor={editor_content_id}>
-            <pre className="overflow-x-scroll">
+      <div class="p-2 bg-purple-950 rounded-md">
+        <p class="text-xl font-semibold">JSON:</p>
+        <div class="bg-black/20 p-2 border-2 border-gray-500 rounded-md">
+          <output class="" name="json_output" htmlFor={editor_content_id}>
+            <pre class="overflow-x-scroll">
               {() => JSON.stringify(articleSignal(), null, "  ")}
             </pre>
           </output>

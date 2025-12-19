@@ -1,5 +1,5 @@
 import type { StrictImageAttributes } from "./attr";
-import { createElement } from "./elem";
+import { createElement } from "../jsx/jsx-runtime";
 
 /**
  * Type-safe image element with required src and alt attributes

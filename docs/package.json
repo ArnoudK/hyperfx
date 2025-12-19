@@ -14,17 +14,17 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.10",
-    "@vite-pwa/assets-generator": "^1.0.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "@vite-pwa/assets-generator": "^1.0.2",
     "highlight.js": "^11.11.1",
     "hyperfx": "workspace:*",
     "marked": "^15.0.12",
-    "tailwindcss": "^4.1.10",
-    "vite-plugin-pwa": "^1.0.0"
+    "tailwindcss": "^4.1.18",
+    "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vite-plugin-singlefile": "^2.2.0"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0",
+    "vite-plugin-singlefile": "^2.3.0"
   }
 }

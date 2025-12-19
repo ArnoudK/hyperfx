@@ -5,9 +5,10 @@ HyperFX is a modern, lightweight framework for building reactive web application
 ## ✨ Key Features
 
 - **Direct DOM JSX**: No virtual DOM - JSX returns actual DOM elements
-- **Reactive Signals**: Automatic dependency tracking and immediate updates
+- **Callable Signals**: Simple function-based API for state management
 - **Component-Based Routing**: React Router-style routing without VDOM
 - **Fine-Grained Reactivity**: Only affected elements update when data changes
+- **SSR & Hydration**: First-class support for Server-Side Rendering
 - **TypeScript First**: Full type safety with JSX and reactive primitives
 
 ## 🚀 Get Started
@@ -38,7 +39,7 @@ function Counter() {
   return (
     <div>
       <h1>Count: {count}</h1>
-      <button onClick={() => count.set(count.get() + 1)}>
+      <button onClick={() => count(count() + 1)}>
         Increment
       </button>
     </div>
@@ -47,47 +48,50 @@ function Counter() {
 
 // Mount to DOM
 const app = document.getElementById("app")!;
-app.appendChild(<Counter />);
+app.replaceChildren(<Counter />);
 ```
 
 ## 🎯 Reactive Features
 
 ### Signals
+
 ```tsx
 import { createSignal, createComputed } from "hyperfx";
 
 const name = createSignal("John");
-const greeting = createComputed(() => `Hello, ${name.get()}!`);
+const greeting = createComputed(() => `Hello, ${name()}!`);
 
 // Reactive updates happen automatically
-name.set("Jane"); // greeting updates immediately
+name("Jane"); // greeting updates immediately
 ```
 
 ### Reactive JSX Attributes
+
 ```tsx
 const isVisible = createSignal(true);
 const buttonText = createSignal("Click me");
 
 <button
-  style={{ display: isVisible }}
-  onClick={() => isVisible.set(false)}
+  style={{ display: () => isVisible() ? 'block' : 'none' }}
+  onClick={() => isVisible(!isVisible())}
 >
   {buttonText}
 </button>
 ```
 
 ### Input Binding
+
 ```tsx
 const inputValue = createSignal("");
 
 <input
   value={inputValue}
-  onInput={(e) => inputValue.set(e.target.value)}
+  onInput={(e) => inputValue(e.target.value)}
   placeholder="Type something..."
 />
 
 // Clear input reactively
-inputValue.set(""); // Input clears automatically
+inputValue(""); // Input clears automatically
 ```
 
 ## 🛣️ Component-Based Routing
@@ -126,49 +130,53 @@ const todos = createSignal([{ id: 1, text: "Learn HyperFX", done: false }]);
   )}
 </For>
 
-<Show when={todos.get().length > 0}>
-  <p>You have {todos.get().length} todos!</p>
+<Show when={() => todos().length > 0}>
+  <p>You have {() => todos().length} todos!</p>
 </Show>
 ```
 
-## 📁 Example Project
+## 🌐 Server-Side Rendering (SSR)
 
-The `example_project/` directory contains a complete example with:
-- Todo app with reactive lists
-- Component-based routing
-- Fine-grained reactivity demonstrations
+HyperFX supports SSR with hydration, allowing for fast initial page loads and SEO optimization.
 
-```bash
-cd example_project
-pnpm install
-pnpm dev
+```tsx
+import { renderToString, renderHydrationData } from "hyperfx/ssr";
+
+const { html, hydrationData } = renderToString(<App />);
+// ... send to client with hydration data
 ```
 
 ## 🏗️ Architecture
 
 HyperFX uses a direct DOM approach:
+
 - **No Virtual DOM**: JSX compiles to actual DOM element creation
 - **Immediate Updates**: Signals notify subscribers synchronously
 - **Fine-Grained**: Only affected DOM elements update
-- **Zero Abstraction**: Direct DOM API access when needed
+- **Hydration**: Re-attaches reactivity to server-rendered HTML
 
 ## 📚 API Reference
 
 ### Signals
-- `createSignal<T>(initialValue: T)` - Create a reactive signal
-- `createComputed<T>(computeFn: () => T)` - Create a computed value
+
+- `const sig = createSignal<T>(val)` - Create a callable signal (`sig()` is get, `sig(val)` is set)
+- `const comp = createComputed<T>(fn)` - Create a computed signal
+- `createEffect(fn)` - Run an effect when dependencies change
 
 ### JSX
+
 - Direct DOM element creation with reactive attributes
-- Automatic signal subscription in JSX attributes
+- Automatic signal subscription in JSX text nodes and attributes
 - Fragment support with `<></>`
 
 ### Routing
+
 - `<Router>` - Route container
 - `<Route path="..." component={...} />` - Route definition
 - `<Link to="...">` - Navigation links
 
 ### Control Flow
-- `<For each={signal} children={(item) => JSX} />` - Reactive lists
-- `<Show when={condition} children={JSX} />` - Conditional rendering
+
+- `<For each={signal} />` - Reactive lists
+- `<Show when={signal} />` - Conditional rendering
 - `<Switch>`/`<Match>` - Pattern matching
