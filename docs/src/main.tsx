@@ -189,7 +189,7 @@ function MainLayout(): JSX.Element {
 
 function App() {
   return (
-    <Router initialPath="/hyperfx" children={() => <MainLayout />} />
+    <Router initialPath="/hyperfx" children={<MainLayout />} />
   );
 }
 

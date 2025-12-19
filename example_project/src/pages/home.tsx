@@ -1,6 +1,10 @@
 import { createSignal, createComputed } from "hyperfx";
+import { useState } from "hyperfx";
 
 export function HomePage() {
+
+  const [thing, setThing] = useState('Thing');
+
   const name = createSignal('');
   const count = createSignal(0);
 
@@ -29,6 +33,10 @@ export function HomePage() {
           A modern reactive framework with JSX support
         </p>
       </div>
+      <div>
+        <input value={thing} class="p-2 border border-gray-300 rounded" type="text" onInput={(e) => setThing((e.target as any).value)} />
+        <p>{thing}</p>
+      </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Interactive Greeting */}
@@ -51,7 +59,7 @@ export function HomePage() {
               />
             </div>
             <div class="p-4 bg-gray-700 rounded-md">
-              <p class="text-lg text-blue-300">{greeting()}</p>
+              <p class="text-lg text-blue-300">{greeting}</p>
             </div>
           </div>
         </div>
