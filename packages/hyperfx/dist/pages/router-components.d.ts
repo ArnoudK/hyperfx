@@ -1,29 +1,10 @@
 import { ReactiveSignal } from "../reactive/state";
 import type { JSXElement, FunctionComponent, JSXChildren } from "../jsx/jsx-runtime";
 /**
- * Component-Based Routing System for HyperFX
- *
- * This provides React Router-style component-based routing with
- * <Router>, <Route>, <Link>, and <Outlet> components.
- */
-interface RouterContext {
-    currentPath: ReactiveSignal<string>;
-    navigate: (path: string, options?: {
-        replace?: boolean;
-    }) => void;
-    back: () => void;
-    forward: () => void;
-}
-/**
- * Global router context signal
- * This allows components like Link to be reactive to router availability
- */
-export declare const routerContextSignal: ReactiveSignal<RouterContext | null>;
-/**
  * Router Component - Root routing context provider
  */
 interface RouterProps {
-    children?: JSXChildren;
+    children?: JSXChildren | (() => JSXElement);
     initialPath?: string;
 }
 export declare function Router(props: RouterProps): JSXElement;

@@ -16,27 +16,26 @@ interface RouterContext {
   forward: () => void;
 }
 
+import { createContext, useContext, Context } from "../reactive/context";
+
 /**
- * Global router context signal
- * This allows components like Link to be reactive to router availability
+ * Global router context
  */
-export const routerContextSignal = createSignal<RouterContext | null>(null);
+const RouterContext = createContext<RouterContext | null>(null);
 
 /**
  * Router Component - Root routing context provider
  */
 interface RouterProps {
-  children?: JSXChildren;
+  children?: JSXChildren | (() => JSXElement);
   initialPath?: string;
 }
 
 export function Router(props: RouterProps): JSXElement {
-
-  // Handle re-initialization (e.g. HMR or remounting)
-  if (routerContextSignal()) {
-    console.warn('Router: Router already initialized, resetting context');
-    // We could either bail out or reset. Resetting is safer for HMR.
-    routerContextSignal(null);
+  // Use existing context if nested (though this simple router might not fully support nesting yet)
+  const parentContext = useContext(RouterContext);
+  if (parentContext) {
+    console.warn('Router: Nested routers are not fully supported yet');
   }
 
   const currentPath = createSignal(props.initialPath || (window.location.pathname + window.location.search));
@@ -45,27 +44,24 @@ export function Router(props: RouterProps): JSXElement {
 
 
   // Set up navigation effects
+  // Set up navigation effects
   createEffect(() => {
     // Handle browser navigation
     const handlePopState = (): void => {
       const newPath = (window.location.pathname + window.location.search) || '/';
       currentPath(newPath);
-      const stack = historyStack();
-      stack[historyIndex()] = newPath;
-      historyStack(stack);
-      console.log('Router: Path changed to', newPath);
+      const newStack = [...historyStack()];
+      newStack[historyIndex()] = newPath;
+      historyStack(newStack);
     };
-    console.log('Router: Setting up popstate listener');
     window.addEventListener('popstate', handlePopState);
     return () => {
-      console.log('Router: Removing popstate listener');
       window.removeEventListener('popstate', handlePopState);
-      // Clean up global context on unmount to allow re-initialization
-      routerContextSignal(null);
     }
   });
 
   const navigate = (path: string, options: { replace?: boolean } = {}): void => {
+    console.log('Router: navigate called', path);
     if (options.replace) {
       window.history.replaceState({}, '', path);
       const newStack = [...historyStack()];
@@ -77,6 +73,7 @@ export function Router(props: RouterProps): JSXElement {
       historyStack(newStack);
       historyIndex(historyIndex() + 1);
     }
+    console.log('Router: updating currentPath signal', path);
     currentPath(path);
     // Context is stable, no need to update it
   };
@@ -110,37 +107,13 @@ export function Router(props: RouterProps): JSXElement {
     forward,
   };
 
-  // Set global context signal immediately
-  routerContextSignal(context);
-
-  // Create container div
-  const container = document.createElement('div');
-  container.className = 'router-container';
-
-  // Support deferred rendering (important for bottom-up JSX execution)
-  let content: any;
-  if (typeof props.children === 'function') {
-    content = props.children();
-  } else {
-    content = props.children;
-  }
-
-  // Mount content
-  const appendChild = (parent: HTMLElement, child: any) => {
-    if (child === null || child === undefined || child === false) return;
-
-    if (child instanceof Node) {
-      parent.appendChild(child);
-    } else if (Array.isArray(child)) {
-      child.forEach(c => appendChild(parent, c));
-    } else {
-      parent.appendChild(document.createTextNode(String(child)));
-    }
-  };
-
-  appendChild(container, content);
-
-  return container;
+  // Use Provider to pass context to children
+  return (
+    RouterContext.Provider({
+      value: context,
+      children: props.children
+    } as any) // Type cast needed because our Provider argument typing is strict but usage requires flexibility
+  );
 }
 
 /**
@@ -168,16 +141,18 @@ export function Route(props: RouteProps): DocumentFragment {
   // Extract Route-specific props, pass the rest to the child component
   const { path, component, children, exact, ...restProps } = props;
 
+  // Capture context once
+  const context = useContext(RouterContext);
+
   createEffect(() => {
-    const context = routerContextSignal();
-    // console.log('router context:', context);
     if (!context) return;
 
     const currentPath = context.currentPath;
     const currentPathValue = currentPath();
+    const pathWithoutQuery = currentPathValue.split('?')[0]!;
     const matches = (exact !== undefined ? exact : false)
-      ? currentPathValue === path
-      : currentPathValue.startsWith(path);
+      ? pathWithoutQuery === path
+      : pathWithoutQuery.startsWith(path);
 
     if (matches === wasMatched) {
       return; // No change in match state, do nothing
@@ -248,20 +223,33 @@ export function Link(props: LinkProps): JSXElement {
   link.href = props.to;
   link.className = props.class !== undefined ? props.class : '';
 
+  // Capture context during render
+  const context = useContext(RouterContext);
+  console.log('Link: render', props.to, 'context:', !!context);
+
   // Handle clicks
   const handleClick = (event: MouseEvent): void => {
+    console.log('Link: clicked', props.to);
     event.preventDefault();
 
     if (props.onClick) {
       props.onClick(event);
     }
 
-    const context = routerContextSignal();
     if (context) {
       context.navigate(props.to, { replace: props.replace !== undefined ? props.replace : false });
     } else {
       // Fallback if router not initialized yet
       window.history.pushState({}, '', props.to);
+      // Dispatch popstate event so other listeners (e.g. separate routers) might notice, 
+      // though standard pushState doesn't do this. 
+      // Ideally we should dispatch a custom event or manually trigger listeners.
+      // But standard router behavior relies on the context.navigate above.
+
+      // If we are here, we are outside a Router context. 
+      // If there IS a Router mounted somewhere else (unlikely in this architecture), it relies on popstate.
+      // We can manually dispatch valid popstate to notify others.
+      window.dispatchEvent(new PopStateEvent('popstate'));
     }
   };
 
@@ -269,7 +257,6 @@ export function Link(props: LinkProps): JSXElement {
 
   // Update active class based on current path
   createEffect(() => {
-    const context = routerContextSignal();
     if (!context) {
       return;
     };
@@ -306,16 +293,17 @@ export function Link(props: LinkProps): JSXElement {
  * Navigate Programmatically
  */
 export function navigate(path: string, options: { replace?: boolean } = {}): void {
-  const context = routerContextSignal();
-  if (context) {
-    context.navigate(path, options);
+  // NOTE: This global navigate function cannot use useContext efficiently
+  // because it's called outside of component rendering.
+  // It might need to be deprecated or we need a way to access the "topmost" router.
+  // For now, we'll try to fallback to window history API, but context access is lost.
+  console.warn("Global navigate() function called. This may not work with Context-based router. Use useNavigate() hook instead.");
+
+  // Fallback to direct navigation
+  if (options.replace) {
+    window.history.replaceState({}, '', path);
   } else {
-    // Fallback to direct navigation
-    if (options.replace) {
-      window.history.replaceState({}, '', path);
-    } else {
-      window.history.pushState({}, '', path);
-    }
+    window.history.pushState({}, '', path);
   }
 }
 
@@ -323,7 +311,7 @@ export function navigate(path: string, options: { replace?: boolean } = {}): voi
  * Use current path in components
  */
 export function usePath(): ReactiveSignal<string> {
-  const context = routerContextSignal();
+  const context = useContext(RouterContext);
   if (!context) {
     // Return a dummy signal if router not yet available, it will be reactive once context is set if used in effect
     return createSignal(window.location.pathname);
@@ -335,8 +323,9 @@ export function usePath(): ReactiveSignal<string> {
  * Use navigation function in components
  */
 export function useNavigate(): (path: string, options?: { replace?: boolean }) => void {
+  // Capture context at hook call time
+  const context = useContext(RouterContext);
   return (path: string, options?: { replace?: boolean }) => {
-    const context = routerContextSignal();
     if (context) {
       context.navigate(path, options);
     } else {
@@ -396,13 +385,13 @@ export function Switch(props: { children: JSXElement | JSXElement[] }): JSXEleme
  * Redirect Component - Programmatic redirect
  */
 export function Redirect(props: { to: string; replace?: boolean }): JSXElement {
-  const context = routerContextSignal();
+  const context = useContext(RouterContext);
   if (context) {
     context.navigate(props.to, { replace: props.replace !== undefined ? props.replace : false });
   } else {
     // Deferred redirect handled in effect
     createEffect(() => {
-      const ctx = routerContextSignal();
+      const ctx = useContext(RouterContext);
       if (ctx) {
         ctx.navigate(props.to, { replace: props.replace !== undefined ? props.replace : false });
       }
@@ -416,7 +405,7 @@ export function Redirect(props: { to: string; replace?: boolean }): JSXElement {
  * Get query parameter value from current URL as a reactive signal
  */
 export function getQueryValue(name: string): ReactiveSignal<string | null> {
-  const context = routerContextSignal();
+  const context = useContext(RouterContext);
   return createComputed(() => {
     if (context) {
       context.currentPath(); // Track path changes
@@ -430,7 +419,7 @@ export function getQueryValue(name: string): ReactiveSignal<string | null> {
  * Get all query parameter values for a name as a reactive signal
  */
 export function getQueryValues(name: string): ReactiveSignal<string[]> {
-  const context = routerContextSignal();
+  const context = useContext(RouterContext);
   return createComputed(() => {
     if (context) {
       context.currentPath(); // Track path changes
@@ -444,7 +433,7 @@ export function getQueryValues(name: string): ReactiveSignal<string[]> {
  * Get route parameter (placeholder for future implementation with dynamic routes)
  */
 export function getParam(name: string): ReactiveSignal<string | undefined> {
-  const context = routerContextSignal();
+  const context = useContext(RouterContext);
   return createComputed(() => {
     if (context) {
       context.currentPath(); // Track path changes

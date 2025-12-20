@@ -41,16 +41,16 @@ class SignalImpl<T = any> {
     this._value = initialValue;
   }
 
-   /**
-    * Get the current signal value
-    */
-   get(): T {
-     // Track access if we're tracking dependencies
-     if (isTracking) {
-       accessedSignals.add(this.callableSignal);
-     }
-     return this._value;
-   }
+  /**
+   * Get the current signal value
+   */
+  get(): T {
+    // Track access if we're tracking dependencies
+    if (isTracking) {
+      accessedSignals.add(this.callableSignal);
+    }
+    return this._value;
+  }
 
   /**
    * Set a new signal value and notify subscribers
@@ -232,7 +232,7 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
     if (typeof cleanup === 'function') {
       cleanup();
     }
-   };
+  };
 }
 
 /**
@@ -264,3 +264,4 @@ export function unwrapSignal<T>(value: T | Signal<T>): T {
 export { Signal as ReactiveSignal };
 export { createSignal as signal };
 export { createComputed as computed };
+export { createComputed as createMemo };

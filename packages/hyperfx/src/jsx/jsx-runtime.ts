@@ -46,7 +46,7 @@ export type JSXChild = Prettify<
   | (() => JSXElement)
   | (() => JSXElement[])
   | ComputedSignal<JSXElement | JSXChildPrimitive>
-  >;
+>;
 
 export type JSXChildren = JSXChild | JSXChild[];
 
@@ -102,16 +102,57 @@ export type ReactiveString = ReactiveValue<string>;
 export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
 
+// Hydration State
+let hydrationEnabled = false;
+let hydrationMap: Map<string, Element> | null = null;
+
+/**
+ * Start hydration mode with a map of existing nodes
+ */
+export function startHydration(map: Map<string, Element>): void {
+  hydrationEnabled = true;
+  hydrationMap = map;
+  // Reset counter to match server-side generation sequence
+  clientNodeCounter = 0;
+}
+
+/**
+ * End hydration mode
+ */
+export function endHydration(): void {
+  hydrationEnabled = false;
+  hydrationMap = null;
+}
+
 // Fragment symbol
 export const FRAGMENT_TAG = Symbol("HyperFX.Fragment");
 
 // Create a DOM element with reactive attributes
 function createElement(tag: string, props?: Record<string, any> | null): HTMLElement {
-  const element = document.createElement(tag);
+  let element: HTMLElement;
+  let claimed = false;
 
-  // Add unique node ID for client-side elements (only if not in SSR)
-  if (!isSSREnvironment()) {
-    element.setAttribute('data-hfxh', createClientId());
+  // Hydration Logic: Try to claim existing node
+  if (hydrationEnabled && !isSSREnvironment()) {
+    const id = createClientId();
+    const existing = hydrationMap?.get(id);
+
+    // Check if existing node matches the requested tag
+    if (existing && existing.tagName.toLowerCase() === tag.toLowerCase()) {
+      element = existing as HTMLElement;
+      claimed = true;
+    } else {
+      // Mismatch or not found - create new
+      element = document.createElement(tag);
+      element.setAttribute('data-hfxh', id);
+    }
+  } else {
+    // Normal Creation
+    element = document.createElement(tag);
+    // Add unique node ID for client-side elements (only if not in SSR)
+    if (!isSSREnvironment()) {
+      element.setAttribute('data-hfxh', createClientId());
+    }
   }
 
   if (props) {
@@ -135,62 +176,62 @@ function createElement(tag: string, props?: Record<string, any> | null): HTMLEle
         const eventName = key.slice(2).toLowerCase();
         element.addEventListener(eventName, value as EventListener);
       }
-       // Handle reactive attributes
-        else if (isSignal(value)) {
-         // Reactive attribute - subscribe to changes
-         const updateAttribute = () => {
-           const currentValue = value();
-           if (currentValue == null) {
-             if (key === 'value' && element instanceof HTMLInputElement) {
-               element.value = '';
-             } else if (key === 'checked' && element instanceof HTMLInputElement) {
-               element.checked = false;
-             } else {
-               element.removeAttribute(key);
-             }
-           } else {
-             if (key === 'value' && element instanceof HTMLInputElement) {
-               element.value = String(currentValue);
-             } else if (key === 'checked' && element instanceof HTMLInputElement) {
-               element.checked = Boolean(currentValue);
-             } else if (key === 'disabled' && typeof currentValue === 'boolean') {
-               // Handle disabled as a boolean attribute
-               if (currentValue) {
-                 element.setAttribute('disabled', '');
-                 (element as any).disabled = true;
-               } else {
-                 element.removeAttribute('disabled');
-                 (element as any).disabled = false;
-               }
-             } else if (key === 'class' || key === 'className') {
-               element.className = String(currentValue);
-             } else {
-               element.setAttribute(key, String(currentValue));
-             }
-           }
-         };
-         updateAttribute(); // Set initial value
-         value.subscribe(updateAttribute);
-       }
-       // Handle regular attributes
-       else if (value != null) {
-         if (key === 'value' && element instanceof HTMLInputElement) {
-           element.value = String(value);
-         } else if (key === 'checked' && element instanceof HTMLInputElement) {
-           element.checked = Boolean(value);
-         } else if (key === 'disabled' && typeof value === 'boolean') {
-           // Handle disabled as a boolean attribute
-           if (value) {
-             element.setAttribute('disabled', '');
-             (element as any).disabled = true;
-           } else {
-             element.removeAttribute('disabled');
-             (element as any).disabled = false;
-           }
-         } else {
-           element.setAttribute(key, String(value));
-         }
-       }
+      // Handle reactive attributes
+      else if (isSignal(value)) {
+        // Reactive attribute - subscribe to changes
+        const updateAttribute = () => {
+          const currentValue = value();
+          if (currentValue == null) {
+            if (key === 'value' && element instanceof HTMLInputElement) {
+              element.value = '';
+            } else if (key === 'checked' && element instanceof HTMLInputElement) {
+              element.checked = false;
+            } else {
+              element.removeAttribute(key);
+            }
+          } else {
+            if (key === 'value' && element instanceof HTMLInputElement) {
+              element.value = String(currentValue);
+            } else if (key === 'checked' && element instanceof HTMLInputElement) {
+              element.checked = Boolean(currentValue);
+            } else if (key === 'disabled' && typeof currentValue === 'boolean') {
+              // Handle disabled as a boolean attribute
+              if (currentValue) {
+                element.setAttribute('disabled', '');
+                (element as any).disabled = true;
+              } else {
+                element.removeAttribute('disabled');
+                (element as any).disabled = false;
+              }
+            } else if (key === 'class' || key === 'className') {
+              element.className = String(currentValue);
+            } else {
+              element.setAttribute(key, String(currentValue));
+            }
+          }
+        };
+        updateAttribute(); // Set initial value
+        value.subscribe(updateAttribute);
+      }
+      // Handle regular attributes
+      else if (value != null) {
+        if (key === 'value' && element instanceof HTMLInputElement) {
+          element.value = String(value);
+        } else if (key === 'checked' && element instanceof HTMLInputElement) {
+          element.checked = Boolean(value);
+        } else if (key === 'disabled' && typeof value === 'boolean') {
+          // Handle disabled as a boolean attribute
+          if (value) {
+            element.setAttribute('disabled', '');
+            (element as any).disabled = true;
+          } else {
+            element.removeAttribute('disabled');
+            (element as any).disabled = false;
+          }
+        } else {
+          element.setAttribute(key, String(value));
+        }
+      }
     }
   }
 
@@ -220,54 +261,79 @@ function createTextNode(content: string | number | boolean | Signal<string | num
   return textNode;
 }
 
-// Render children to a parent element
-function renderChildren(parent: HTMLElement | DocumentFragment, children: JSXChildren): void {
-  if (!children) return;
+// Render children to a parent element - implementation using flattening to support hydration cleanup
 
+
+// Improved renderChildren that handles recursion by flattening
+function renderChildrenFlattened(parent: HTMLElement | DocumentFragment, children: JSXChildren, appendedSet?: Set<Node>): void {
   const childArray = Array.isArray(children) ? children : [children];
 
   for (const child of childArray) {
     if (child == null || child === false || child === true) continue;
 
     if (isSignal(child)) {
-      // Reactive child - handle based on current value type
       const value = child();
-
       if (value instanceof Node) {
-        // Signal contains a DOM element - append it
         parent.appendChild(value);
-        // Note: Full reactive replacement would require tracking the inserted node
+        appendedSet?.add(value);
       } else {
-        // Signal contains text/array - use existing reactive text handling
         const textNode = createTextNode(child);
         parent.appendChild(textNode);
+        appendedSet?.add(textNode);
       }
     } else if (typeof child === 'function') {
-      // Function component or computed child
       try {
         const result = child();
         if (result instanceof Node) {
           parent.appendChild(result);
+          appendedSet?.add(result);
         } else if (Array.isArray(result)) {
-          renderChildren(parent, result);
+          // Recursion!
+          renderChildrenFlattened(parent, result, appendedSet);
         } else {
-          // Convert to text node
           const textNode = document.createTextNode(String(result));
           parent.appendChild(textNode);
+          appendedSet?.add(textNode);
         }
       } catch (error) {
         console.warn('Error rendering function child:', error);
       }
     } else if (typeof child === 'object' && child instanceof Node) {
-      // Already a DOM node
       parent.appendChild(child);
+      appendedSet?.add(child);
     } else {
-      // Convert to text node
       const textNode = document.createTextNode(String(child));
       parent.appendChild(textNode);
+      appendedSet?.add(textNode);
     }
   }
 }
+
+// Main renderChildren entry point
+function renderChildren(parent: HTMLElement | DocumentFragment, children: JSXChildren): void {
+  if (!children) return;
+
+  const isHydratingParent = hydrationEnabled &&
+    (parent instanceof HTMLElement && parent.isConnected ||
+      parent === document.body);
+
+  const appendedNodes = isHydratingParent ? new Set<Node>() : undefined;
+  const initialChildNodes = isHydratingParent ? Array.from(parent.childNodes) : null;
+
+  // Use flattened renderer
+  renderChildrenFlattened(parent, children, appendedNodes);
+
+  // Cleanup
+  if (isHydratingParent && initialChildNodes && appendedNodes) {
+    for (const node of initialChildNodes) {
+      if (!appendedNodes.has(node)) {
+        node.remove();
+      }
+    }
+  }
+}
+
+// JSX Factory Function - creates actual DOM elements
 
 // JSX Factory Function - creates actual DOM elements
 export function jsx(
@@ -285,7 +351,17 @@ export function jsx(
 
   // Handle function components
   if (typeof type === 'function') {
-    return type(props);
+    // Wrap props in a proxy to auto-unwrap signals
+    const proxyProps = new Proxy(props || {}, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (isSignal(value)) {
+          return value();
+        }
+        return value;
+      }
+    });
+    return type(proxyProps);
   }
 
   // Handle regular HTML elements

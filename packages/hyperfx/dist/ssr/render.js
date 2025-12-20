@@ -78,7 +78,10 @@ function elementToString(element, hydrationContext) {
         return `<!--${escapeHtml(element.textContent || '')}-->`;
     }
     // Start opening tag and add unique node ID
-    const nodeId = createNodeId();
+    let nodeId = element.getAttribute('data-hfxh');
+    if (!nodeId) {
+        nodeId = createNodeId();
+    }
     let html = `<${tagName} data-hfxh="${nodeId}"`;
     // Process attributes
     const attributes = element.attributes;
@@ -105,6 +108,9 @@ function elementToString(element, hydrationContext) {
             continue;
         const name = attr.name;
         const value = attr.value;
+        if (name === 'data-hfxh') {
+            continue; // Skip node ID as we added it already
+        }
         if (isEventHandler(name)) {
             hasEventHandlers = true;
             continue; // Skip event handlers in HTML

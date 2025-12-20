@@ -3,6 +3,7 @@ export * from "./elem/img";
 export { createComponent, ClassComponent, mountComponent, unmountComponent, forwardRef } from "./reactive/component-dom";
 export { bindAttribute, bindStyle, bindClass, bindCSSVariable, bindEvent, ReactiveList, ReactiveIf, bindTwoWay, reactiveTemplate, batchDOMUpdates, debounceDOMUpdate, measureReactivePerformance, createReactiveComponent } from "./reactive/reactive-dom";
 export * from "./reactive/state";
+export * from "./reactive/context";
 export * from "./reactive/reactive-dom";
 export * from "./pages/router-components";
 export { jsx, jsxs, jsxDEV, createElement, Fragment, r } from "./jsx/jsx-runtime";

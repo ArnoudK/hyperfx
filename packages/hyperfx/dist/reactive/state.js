@@ -10,6 +10,14 @@ export function createComputed(computation) {
     return signal_createComputed(computation);
 }
 /**
+ * Create a memoized signal (alias for createComputed)
+ * @param computation The computation function
+ * @returns A computed signal
+ */
+export function createMemo(computation) {
+    return signal_createComputed(computation);
+}
+/**
  * Create an signal_createEffect that runs when dependencies change
  * @param effectFn The signal_createEffect function
  * @returns Cleanup function
@@ -168,6 +176,13 @@ export function useState(initialValue) {
  * Reactive signal_createComputed hook for components
  */
 export function useComputed(computation) {
+    const comp = signal_createComputed(computation);
+    return () => comp();
+}
+/**
+ * Memoized value hook for components (alias for useComputed)
+ */
+export function useMemo(computation) {
     const comp = signal_createComputed(computation);
     return () => comp();
 }

@@ -43,6 +43,14 @@ export type ReactiveValue<T> = T | Signal<T> | (() => T);
 export type ReactiveString = ReactiveValue<string>;
 export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
+/**
+ * Start hydration mode with a map of existing nodes
+ */
+export declare function startHydration(map: Map<string, Element>): void;
+/**
+ * End hydration mode
+ */
+export declare function endHydration(): void;
 export declare const FRAGMENT_TAG: unique symbol;
 export declare function jsx(type: string | FunctionComponent<any> | typeof FRAGMENT_TAG, props: Record<string, any> | null, key?: string | number | null): JSXElement;
 export declare const jsxs: typeof jsx;

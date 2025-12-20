@@ -47,8 +47,9 @@
   "scripts": {
     "lint": "oxlint --fix src",
     "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
     "dev": "tsc -b --watch --preserveWatchOutput",
-    "test": "vitest",
+    "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "release": "pnpm run build && changeset publish",

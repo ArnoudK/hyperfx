@@ -17,6 +17,12 @@ export type EffectCleanup = () => void;
  */
 export declare function createComputed<T>(computation: () => T): ComputedSignal<T>;
 /**
+ * Create a memoized signal (alias for createComputed)
+ * @param computation The computation function
+ * @returns A computed signal
+ */
+export declare function createMemo<T>(computation: () => T): ComputedSignal<T>;
+/**
  * Create an signal_createEffect that runs when dependencies change
  * @param effectFn The signal_createEffect function
  * @returns Cleanup function
@@ -93,6 +99,10 @@ export declare function useState<T>(initialValue: T): [() => T, (value: T | ((pr
  * Reactive signal_createComputed hook for components
  */
 export declare function useComputed<T>(computation: () => T): () => T;
+/**
+ * Memoized value hook for components (alias for useComputed)
+ */
+export declare function useMemo<T>(computation: () => T): () => T;
 /**
  * Effect hook for components
  */

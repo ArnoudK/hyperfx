@@ -23,14 +23,53 @@ function isReactiveSignal(fn) {
     // Check for our custom signal implementation
     return typeof fn === 'function' && 'get' in fn && 'set' in fn && 'subscribe' in fn;
 }
+// Hydration State
+let hydrationEnabled = false;
+let hydrationMap = null;
+/**
+ * Start hydration mode with a map of existing nodes
+ */
+export function startHydration(map) {
+    hydrationEnabled = true;
+    hydrationMap = map;
+    // Reset counter to match server-side generation sequence
+    clientNodeCounter = 0;
+}
+/**
+ * End hydration mode
+ */
+export function endHydration() {
+    hydrationEnabled = false;
+    hydrationMap = null;
+}
 // Fragment symbol
 export const FRAGMENT_TAG = Symbol("HyperFX.Fragment");
 // Create a DOM element with reactive attributes
 function createElement(tag, props) {
-    const element = document.createElement(tag);
-    // Add unique node ID for client-side elements (only if not in SSR)
-    if (!isSSREnvironment()) {
-        element.setAttribute('data-hfxh', createClientId());
+    let element;
+    let claimed = false;
+    // Hydration Logic: Try to claim existing node
+    if (hydrationEnabled && !isSSREnvironment()) {
+        const id = createClientId();
+        const existing = hydrationMap?.get(id);
+        // Check if existing node matches the requested tag
+        if (existing && existing.tagName.toLowerCase() === tag.toLowerCase()) {
+            element = existing;
+            claimed = true;
+        }
+        else {
+            // Mismatch or not found - create new
+            element = document.createElement(tag);
+            element.setAttribute('data-hfxh', id);
+        }
+    }
+    else {
+        // Normal Creation
+        element = document.createElement(tag);
+        // Add unique node ID for client-side elements (only if not in SSR)
+        if (!isSSREnvironment()) {
+            element.setAttribute('data-hfxh', createClientId());
+        }
     }
     if (props) {
         for (const [key, value] of Object.entries(props)) {
@@ -145,42 +184,40 @@ function createTextNode(content) {
     }
     return textNode;
 }
-// Render children to a parent element
-function renderChildren(parent, children) {
-    if (!children)
-        return;
+// Render children to a parent element - implementation using flattening to support hydration cleanup
+// Improved renderChildren that handles recursion by flattening
+function renderChildrenFlattened(parent, children, appendedSet) {
     const childArray = Array.isArray(children) ? children : [children];
     for (const child of childArray) {
         if (child == null || child === false || child === true)
             continue;
         if (isSignal(child)) {
-            // Reactive child - handle based on current value type
             const value = child();
             if (value instanceof Node) {
-                // Signal contains a DOM element - append it
                 parent.appendChild(value);
-                // Note: Full reactive replacement would require tracking the inserted node
+                appendedSet?.add(value);
             }
             else {
-                // Signal contains text/array - use existing reactive text handling
                 const textNode = createTextNode(child);
                 parent.appendChild(textNode);
+                appendedSet?.add(textNode);
             }
         }
         else if (typeof child === 'function') {
-            // Function component or computed child
             try {
                 const result = child();
                 if (result instanceof Node) {
                     parent.appendChild(result);
+                    appendedSet?.add(result);
                 }
                 else if (Array.isArray(result)) {
-                    renderChildren(parent, result);
+                    // Recursion!
+                    renderChildrenFlattened(parent, result, appendedSet);
                 }
                 else {
-                    // Convert to text node
                     const textNode = document.createTextNode(String(result));
                     parent.appendChild(textNode);
+                    appendedSet?.add(textNode);
                 }
             }
             catch (error) {
@@ -188,16 +225,37 @@ function renderChildren(parent, children) {
             }
         }
         else if (typeof child === 'object' && child instanceof Node) {
-            // Already a DOM node
             parent.appendChild(child);
+            appendedSet?.add(child);
         }
         else {
-            // Convert to text node
             const textNode = document.createTextNode(String(child));
             parent.appendChild(textNode);
+            appendedSet?.add(textNode);
         }
     }
 }
+// Main renderChildren entry point
+function renderChildren(parent, children) {
+    if (!children)
+        return;
+    const isHydratingParent = hydrationEnabled &&
+        (parent instanceof HTMLElement && parent.isConnected ||
+            parent === document.body);
+    const appendedNodes = isHydratingParent ? new Set() : undefined;
+    const initialChildNodes = isHydratingParent ? Array.from(parent.childNodes) : null;
+    // Use flattened renderer
+    renderChildrenFlattened(parent, children, appendedNodes);
+    // Cleanup
+    if (isHydratingParent && initialChildNodes && appendedNodes) {
+        for (const node of initialChildNodes) {
+            if (!appendedNodes.has(node)) {
+                node.remove();
+            }
+        }
+    }
+}
+// JSX Factory Function - creates actual DOM elements
 // JSX Factory Function - creates actual DOM elements
 export function jsx(type, props, key) {
     // Handle fragments
@@ -209,7 +267,17 @@ export function jsx(type, props, key) {
     }
     // Handle function components
     if (typeof type === 'function') {
-        return type(props);
+        // Wrap props in a proxy to auto-unwrap signals
+        const proxyProps = new Proxy(props || {}, {
+            get(target, prop, receiver) {
+                const value = Reflect.get(target, prop, receiver);
+                if (isSignal(value)) {
+                    return value();
+                }
+                return value;
+            }
+        });
+        return type(proxyProps);
     }
     // Handle regular HTML elements
     const element = createElement(type, props);

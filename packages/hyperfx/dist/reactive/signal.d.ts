@@ -49,3 +49,4 @@ export declare function unwrapSignal<T>(value: T | Signal<T>): T;
 export { Signal as ReactiveSignal };
 export { createSignal as signal };
 export { createComputed as computed };
+export { createComputed as createMemo };
