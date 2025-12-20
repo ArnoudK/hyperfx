@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { Router, Route, navigate } from '../src/pages/router-components';
-import { createComputed } from '../src/reactive/state';
+import { Router, Route } from '../src/pages/router-components';
+import { JSXElement } from '../src/jsx/jsx-runtime';
 
 describe('Router', () => {
     let container: HTMLElement;
@@ -21,8 +21,8 @@ describe('Router', () => {
         const App = () => Router({
             initialPath: '/hyperfx/editor',
             children: () => [
-                Route({ path: '/hyperfx', exact: true, children: 'Main Page' }),
-                Route({ path: '/hyperfx/editor', children: 'Editor Page' }),
+                Route({ path: '/hyperfx', exact: true, children: 'Main Page' as any as JSXElement }),
+                Route({ path: '/hyperfx/editor', children: 'Editor Page' as any as JSXElement }),
             ]
         });
 
@@ -40,7 +40,7 @@ describe('Router', () => {
         const App = () => Router({
             initialPath: '/hyperfx?doc=foo',
             children: () => [
-                Route({ path: '/hyperfx', exact: true, children: 'Main Page' }),
+                Route({ path: '/hyperfx', exact: true, children: 'Main Page' as any as JSXElement }),
             ]
         });
         container.appendChild(App() as Node);
