@@ -38,18 +38,18 @@ class PerformanceMonitor {
 
   endRender(): void {
     if (!this.enabled || this.renderStartTime === 0) return;
-    
+
     const renderTime = performance.now() - this.renderStartTime;
     this.metrics.renderCount++;
     this.metrics.lastRenderTime = renderTime;
     this.metrics.totalRenderTime += renderTime;
     this.metrics.averageRenderTime = this.metrics.totalRenderTime / this.metrics.renderCount;
-    
+
     // Get memory usage if available
     if ('memory' in performance) {
       this.metrics.memoryUsage = (performance as any).memory.usedJSHeapSize;
     }
-    
+
     this.renderStartTime = 0;
   }
 
@@ -102,10 +102,10 @@ export function throttle<T extends (...args: any[]) => any>(
 ): T {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let lastExecTime = 0;
-  
+
   return ((...args: Parameters<T>) => {
     const currentTime = Date.now();
-    
+
     if (currentTime - lastExecTime > delay) {
       func(...args);
       lastExecTime = currentTime;
@@ -128,7 +128,7 @@ export function debounce<T extends (...args: any[]) => any>(
   delay: number
 ): T {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  
+
   return ((...args: Parameters<T>) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
@@ -140,34 +140,34 @@ export function debounce<T extends (...args: any[]) => any>(
   }) as T;
 }
 
-// Memoization for expensive computations
-export function memo<T extends (...args: any[]) => any>(
-  fn: T,
-  keyFn?: (...args: Parameters<T>) => string
-): T {
-  const cache = new Map<string, ReturnType<T>>();
-  
-  return ((...args: Parameters<T>) => {
-    const key = keyFn ? keyFn(...args) : JSON.stringify(args);
-    
-    if (cache.has(key)) {
-      return cache.get(key)!;
-    }
-    
-    const result = fn(...args);
-    cache.set(key, result);
-    
-    // Prevent memory leaks by limiting cache size
-    if (cache.size > 100) {
-      const firstKey = cache.keys().next().value;
-      if (firstKey !== undefined) {
-        cache.delete(firstKey);
-      }
-    }
-    
-    return result;
-  }) as T;
-}
+// // Memoization for expensive computations
+// export function memo<T extends (...args: any[]) => any>(
+//   fn: T,
+//   keyFn?: (...args: Parameters<T>) => string
+// ): T {
+//   const cache = new Map<string, ReturnType<T>>();
+
+//   return ((...args: Parameters<T>) => {
+//     const key = keyFn ? keyFn(...args) : JSON.stringify(args);
+
+//     if (cache.has(key)) {
+//       return cache.get(key)!;
+//     }
+
+//     const result = fn(...args);
+//     cache.set(key, result);
+
+//     // Prevent memory leaks by limiting cache size
+//     if (cache.size > 100) {
+//       const firstKey = cache.keys().next().value;
+//       if (firstKey !== undefined) {
+//         cache.delete(firstKey);
+//       }
+//     }
+
+//     return result;
+//   }) as T;
+//}
 
 // Batch updates for better performance
 class UpdateBatcher {
@@ -195,7 +195,7 @@ class UpdateBatcher {
 
   private flush(): void {
     performanceMonitor.startRender();
-    
+
     const updates = this.updates.splice(0);
     updates.forEach(update => {
       try {
@@ -204,7 +204,7 @@ class UpdateBatcher {
         console.error('Error in batched update:', error);
       }
     });
-    
+
     performanceMonitor.endRender();
     this.isScheduled = false;
   }
@@ -215,17 +215,17 @@ export const updateBatcher = new UpdateBatcher();
 // Reactive signal with batched updates
 export function createBatchedSignal<T>(initialValue: T): ReactiveSignal<T> & { setBatched: (newValue: T | ((prev: T) => T)) => void } {
   const signal = createSignal(initialValue);
-  
+
   const batchedSetter = (newValue: T | ((prev: T) => T)) => {
     updateBatcher.add(() => {
       (signal as any)(newValue);
     });
   };
-  
+
   // Return signal with batched setter
   const batchedSignal = signal as any;
   batchedSignal.setBatched = batchedSetter;
-  
+
   return batchedSignal;
 }
 
@@ -242,38 +242,38 @@ export function createVirtualScroll<T>(
 ) {
   const { itemHeight, containerHeight, overscan = 5 } = options;
   const scrollTop = createSignal(0);
-  
+
   const visibleRange = createSignal({ start: 0, end: 0 });
-  
+
   // Calculate visible range based on scroll position
   createEffect(() => {
     const currentScrollTop = scrollTop();
     const itemCount = items().length;
     const visibleCount = Math.ceil(containerHeight / itemHeight);
-    
+
     const start = Math.max(0, Math.floor(currentScrollTop / itemHeight) - overscan);
     const end = Math.min(itemCount, start + visibleCount + overscan * 2);
-    
+
     visibleRange({ start, end });
   });
-  
+
   const visibleItems = createSignal<{ item: T; index: number }[]>([]);
-  
+
   createEffect(() => {
     const { start, end } = visibleRange();
     const allItems = items();
     const visible = [];
-    
+
     for (let i = start; i < end; i++) {
       const item = allItems[i];
       if (item !== undefined) {
         visible.push({ item, index: i });
       }
     }
-    
+
     visibleItems(visible);
   });
-  
+
   return {
     visibleItems,
     scrollTop,
@@ -294,7 +294,7 @@ export function withProfiler<T extends (...args: any[]) => any>(
   return ((...args: Parameters<T>) => {
     const start = performance.now();
     performanceMonitor.incrementComponentCount();
-    
+
     try {
       const result = component(...args);
       return result;

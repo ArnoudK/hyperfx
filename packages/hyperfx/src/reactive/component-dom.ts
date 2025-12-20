@@ -230,6 +230,3 @@ declare global {
 }
 
 export type { ComponentProps, JSXElement };
-
-// Legacy exports for backward compatibility
-export { Component as FunctionComponent };
