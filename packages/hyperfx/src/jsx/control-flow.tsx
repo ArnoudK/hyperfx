@@ -61,6 +61,10 @@ export function For<T>(props: ForProps<T>): JSXElement {
       newItems = props.each as T[];
     }
 
+
+
+    // Ensure newItems is an array
+
     // Ensure newItems is an array
     if (!Array.isArray(newItems)) {
       newItems = [];
@@ -161,7 +165,7 @@ export function For<T>(props: ForProps<T>): JSXElement {
   };
 
   // Set up reactive effect based on the type
-  if (isSignal(props.each)) {
+  if (typeof props.each === 'function') {
     createEffect(updateList);
   } else {
     updateList();

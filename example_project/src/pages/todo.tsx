@@ -1,4 +1,4 @@
-import { createSignal, createComputed, For } from "hyperfx";
+import { createSignal, createComputed, For, Show } from "hyperfx";
 
 interface Todo {
   id: number;
@@ -61,7 +61,7 @@ export function TodoPage() {
 
   // Actions
   const addTodo = () => {
-    const text = newTodoText.get().trim();
+    const text = newTodoText().trim();
     if (!text) return;
 
     const newTodo: Todo = {
@@ -70,27 +70,27 @@ export function TodoPage() {
       completed: false
     };
 
-    todos.set([...todos.get(), newTodo]);
+    todos([...todos(), newTodo]);
     newTodoText.set(''); // Reactive binding will clear the input
   };
 
   const toggleTodo = (id: number) => {
-    todos.set(todos.get().map(todo =>
+    todos((todos().map(todo =>
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+    )));
   };
 
   const deleteTodo = (id: number) => {
-    todos.set(todos.get().filter(todo => todo.id !== id));
+    todos((todos().filter(todo => todo.id !== id)));
   };
 
   const clearCompleted = () => {
-    todos.set(todos.get().filter(todo => !todo.completed));
+    todos((todos().filter(todo => !todo.completed)));
   };
 
   const toggleAll = () => {
-    const hasIncomplete = todos.get().some(todo => !todo.completed);
-    todos.set(todos.get().map(todo => ({ ...todo, completed: hasIncomplete })));
+    const hasIncomplete = todos().some(todo => !todo.completed);
+    todos((todos().map(todo => ({ ...todo, completed: hasIncomplete }))));
   };
 
   return (
@@ -145,9 +145,9 @@ export function TodoPage() {
             onClick={addTodo}
             class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
           >
-             Add
-           </button>
-         </div>
+            Add
+          </button>
+        </div>
       </div>
 
       {/* Controls */}
@@ -155,90 +155,88 @@ export function TodoPage() {
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="flex space-x-2">
             <h2 class="text-xl font-semibold text-purple-400">Filter:</h2>
-              <For each={filterButtons}>
-                {({ option, isActive }) => (
+            <For each={filterButtons}>
+              {({ option, isActive }) => (
                 <button
                   key={option}
                   type="button"
-                    onClick={() => filterStatus(option)}
-                  class={`px-3 py-1 rounded-md transition-colors capitalize ${
-                    isActive
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
+                  onClick={() => filterStatus(option)}
+                  class={`px-3 py-1 rounded-md transition-colors capitalize ${isActive
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
                 >
                   {option}
                 </button>
-                )}
-              </For>
+              )}
+            </For>
           </div>
-          
-          <div class="flex space-x-2">
-             {todos().length > 0 && (
-               <button
-                 type="button"
-                 onClick={toggleAll}
-                 class="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-               >
-                 Toggle All
-                </button>
-              )}
-              {completedTodos() > 0 && (
-                <button
-                  type="button"
-                  onClick={clearCompleted}
-                  class="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
-                >
-                  Clear Completed
-                </button>
-              )}
-            </div>
-         </div>
-       </div>
 
-       {/* Todo List */}
-       <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-         {showList() ? (
-           <div class="divide-y divide-gray-700">
-             <For each={filteredTodos}>
-               {(todoItem) => (
-                 <div class="flex items-center p-4 hover:bg-gray-750 transition-colors">
-                   <div class='w-full'>
-                   <label >
-                   <input
-                     type="checkbox"
-                     checked={todoItem.completed}
-                     onChange={() => toggleTodo(todoItem.id)}
-                     class="w-5 h-5 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500 focus:ring-2"
-                     />
-                   <span
-                     class={`flex-1 ml-3 text-lg ${
-                       todoItem.completed
-                       ? 'line-through text-gray-500'
-                       : 'text-white'
-                       }`}
-                       >
-                     {todoItem.text}
-                   </span>
-                   </label>
-                   </div>
-                     <button
-                       type="button"
-                       onClick={() => deleteTodo(todoItem.id)}
-                       class="ml-2 px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
-                       >
-                       Delete
-                     </button>
-                   </div>
-               )}
-             </For>
-           </div>
-         ) : (
-            <div class="p-8 text-center text-gray-400">
-              {emptyMessage()}
-            </div>
-          )}
+          <div class="flex space-x-2">
+            {todos().length > 0 && (
+              <button
+                type="button"
+                onClick={toggleAll}
+                class="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Toggle All
+              </button>
+            )}
+            {completedTodos() > 0 && (
+              <button
+                type="button"
+                onClick={clearCompleted}
+                class="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+              >
+                Clear Completed
+              </button>
+            )}
+          </div>
         </div>
-        </div>
+      </div>
+
+      {/* Todo List */}
+      <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <Show when={showList} fallback={() => (
+          <div class="p-8 text-center text-gray-400">
+            {emptyMessage}
+          </div>
+        )}>
+          <div class="divide-y divide-gray-700">
+            <For each={filteredTodos}>
+              {(todoItem) => (
+                <div class="flex items-center p-4 hover:bg-gray-750 transition-colors">
+                  <div class='w-full'>
+                    <label >
+                      <input
+                        type="checkbox"
+                        checked={todoItem.completed}
+                        onChange={() => toggleTodo(todoItem.id)}
+                        class="w-5 h-5 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500 focus:ring-2"
+                      />
+                      <span
+                        class={`flex-1 ml-3 text-lg ${todoItem.completed
+                          ? 'line-through text-gray-500'
+                          : 'text-white'
+                          }`}
+                      >
+                        {todoItem.text}
+                      </span>
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => deleteTodo(todoItem.id)}
+                    class="ml-2 px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </For>
+          </div>
+        </Show>
+      </div>
+    </div>
   );
 }
