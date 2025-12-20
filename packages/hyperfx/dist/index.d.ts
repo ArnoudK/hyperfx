@@ -1,5 +1,5 @@
-export { createComponent, ClassComponent, mountComponent, unmountComponent, forwardRef } from "./reactive/component-dom";
-export { bindAttribute, bindStyle, bindClass, bindCSSVariable, bindEvent, ReactiveList, ReactiveIf, bindTwoWay, reactiveTemplate, batchDOMUpdates, debounceDOMUpdate, measureReactivePerformance, createReactiveComponent } from "./reactive/reactive-dom";
+export * from "./reactive/component-dom";
+export * from "./reactive/reactive-dom";
 export * from "./reactive/state";
 export * from "./reactive/context";
 export * from "./reactive/reactive-dom";

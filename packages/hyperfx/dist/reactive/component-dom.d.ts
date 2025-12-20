@@ -70,4 +70,3 @@ declare global {
     }
 }
 export type { ComponentProps, JSXElement };
-export { Component as FunctionComponent };

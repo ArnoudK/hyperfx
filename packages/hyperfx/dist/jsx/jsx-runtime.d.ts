@@ -72,64 +72,17 @@ export declare namespace JSX {
     interface ElementChildrenAttribute {
         children: JSXChildren;
     }
-    interface IntrinsicElements {
-        div: ReactiveElementAttributes & {
-            children?: JSXChildren;
+    type HTMLAttributes<T> = {
+        [P in keyof T]?: P extends 'children' ? JSXChildren : ReactiveValue<T[P]>;
+    } & {
+        class?: string | ReactiveValue<string>;
+        ref?: ((el: HTMLElement) => void) | {
+            current: HTMLElement | null;
         };
-        span: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        p: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        h1: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        h2: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        h3: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        h4: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        h5: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        h6: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        button: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        input: ReactiveElementAttributes & {
-            value?: ReactiveString;
-            placeholder?: ReactiveString;
-        };
-        form: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        label: ReactiveElementAttributes & {
-            children?: JSXChildren;
-            for?: ReactiveString;
-        };
-        ul: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        li: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-        a: ReactiveElementAttributes & {
-            children?: JSXChildren;
-            href?: ReactiveString;
-        };
-        img: ReactiveElementAttributes & {
-            src?: ReactiveString;
-            alt?: ReactiveString;
-        };
-        [key: string]: ReactiveElementAttributes & {
-            children?: JSXChildren;
-        };
-    }
+    };
+    type IntrinsicElements = {
+        [K in keyof HTMLElementTagNameMap]: Prettify<HTMLAttributes<Omit<HTMLElementTagNameMap[K], 'style' | 'classList' | 'className'>> & {
+            style?: ReactiveValue<string | Partial<CSSStyleDeclaration>>;
+        }>;
+    };
 }

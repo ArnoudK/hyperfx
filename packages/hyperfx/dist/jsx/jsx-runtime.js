@@ -127,7 +127,7 @@ function createElement(tag, props) {
                                 element.disabled = false;
                             }
                         }
-                        else if (key === 'class' || key === 'className') {
+                        else if (key === 'class') {
                             element.className = String(currentValue);
                         }
                         else {

@@ -24,7 +24,6 @@ declare class PerformanceMonitor {
 export declare const performanceMonitor: PerformanceMonitor;
 export declare function throttle<T extends (...args: any[]) => any>(func: T, delay: number): T;
 export declare function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T;
-export declare function memo<T extends (...args: any[]) => any>(fn: T, keyFn?: (...args: Parameters<T>) => string): T;
 declare class UpdateBatcher {
     private updates;
     private isScheduled;
