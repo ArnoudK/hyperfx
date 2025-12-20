@@ -26,6 +26,15 @@ export function createComputed<T>(computation: () => T): ComputedSignal<T> {
 }
 
 /**
+ * Create a memoized signal (alias for createComputed)
+ * @param computation The computation function
+ * @returns A computed signal
+ */
+export function createMemo<T>(computation: () => T): ComputedSignal<T> {
+  return signal_createComputed(computation);
+}
+
+/**
  * Create an signal_createEffect that runs when dependencies change
  * @param effectFn The signal_createEffect function
  * @returns Cleanup function
@@ -51,7 +60,7 @@ export class StateStore {
     if (this.signals.has(key)) {
       throw new Error(`Signal with key "${key}" already exists`);
     }
-    
+
     const sig = signal_createSignal(initialValue);
     this.signals.set(key, sig);
     return sig;
@@ -74,7 +83,7 @@ export class StateStore {
     if (this.computedSignals.has(key)) {
       throw new Error(`Computed signal_createSignal with key "${key}" already exists`);
     }
-    
+
     const comp = signal_createComputed(computation);
     this.computedSignals.set(key, comp);
     return comp;
@@ -189,9 +198,9 @@ export function useState<T>(
   initialValue: T
 ): [() => T, (value: T | ((prev: T) => T)) => void] {
   const sig = signal_createSignal(initialValue);
-  
 
-  
+
+
   return [sig, sig];
 }
 
@@ -199,6 +208,14 @@ export function useState<T>(
  * Reactive signal_createComputed hook for components
  */
 export function useComputed<T>(computation: () => T): () => T {
+  const comp = signal_createComputed(computation);
+  return () => comp();
+}
+
+/**
+ * Memoized value hook for components (alias for useComputed)
+ */
+export function useMemo<T>(computation: () => T): () => T {
   const comp = signal_createComputed(computation);
   return () => comp();
 }
@@ -213,7 +230,7 @@ export function useEffect(
   if (deps && deps.length > 0) {
     // Create a signal_createComputed that tracks dependencies
     const depsComputed = signal_createComputed(() => deps.map(dep => dep()));
-    
+
     return signal_createEffect(() => {
       // Access the signal_createComputed to track its dependencies
       depsComputed();

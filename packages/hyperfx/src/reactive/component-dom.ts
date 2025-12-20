@@ -1,4 +1,4 @@
-import { ReactiveSignal, createEffect } from "../reactive/state";
+import { createEffect } from "../reactive/state";
 import type { JSXElement, ComponentProps } from "../jsx/jsx-runtime";
 
 /**
@@ -33,12 +33,12 @@ export function createComponent<P = ComponentProps>(
   renderFn: (props: P) => JSXElement,
   hooks?: LifecycleHooks<P>
 ): ComponentWithLifecycle<P> {
-  const component = function(props: P): JSXElement {
+  const component = function (props: P): JSXElement {
     return renderFn(props);
   } as ComponentWithLifecycle<P>;
 
   component.displayName = renderFn.name || 'Component';
-  
+
   if (hooks) {
     component.onMount = hooks.onMount;
     component.onUnmount = hooks.onUnmount;
@@ -76,7 +76,7 @@ export abstract class ClassComponent<P = ComponentProps> {
   update(newProps: P): void {
     const prevProps = this._props;
     this._props = newProps;
-    
+
     if (this._mounted) {
       this.componentDidUpdate(newProps, prevProps);
     }
@@ -187,7 +187,7 @@ export function memo<P extends ComponentProps>(
   let lastProps: P | undefined;
   let lastElement: JSXElement | undefined;
 
-  return function(props: P): JSXElement {
+  return function (props: P): JSXElement {
     if (!lastProps || !areEqual || !areEqual(lastProps, props)) {
       lastProps = props;
       lastElement = component(props);
@@ -206,17 +206,17 @@ export interface Ref<T> {
 export function forwardRef<T = HTMLElement, P extends ComponentProps = ComponentProps>(
   renderFn: (props: P, ref: Ref<T>) => JSXElement
 ): Component<P & { ref?: Ref<T> }> {
-  return function(props: P & { ref?: Ref<T> }): JSXElement {
+  return function (props: P & { ref?: Ref<T> }): JSXElement {
     const ref = props.ref;
     const restProps = {} as P;
-    
+
     // Copy all properties except 'ref' to restProps
     for (const key in props) {
       if (key !== 'ref' && Object.prototype.hasOwnProperty.call(props, key)) {
         (restProps as any)[key] = (props as any)[key];
       }
     }
-    
+
     return renderFn(restProps, ref || { current: null });
   };
 }

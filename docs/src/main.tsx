@@ -171,8 +171,8 @@ function MainLayout(): JSX.Element {
         <p class="p-2 bg-red-800 text-white text-center w-full! max-w-full!" >
           A LOT OF CHANGES. DOCS ARE NOT UP TO DATE.
         </p>
-        <Route path="/hyperfx" component={DocumentationPage} />
         <Route path="/hyperfx/editor" component={EditorPage} />
+        <Route path="/hyperfx" component={DocumentationPage} exact={true} />
       </main>
       <footer class="bg-slate-900 mx-auto w-full min-h-12 p-4 text-center mt-auto">
         <a
@@ -190,7 +190,7 @@ function MainLayout(): JSX.Element {
 
 function App() {
   return (
-    <Router initialPath="/hyperfx" children={<MainLayout />} />
+    <Router initialPath="/hyperfx" children={() => <MainLayout />} />
   );
 }
 

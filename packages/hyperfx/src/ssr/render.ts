@@ -81,9 +81,9 @@ function isEventHandler(attr: string): boolean {
  * Check if a value is a reactive signal
  */
 function isReactiveSignal(value: unknown): value is ReactiveSignal<unknown> {
-  return typeof value === 'function' && 
-         'subscribe' in value && 
-         typeof (value as ReactiveSignal<unknown>).subscribe === 'function';
+  return typeof value === 'function' &&
+    'subscribe' in value &&
+    typeof (value as ReactiveSignal<unknown>).subscribe === 'function';
 }
 
 /**
@@ -91,7 +91,7 @@ function isReactiveSignal(value: unknown): value is ReactiveSignal<unknown> {
  */
 function elementToString(element: HTMLElement, hydrationContext: { markers: HydrationMarker[]; currentIndex: number }): string {
   const tagName = element.tagName.toLowerCase();
-  
+
   // Handle document fragments
   if (element instanceof DocumentFragment) {
     let html = '';
@@ -112,7 +112,10 @@ function elementToString(element: HTMLElement, hydrationContext: { markers: Hydr
   }
 
   // Start opening tag and add unique node ID
-  const nodeId = createNodeId();
+  let nodeId = element.getAttribute('data-hfxh');
+  if (!nodeId) {
+    nodeId = createNodeId();
+  }
   let html = `<${tagName} data-hfxh="${nodeId}"`;
 
   // Process attributes
@@ -139,9 +142,13 @@ function elementToString(element: HTMLElement, hydrationContext: { markers: Hydr
   for (let i = 0; i < attributes.length; i++) {
     const attr = attributes[i];
     if (!attr) continue;
-    
+
     const name = attr.name;
     const value = attr.value;
+
+    if (name === 'data-hfxh') {
+      continue; // Skip node ID as we added it already
+    }
 
     if (isEventHandler(name)) {
       hasEventHandlers = true;
@@ -200,9 +207,9 @@ function elementToString(element: HTMLElement, hydrationContext: { markers: Hydr
  */
 export function renderToString(element: JSXElement): { html: string; hydrationData: HydrationData } {
   const hydrationContext = createHydrationContext();
-  
+
   let html: string;
-  
+
   if (element instanceof HTMLElement) {
     html = elementToString(element, hydrationContext);
   } else if (element instanceof DocumentFragment) {
@@ -246,24 +253,24 @@ export function createSSRStream(element: JSXElement): {
   hydrationData: Promise<HydrationData>;
 } {
   const hydrationContext = createHydrationContext();
-  
+
   async function* generateHTML(): AsyncIterable<string> {
     if (element instanceof HTMLElement) {
       const tagName = element.tagName.toLowerCase();
-      
+
       // Start opening tag and add node ID
       const nodeId = createNodeId();
       yield `<${tagName} data-hfxh="${nodeId}"`;
-      
+
       // Process attributes
       const attributes = element.attributes;
       for (let i = 0; i < attributes.length; i++) {
         const attr = attributes[i];
         if (!attr) continue;
-        
+
         const name = attr.name;
         const value = attr.value;
-        
+
         if (!isEventHandler(name)) {
           if (BOOLEAN_ATTRIBUTES.has(name)) {
             yield ` ${name}`;
@@ -272,27 +279,27 @@ export function createSSRStream(element: JSXElement): {
           }
         }
       }
-      
+
       // Close opening tag
       yield '>';
-      
+
       // Process children
       for (let i = 0; i < element.children.length; i++) {
         yield elementToString(element.children[i] as HTMLElement, hydrationContext);
       }
-      
+
       // Close tag
       if (!VOID_ELEMENTS.has(tagName)) {
         yield `</${tagName}>`;
       }
     }
   }
-  
+
   const hydrationData = Promise.resolve({
     markers: hydrationContext.markers,
     version: '1.0.0'
   } as HydrationData);
-  
+
   return {
     html: generateHTML(),
     hydrationData

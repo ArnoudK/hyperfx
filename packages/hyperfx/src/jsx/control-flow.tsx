@@ -1,7 +1,7 @@
 import { createEffect } from "../reactive/state";
 import type { JSXElement, ComponentProps, ReactiveValue } from "../jsx/jsx-runtime";
 import type { Signal } from "../reactive/signal";
-import { isSignal } from "../reactive/signal";
+import { isSignal, createSignal } from "../reactive/signal";
 
 /**
  * For Component - Reactive list rendering
@@ -39,8 +39,14 @@ export function For<T>(props: ForProps<T>): JSXElement {
     throw new Error(`For component children must be a function that renders each item.\nExpected (item, index) => JSXElement. Got ${typeof renderItem}`);
   }
 
-  // Track rendered elements
-  let renderedNodes: Node[] = [];
+  // Track rendered items and their DOM nodes
+  // We handle duplicates by storing a list of instances for each value
+  type ItemInstance = {
+    nodes: Node[];
+    indexSignal: Signal<number>;
+  };
+
+  const instanceMap = new Map<T, ItemInstance[]>();
 
   const updateList = (): void => {
     // Handle different types of reactive values
@@ -52,72 +58,115 @@ export function For<T>(props: ForProps<T>): JSXElement {
     } else if (typeof props.each === 'function') {
       newItems = (props.each as () => T[])();
     } else {
-      // Should not happen with proper typing
       newItems = props.each as T[];
     }
 
-    // Get parent for dynamic updates (only if markers are in DOM)
-    const parent = startMarker.parentNode;
-
-    if (!parent) {
-      // Not yet mounted, just populate fragment
-      // Clear old elements from fragment
-      renderedNodes.forEach(node => {
-        if (node.parentNode === fragment) {
-          fragment.removeChild(node);
-        }
-      });
-      renderedNodes = [];
-
-      // Add new items
-      if (newItems.length > 0) {
-        newItems.forEach((item: T, index: number) => {
-          const element = renderItem(item, () => index);
-          if (element) {
-            fragment.insertBefore(element, endMarker);
-            renderedNodes.push(element);
-          }
-        });
-      } else if (props.fallback) {
-        fragment.insertBefore(props.fallback, endMarker);
-        renderedNodes.push(props.fallback);
-      }
-    } else {
-      // Already mounted, update in place
-      // Remove old elements
-      renderedNodes.forEach(node => {
-        if (node.parentNode) {
-          node.parentNode.removeChild(node);
-        }
-      });
-      renderedNodes = [];
-
-      // Add new items
-      if (newItems.length > 0) {
-        newItems.forEach((item: T, index: number) => {
-          const element = renderItem(item, () => index);
-          if (element) {
-            parent.insertBefore(element, endMarker);
-            renderedNodes.push(element);
-          }
-        });
-      } else if (props.fallback) {
-        parent.insertBefore(props.fallback, endMarker);
-        renderedNodes.push(props.fallback);
-      }
+    // Ensure newItems is an array
+    if (!Array.isArray(newItems)) {
+      newItems = [];
     }
+
+    const parent = startMarker.parentNode || fragment;
+
+    // 1. Allocation Phase
+    // Assign instances to new items (reusing old ones where possible)
+    const newInstances: ItemInstance[] = [];
+    const availableInstances = new Map<T, ItemInstance[]>();
+
+    // Clone currently active instances to available map
+    instanceMap.forEach((instances, item) => {
+      availableInstances.set(item, [...instances]);
+    });
+
+    // Allocate
+    newItems.forEach((item, index) => {
+      let instance: ItemInstance;
+      // Cast item to T to satisfy Map.get if item is inferred as T | undefined
+      const stack = availableInstances.get(item as T);
+
+      if (stack && stack.length > 0) {
+        // Reuse existing
+        instance = stack.shift()!;
+        // Update index signal
+        instance.indexSignal(index);
+      } else {
+        // Create new
+        const indexSignal = createSignal(index);
+        const element = renderItem(item, indexSignal);
+
+        let nodes: Node[] = [];
+        if (element instanceof DocumentFragment) {
+          nodes = Array.from(element.childNodes);
+        } else if (element) {
+          nodes = [element as Node];
+        }
+
+        instance = { nodes, indexSignal };
+      }
+      newInstances.push(instance);
+    });
+
+    // 2. Cleanup Phase
+    // Remove nodes for instances that weren't reused
+    availableInstances.forEach((stack) => {
+      stack.forEach(instance => {
+        instance.nodes.forEach(node => {
+          if (node.parentNode === parent) {
+            parent.removeChild(node);
+          }
+        });
+      });
+    });
+
+    // 3. Insertion/Reordering Phase
+    // Sync DOM with new order
+    // We use a marker cursor strategy
+    let cursor = startMarker.nextSibling;
+
+    newInstances.forEach(instance => {
+      const nodes = instance.nodes;
+      if (nodes.length === 0) return;
+
+      // Check if the first node is at the cursor
+      const firstNode = nodes[0];
+
+      if (firstNode === cursor) {
+        // Already in place, advance cursor past these nodes
+        // (Assuming nodes are contiguous and in order, which strict DOM manipulation maintains)
+        let lastNode = nodes[nodes.length - 1]!;
+        cursor = lastNode.nextSibling;
+      } else {
+        // Not in place (or new), insert before cursor
+        // Note: insertBefore moves the node if it's already elsewhere in DOM
+        nodes.forEach(node => {
+          parent.insertBefore(node, cursor); // cursor can be null (end) or endMarker
+        });
+        // Cursor stays waiting for the *next* item, 
+        // because we just inserted *before* it. 
+        // Wait: if we inserted, the inserted nodes are now *before* the cursor.
+        // The cursor still points to the node that was effectively "pushed right".
+        // So we don't update cursor. We move on to the next instance, 
+        // which will be checked against the SAME cursor.
+      }
+    });
+
+    // Update instance map for next render
+    instanceMap.clear();
+    newInstances.forEach((instance, i) => {
+      const item = newItems[i] as T;
+      const stack = instanceMap.get(item) || [];
+      stack.push(instance);
+      instanceMap.set(item, stack);
+    });
   };
 
   // Set up reactive effect based on the type
   if (isSignal(props.each)) {
-    // For Signals, set up reactive effect
     createEffect(updateList);
   } else {
-    // For static arrays or computed functions, just render once
     updateList();
   }
 
-  // Return fragment with markers and initial content
   return fragment;
 }
 
