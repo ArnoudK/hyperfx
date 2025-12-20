@@ -33,6 +33,7 @@ export function For(props) {
             newItems = props.each;
         }
         // Ensure newItems is an array
+        // Ensure newItems is an array
         if (!Array.isArray(newItems)) {
             newItems = [];
         }
@@ -122,7 +123,7 @@ export function For(props) {
         });
     };
     // Set up reactive effect based on the type
-    if (isSignal(props.each)) {
+    if (typeof props.each === 'function') {
         createEffect(updateList);
     }
     else {

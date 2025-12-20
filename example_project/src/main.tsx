@@ -11,17 +11,17 @@ const appContainer = document.getElementById('app')!;
 // Create the application with routing
 function App(): JSX.Element {
   return (
-    <Router >
+    <Router children={() => (
       <div class="min-h-screen bg-gray-900 text-white">
         <NavigationBar />
         <main class="container mx-auto px-4 py-8">
-          <Route path="/" component={HomePage} exact />
+          <Route exact path="/" component={HomePage} />
           <Route path="/counter" component={CounterPage} />
           <Route path="/todo" component={TodoPage} />
           <Route path="/form" component={FormPage} />
         </main>
       </div>
-    </Router>
+    )} />
 
   );
 }

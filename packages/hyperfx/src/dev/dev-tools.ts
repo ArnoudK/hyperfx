@@ -1,11 +1,10 @@
 // Developer tools and debugging utilities for hyperfx - Direct DOM Implementation
 import { JSXElement } from "../jsx/jsx-runtime";
-import { ReactiveSignal } from "../reactive/state";
 import { performanceMonitor } from "../performance/optimizations";
 
 // Development mode flag
-export const isDev = () => process.env.NODE_ENV === 'development' || 
-                           typeof window !== 'undefined' && (window as any).__HYPERFX_DEV__;
+export const isDev = () => process.env.NODE_ENV === 'development' ||
+  typeof window !== 'undefined' && (window as any).__HYPERFX_DEV__;
 
 // Component tree visualization
 export interface ComponentTreeNode {
@@ -71,7 +70,7 @@ class DevTools {
   // Clean props for display (remove circular references)
   private sanitizeProps(props: Record<string, unknown>): Record<string, unknown> {
     const sanitized: Record<string, unknown> = {};
-    
+
     for (const [key, value] of Object.entries(props)) {
       if (typeof value === 'function') {
         sanitized[key] = '[Function]';
@@ -89,14 +88,14 @@ class DevTools {
         sanitized[key] = value;
       }
     }
-    
+
     return sanitized;
   }
 
   // Analyze children for the component tree
   private analyzeChildren(children: JSXElement[]): ComponentTreeNode[] {
     const result: ComponentTreeNode[] = [];
-    
+
     for (const child of children) {
       if (child instanceof HTMLElement) {
         result.push({
@@ -121,7 +120,7 @@ class DevTools {
         });
       }
     }
-    
+
     return result;
   }
 
@@ -137,11 +136,11 @@ class DevTools {
   // Analyze DOM children recursively
   private analyzeDOMChildren(element: Element | DocumentFragment): ComponentTreeNode[] {
     const children: JSXElement[] = [];
-    
+
     for (const child of element.children) {
       children.push(child as HTMLElement);
     }
-    
+
     return this.analyzeChildren(children);
   }
 
@@ -150,11 +149,11 @@ class DevTools {
     // Find root nodes (nodes without parents in the map)
     const allNodes = Array.from(this.componentMap.values());
     const childIds = new Set<string>();
-    
+
     allNodes.forEach(node => {
       node.children.forEach(child => childIds.add(child.id));
     });
-    
+
     const rootNodes = allNodes.filter(node => !childIds.has(node.id));
     this.componentTree = {
       id: 'root',
@@ -251,7 +250,7 @@ class DevTools {
   private removeDevToolsUI(): void {
     const devTools = document.getElementById('hyperfx-devtools');
     const toggleBtn = document.getElementById('hyperfx-devtools-toggle');
-    
+
     if (devTools) devTools.remove();
     if (toggleBtn) toggleBtn.remove();
   }
