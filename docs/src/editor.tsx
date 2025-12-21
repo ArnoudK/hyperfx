@@ -97,7 +97,7 @@ export function editor(): JSX.Element {
         </div>
         <div class="border-2 rounded-md p-2 bg-white text-black">
           <div id={editor_content_id} class="">
-            <article contentEditable="true" oninput={handleInput}>
+            <article contenteditable="true" oninput={handleInput}>
               <p>Edit me! Select some text and click the <strong>B</strong> button to make it bold.</p>
             </article>
           </div>

@@ -6,6 +6,27 @@ import { isSignal, createComputed as signal_createComputed } from "../reactive/s
 let clientNodeCounter = 0;
 // Track signal subscriptions for each element for cleanup
 const elementSubscriptions = new WeakMap();
+// Automatic cleanup using MutationObserver
+if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.removedNodes.forEach((node) => {
+                if (node instanceof Element && elementSubscriptions.has(node)) {
+                    cleanupElementSubscriptions(node);
+                }
+                // Also check child nodes recursively
+                if (node instanceof Element) {
+                    node.querySelectorAll('*').forEach((child) => {
+                        if (elementSubscriptions.has(child)) {
+                            cleanupElementSubscriptions(child);
+                        }
+                    });
+                }
+            });
+        });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+}
 // Batch update system for performance optimization
 let batchQueue = new Set();
 let isBatching = false;
@@ -84,7 +105,12 @@ export function cleanupElementSubscriptions(element) {
     const subscriptions = elementSubscriptions.get(element);
     if (subscriptions) {
         subscriptions.forEach(unsubscribe => {
-            unsubscribe();
+            try {
+                unsubscribe();
+            }
+            catch (error) {
+                console.error('Error during subscription cleanup:', error);
+            }
         });
         subscriptions.clear();
         elementSubscriptions.delete(element);
@@ -104,19 +130,49 @@ function setAttribute(element, key, value) {
     }
     // Handle reactive signals
     if (isSignal(value)) {
-        const update = () => setAttribute(element, key, value());
-        update();
-        const unsubscribe = value.subscribe(() => addToBatch(update));
-        addElementSubscription(element, unsubscribe);
+        try {
+            const update = () => {
+                try {
+                    setAttribute(element, key, value());
+                }
+                catch (error) {
+                    console.error(`Error updating attribute "${key}":`, error);
+                    // Remove attribute on error
+                    element.removeAttribute(key);
+                }
+            };
+            const unsubscribe = value.subscribe(() => addToBatch(update));
+            addElementSubscription(element, unsubscribe);
+            update(); // initial after subscribe succeeds
+        }
+        catch (error) {
+            console.error(`Error subscribing to signal for attribute "${key}":`, error);
+            // No attribute set if subscribe fails
+        }
         return;
     }
     // Handle reactive functions (create computed for reactivity)
     else if (typeof value === 'function') {
-        const computed = signal_createComputed(value);
-        const update = () => setAttribute(element, key, computed());
-        update();
-        const unsubscribe = computed.subscribe(() => addToBatch(update));
-        addElementSubscription(element, unsubscribe);
+        try {
+            const computed = signal_createComputed(value);
+            const update = () => {
+                try {
+                    setAttribute(element, key, computed());
+                }
+                catch (error) {
+                    console.error(`Error updating computed attribute "${key}":`, error);
+                    // Remove attribute on error
+                    element.removeAttribute(key);
+                }
+            };
+            const unsubscribe = computed.subscribe(() => addToBatch(update));
+            addElementSubscription(element, unsubscribe);
+            update(); // initial after subscribe
+        }
+        catch (error) {
+            console.error(`Error creating computed for attribute "${key}":`, error);
+            // No attribute set if fails
+        }
         return;
     }
     // Handle class attribute specially
