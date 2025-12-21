@@ -6,6 +6,47 @@ import { isSignal, createComputed as signal_createComputed } from "../reactive/s
 let clientNodeCounter = 0;
 // Track signal subscriptions for each element for cleanup
 const elementSubscriptions = new WeakMap();
+// Helper to handle reactive values (signals or functions)
+function handleReactiveValue(element, key, value, setter) {
+    try {
+        if (isSignal(value)) {
+            const update = () => {
+                try {
+                    setter(element, value());
+                }
+                catch (error) {
+                    console.error(`Error updating ${key}:`, error);
+                    setter(element, ''); // Clear on error
+                }
+            };
+            const unsubscribe = value.subscribe(() => addToBatch(update));
+            addElementSubscription(element, unsubscribe);
+            update(); // initial
+        }
+        else if (typeof value === 'function') {
+            const computed = signal_createComputed(value);
+            const update = () => {
+                try {
+                    setter(element, computed());
+                }
+                catch (error) {
+                    console.error(`Error updating computed ${key}:`, error);
+                    setter(element, ''); // Clear on error
+                }
+            };
+            const unsubscribe = computed.subscribe(() => addToBatch(update));
+            addElementSubscription(element, unsubscribe);
+            update(); // initial
+        }
+        else {
+            setter(element, value);
+        }
+    }
+    catch (error) {
+        console.error(`Error setting up reactivity for ${key}:`, error);
+        // No fallback value set
+    }
+}
 // Automatic cleanup using MutationObserver
 if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {
     const observer = new MutationObserver((mutations) => {
@@ -128,51 +169,19 @@ function setAttribute(element, key, value) {
         element.addEventListener(eventName, value);
         return;
     }
+    // Handle innerHTML and textContent specially (reactive support)
+    if (key === 'innerHTML' || key === 'textContent') {
+        handleReactiveValue(element, key, value, (el, val) => el[key] = val);
+        return;
+    }
     // Handle reactive signals
     if (isSignal(value)) {
-        try {
-            const update = () => {
-                try {
-                    setAttribute(element, key, value());
-                }
-                catch (error) {
-                    console.error(`Error updating attribute "${key}":`, error);
-                    // Remove attribute on error
-                    element.removeAttribute(key);
-                }
-            };
-            const unsubscribe = value.subscribe(() => addToBatch(update));
-            addElementSubscription(element, unsubscribe);
-            update(); // initial after subscribe succeeds
-        }
-        catch (error) {
-            console.error(`Error subscribing to signal for attribute "${key}":`, error);
-            // No attribute set if subscribe fails
-        }
+        handleReactiveValue(element, key, value, (el, val) => setAttribute(el, key, val));
         return;
     }
     // Handle reactive functions (create computed for reactivity)
     else if (typeof value === 'function') {
-        try {
-            const computed = signal_createComputed(value);
-            const update = () => {
-                try {
-                    setAttribute(element, key, computed());
-                }
-                catch (error) {
-                    console.error(`Error updating computed attribute "${key}":`, error);
-                    // Remove attribute on error
-                    element.removeAttribute(key);
-                }
-            };
-            const unsubscribe = computed.subscribe(() => addToBatch(update));
-            addElementSubscription(element, unsubscribe);
-            update(); // initial after subscribe
-        }
-        catch (error) {
-            console.error(`Error creating computed for attribute "${key}":`, error);
-            // No attribute set if fails
-        }
+        handleReactiveValue(element, key, value, (el, val) => setAttribute(el, key, val));
         return;
     }
     // Handle class attribute specially
@@ -239,10 +248,6 @@ function setAttribute(element, key, value) {
     // Handle input properties
     if (key === 'value' && element instanceof HTMLInputElement) {
         element.value = String(value || '');
-        return;
-    }
-    if (key === 'innerHTML' || key === 'textContent') {
-        element[key] = value;
         return;
     }
     // Handle all other attributes
