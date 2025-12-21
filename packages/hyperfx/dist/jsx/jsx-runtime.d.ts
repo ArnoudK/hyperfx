@@ -2,9 +2,17 @@ import type { Signal } from "../reactive/signal";
 import { ComputedSignal } from "../reactive/state";
 import { Prettify } from "../tools/type_utils";
 /**
+ * Execute multiple updates together to reduce DOM manipulation
+ */
+export declare function batchUpdates<T>(fn: () => T): T;
+/**
  * Generate a unique node ID for client-side elements
  */
 declare function createClientId(): string;
+/**
+ * Clean up all signal subscriptions for an element
+ */
+declare function cleanupElementSubscriptions(element: Element): void;
 export type EventHandler<E extends Event = Event> = (event: E) => void;
 export type JSXElement = HTMLElement | DocumentFragment | Text | Comment;
 export type JSXChildPrimitive = string | number | boolean | null | undefined;
@@ -66,7 +74,7 @@ export { createJSXElement as createElement };
  * Reset client node counter (useful for testing)
  */
 export declare function resetClientNodeCounter(): void;
-export { createClientId };
+export { createClientId, cleanupElementSubscriptions };
 export declare namespace JSX {
     type Element = JSXElement;
     interface ElementChildrenAttribute {
@@ -79,9 +87,31 @@ export declare namespace JSX {
         ref?: ((el: HTMLElement) => void) | {
             current: HTMLElement | null;
         };
+        key?: string | number;
+        onclick?: EventHandler<MouseEvent>;
+        oninput?: EventHandler<InputEvent>;
+        onchange?: EventHandler<Event>;
+        onsubmit?: EventHandler<SubmitEvent>;
+        onfocus?: EventHandler<FocusEvent>;
+        onblur?: EventHandler<FocusEvent>;
+        onkeydown?: EventHandler<KeyboardEvent>;
+        onkeyup?: EventHandler<KeyboardEvent>;
+        onkeypress?: EventHandler<KeyboardEvent>;
+        onmouseenter?: EventHandler<MouseEvent>;
+        onmouseleave?: EventHandler<MouseEvent>;
+        onmousemove?: EventHandler<MouseEvent>;
+        onmousedown?: EventHandler<MouseEvent>;
+        onmouseup?: EventHandler<MouseEvent>;
+        ontouchstart?: EventHandler<TouchEvent>;
+        ontouchend?: EventHandler<TouchEvent>;
+        ontouchmove?: EventHandler<TouchEvent>;
+        onscroll?: EventHandler<Event>;
+        onresize?: EventHandler<Event>;
+        onload?: EventHandler<Event>;
+        onerror?: EventHandler<Event>;
     };
     type IntrinsicElements = {
-        [K in keyof HTMLElementTagNameMap]: Prettify<HTMLAttributes<Omit<HTMLElementTagNameMap[K], 'style' | 'classList' | 'className'>> & {
+        [K in keyof HTMLElementTagNameMap]: Prettify<HTMLAttributes<Omit<HTMLElementTagNameMap[K], 'style' | 'onclick' | 'oninput' | 'onchange' | 'onsubmit' | 'onfocus' | 'onblur' | 'onkeydown' | 'onkeyup' | 'onkeypress' | 'onmouseenter' | 'onmouseleave' | 'onmousemove' | 'onmousedown' | 'onmouseup' | 'ontouchstart' | 'ontouchend' | 'ontouchmove' | 'onscroll' | 'onresize' | 'onload' | 'onerror'>> & {
             style?: ReactiveValue<string | Partial<CSSStyleDeclaration>>;
         }>;
     };

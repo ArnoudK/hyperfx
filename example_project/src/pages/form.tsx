@@ -42,11 +42,17 @@ export function FormPage() {
   }));
 
   const isFormValid = createComputed(() => {
+    console.log('name:', name().trim().length > 0);
+    console.log('email:', isValidEmail());
+    console.log('age:', isValidAge());
+    console.log('country:', country().length > 0);
     return name().trim().length > 0 &&
       isValidEmail() &&
       isValidAge() &&
       country().length > 0;
   });
+
+  const isFormInvalid = createComputed(() => !isFormValid());
 
   // Reactive visibility classes for validation messages
   const emailErrorVisible = createComputed(() => email() && !isValidEmail());
@@ -54,7 +60,10 @@ export function FormPage() {
 
   // Reactive classes
   const formStatusClass = createComputed(() => isFormValid() ? 'bg-green-900' : 'bg-red-900');
-  const formStatusText = createComputed(() => isFormValid() ? 'Valid ✓' : 'Invalid ✗');
+  const formStatusText = createComputed(() => {
+    console.log(isFormValid());
+    return isFormValid() ? 'Valid ✓' : 'Invalid ✗'
+  });
 
   // Reactive preview data
   const previewName = createComputed(() => name() || 'Not set');
@@ -133,7 +142,7 @@ export function FormPage() {
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="Enter your name"
                 value={name}
-                onInput={(e) => name((e.target as HTMLInputElement).value)}
+                oninput={(e) => name((e.target as HTMLInputElement).value)}
               />
             </div>
 
@@ -147,12 +156,12 @@ export function FormPage() {
                 type="email"
                 required
                 class={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 ${email() && !isValidEmail()
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-gray-600 focus:border-green-500'
+                  ? 'border-red-500 focus:border-red-500'
+                  : 'border-gray-600 focus:border-green-500'
                   }`}
                 placeholder="Enter your email"
                 value={email}
-                onInput={(e) => email((e.target as HTMLInputElement).value)}
+                oninput={(e) => email((e.target as HTMLInputElement).value)}
               />
               <p class={`mt-1 text-sm text-red-400 ${emailErrorVisible() ? '' : 'hidden'}`}>
                 Please enter a valid email
@@ -171,11 +180,11 @@ export function FormPage() {
                 max="120"
                 required
                 class={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 ${!isValidAge()
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-gray-600 focus:border-green-500'
+                  ? 'border-red-500 focus:border-red-500'
+                  : 'border-gray-600 focus:border-green-500'
                   }`}
                 value={age().toString()}
-                onInput={(e) => age(parseInt((e.target as HTMLInputElement).value) || 18)}
+                oninput={(e) => age(parseInt((e.target as HTMLInputElement).value) || 18)}
               />
               <p class={`mt-1 text-sm text-red-400 ${ageErrorVisible() ? '' : 'hidden'}`}>
                 Age must be between 13 and 120
@@ -192,7 +201,7 @@ export function FormPage() {
                 required
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 value={country}
-                onChange={(e) => country((e.target as HTMLSelectElement).value)}
+                onchange={(e) => country((e.target as HTMLSelectElement).value)}
               >
                 <option value="">Select a country</option>
                 <>
@@ -212,7 +221,7 @@ export function FormPage() {
                     <input
                       type="checkbox"
                       checked={interests().includes(interest)}
-                      onChange={() => toggleInterest(interest)}
+                      onchange={() => toggleInterest(interest)}
                       class="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500 focus:ring-2"
                     />
                     <span class="ml-2 text-sm text-gray-300">{interest}</span>
@@ -227,7 +236,7 @@ export function FormPage() {
                 <input
                   type="checkbox"
                   checked={newsletter}
-                  onChange={(e) => newsletter((e.target as HTMLInputElement).checked)}
+                  onchange={(e) => newsletter((e.target as HTMLInputElement).checked)}
                   class="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500 focus:ring-2"
                 />
                 <span class="ml-2 text-sm text-gray-300">Subscribe to newsletter</span>
@@ -245,7 +254,7 @@ export function FormPage() {
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="Any additional comments..."
                 value={comments}
-                onInput={(e) => comments((e.target as HTMLTextAreaElement).value)}
+                oninput={(e) => comments((e.target as HTMLTextAreaElement).value)}
               />
             </div>
 
@@ -253,17 +262,16 @@ export function FormPage() {
             <div class="flex space-x-2">
               <button
                 type="submit"
-                disabled={!isFormValid()}
-                class={`flex-1 px-4 py-2 rounded-md transition-colors ${isFormValid()
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  }`}
+                disabled={isFormInvalid}
+                class={() => `flex-1 px-4 py-2 rounded-md transition-colors ${isFormValid()
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}
               >
                 Submit
               </button>
               <button
                 type="button"
-                onClick={resetForm}
+                onclick={resetForm}
                 class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
               >
                 Reset

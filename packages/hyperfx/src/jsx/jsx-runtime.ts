@@ -10,6 +10,59 @@ import { Prettify } from "../tools/type_utils";
 // Global node counter for generating unique node IDs (client-side)
 let clientNodeCounter = 0;
 
+// Track signal subscriptions for each element for cleanup
+const elementSubscriptions = new WeakMap<Element, Set<() => void>>();
+
+// Batch update system for performance optimization
+let batchQueue = new Set<() => void>();
+let isBatching = false;
+
+/**
+ * Execute multiple updates together to reduce DOM manipulation
+ */
+export function batchUpdates<T>(fn: () => T): T {
+  const wasBatching = isBatching;
+  isBatching = true;
+
+  try {
+    const result = fn();
+    return result;
+  } finally {
+    if (!wasBatching) {
+      // Flush the batch
+      isBatching = false;
+      flushBatch();
+    }
+  }
+}
+
+/**
+ * Add an update function to the batch queue
+ */
+function addToBatch(updateFn: () => void): void {
+  if (isBatching) {
+    batchQueue.add(updateFn);
+  } else {
+    updateFn();
+  }
+}
+
+/**
+ * Execute all queued updates
+ */
+function flushBatch(): void {
+  const updates = Array.from(batchQueue);
+  batchQueue.clear();
+
+  updates.forEach(update => {
+    try {
+      update();
+    } catch (error) {
+      console.error('Error in batched update:', error);
+    }
+  });
+}
+
 /**
  * Check if we're in an SSR environment
  */
@@ -22,6 +75,61 @@ function isSSREnvironment(): boolean {
  */
 function createClientId(): string {
   return String(++clientNodeCounter).padStart(6, '0');
+}
+
+/**
+ * Add a subscription to an element's cleanup list
+ */
+function addElementSubscription(element: Element, unsubscribe: () => void): void {
+  if (!elementSubscriptions.has(element)) {
+    elementSubscriptions.set(element, new Set());
+  }
+  elementSubscriptions.get(element)!.add(unsubscribe);
+}
+
+/**
+ * Clean up all signal subscriptions for an element
+ */
+function cleanupElementSubscriptions(element: Element): void {
+  const subscriptions = elementSubscriptions.get(element);
+  if (subscriptions) {
+    subscriptions.forEach(unsubscribe => {
+      unsubscribe();
+    });
+    subscriptions.clear();
+    elementSubscriptions.delete(element);
+  }
+}
+
+/**
+ * Set up a MutationObserver to automatically clean up subscriptions when elements are removed
+ */
+const cleanupObserver = new MutationObserver((mutations) => {
+  for (const mutation of mutations) {
+    for (const node of mutation.removedNodes) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        cleanupElementSubscriptions(node as Element);
+        // Also clean up all child elements recursively
+        const walker = document.createTreeWalker(
+          node,
+          NodeFilter.SHOW_ELEMENT
+        );
+        let child = walker.nextNode() as Element | null;
+        while (child) {
+          cleanupElementSubscriptions(child);
+          child = walker.nextNode() as Element | null;
+        }
+      }
+    }
+  }
+});
+
+// Start observing the document for removed nodes
+if (typeof document !== 'undefined') {
+  cleanupObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
 }
 
 // Event handler type (should NOT be reactive)
@@ -167,7 +275,10 @@ function createElement(tag: string, props?: Record<string, any> | null): HTMLEle
           (element as any)[key] = val;
         };
         if (isSignal(value)) {
-          value.subscribe(updateProp);
+          const batchedUpdateProp = () => {
+            addToBatch(updateProp);
+          };
+          value.subscribe(batchedUpdateProp);
         }
         updateProp();
       }
@@ -176,42 +287,106 @@ function createElement(tag: string, props?: Record<string, any> | null): HTMLEle
         const eventName = key.slice(2).toLowerCase();
         element.addEventListener(eventName, value as EventListener);
       }
+      // Handle function values (non-reactive)
+      else if (typeof value === 'function' && !isSignal(value)) {
+        const result = value();
+        if (result != null) {
+          element.setAttribute(key, String(result));
+        }
+      }
       // Handle reactive attributes
       else if (isSignal(value)) {
         // Reactive attribute - subscribe to changes
         const updateAttribute = () => {
-          const currentValue = value();
-          if (currentValue == null) {
-            if (key === 'value' && element instanceof HTMLInputElement) {
-              element.value = '';
-            } else if (key === 'checked' && element instanceof HTMLInputElement) {
-              element.checked = false;
-            } else {
-              element.removeAttribute(key);
-            }
-          } else {
-            if (key === 'value' && element instanceof HTMLInputElement) {
-              element.value = String(currentValue);
-            } else if (key === 'checked' && element instanceof HTMLInputElement) {
-              element.checked = Boolean(currentValue);
-            } else if (key === 'disabled' && typeof currentValue === 'boolean') {
-              // Handle disabled as a boolean attribute
-              if (currentValue) {
-                element.setAttribute('disabled', '');
-                (element as any).disabled = true;
+          try {
+            const currentValue = value();
+            if (currentValue == null) {
+              if (key === 'value' && element instanceof HTMLInputElement) {
+                element.value = '';
+              } else if (key === 'checked' && element instanceof HTMLInputElement) {
+                element.checked = false;
               } else {
-                element.removeAttribute('disabled');
-                (element as any).disabled = false;
+                element.removeAttribute(key);
               }
-            } else if (key === 'class') {
-              element.className = String(currentValue);
             } else {
-              element.setAttribute(key, String(currentValue));
+              if (key === 'value' && element instanceof HTMLInputElement) {
+                const stringValue = String(currentValue);
+                element.value = stringValue;
+              } else if (key === 'checked' && element instanceof HTMLInputElement) {
+                element.checked = Boolean(currentValue);
+              } else if (key === 'disabled' && typeof currentValue === 'boolean') {
+                // Handle disabled as a boolean attribute
+                if (currentValue) {
+                  element.setAttribute('disabled', '');
+                  (element as any).disabled = true;
+                } else {
+                  element.removeAttribute('disabled');
+                  (element as any).disabled = false;
+                }
+
+              } else if (key === 'style') {
+                if (currentValue == null) {
+                  element.removeAttribute('style');
+                } else if (typeof currentValue === 'string') {
+                  element.setAttribute('style', currentValue);
+                } else if (typeof currentValue === 'object') {
+                  // Handle CSSStyleDeclaration-like object
+                  const styleObj = currentValue as Partial<CSSStyleDeclaration>;
+                  Object.entries(styleObj).forEach(([property, styleValue]) => {
+                    if (styleValue != null) {
+                      try {
+                        // Convert kebab-case to camelCase for CSS properties
+                        const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                        const stringValue = String(styleValue);
+                        (element.style as any)[camelCaseProperty] = stringValue;
+                      } catch (styleError) {
+                        console.warn(`Failed to set CSS property "${property}":`, styleError);
+                      }
+                    }
+                  });
+                } else {
+                  element.setAttribute('style', String(currentValue));
+                }
+              } else if (key === 'readOnly' && element instanceof HTMLInputElement) {
+                element.readOnly = Boolean(currentValue);
+                if (currentValue) {
+                  element.setAttribute('readonly', '');
+                } else {
+                  element.removeAttribute('readonly');
+                }
+              } else {
+                // Handle circular references
+                if (currentValue === element) {
+                  console.warn(`Circular reference detected for attribute "${key}" on element`, element);
+                  return;
+                }
+
+                const stringValue = String(currentValue);
+                element.setAttribute(key, stringValue);
+              }
             }
+          } catch (error) {
+            console.error(`Error updating attribute "${key}" on element:`, error);
           }
         };
-        updateAttribute(); // Set initial value
-        value.subscribe(updateAttribute);
+
+        try {
+          const batchedUpdateAttribute = () => {
+            addToBatch(updateAttribute);
+          };
+
+          const unsubscribe = value.subscribe(batchedUpdateAttribute);
+          addElementSubscription(element, unsubscribe);
+        } catch (error) {
+          console.error(`Error setting up reactive attribute "${key}":`, error);
+          // Fallback to static attribute
+          try {
+            const fallbackValue = String(value() || '');
+            element.setAttribute(key, fallbackValue);
+          } catch (fallbackError) {
+            console.error(`Error setting fallback for attribute "${key}":`, fallbackError);
+          }
+        }
       }
       // Handle regular attributes
       else if (value != null) {
@@ -227,6 +402,31 @@ function createElement(tag: string, props?: Record<string, any> | null): HTMLEle
           } else {
             element.removeAttribute('disabled');
             (element as any).disabled = false;
+          }
+        } else if (key === 'style') {
+          if (value == null) {
+            element.removeAttribute('style');
+          } else if (typeof value === 'string') {
+            element.setAttribute('style', value);
+          } else if (typeof value === 'object') {
+            // Handle CSSStyleDeclaration-like object
+            const styleObj = value as Partial<CSSStyleDeclaration>;
+            Object.entries(styleObj).forEach(([property, styleValue]) => {
+              if (styleValue != null) {
+                // Convert kebab-case to camelCase for CSS properties
+                const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                (element.style as any)[camelCaseProperty] = String(styleValue);
+              }
+            });
+          } else {
+            element.setAttribute('style', String(value));
+          }
+        } else if (key === 'readOnly' && element instanceof HTMLInputElement) {
+          element.readOnly = Boolean(value);
+          if (value) {
+            element.setAttribute('readonly', '');
+          } else {
+            element.removeAttribute('readonly');
           }
         } else {
           element.setAttribute(key, String(value));
@@ -424,7 +624,7 @@ export function resetClientNodeCounter(): void {
 }
 
 // Export node ID functions for external use
-export { createClientId };
+export { createClientId, cleanupElementSubscriptions };
 
 // JSX namespace for TypeScript
 export namespace JSX {
@@ -438,11 +638,57 @@ export namespace JSX {
   } & {
     class?: string | ReactiveValue<string>;
     ref?: ((el: HTMLElement) => void) | { current: HTMLElement | null };
+    key?: string | number;
+    onclick?: EventHandler<MouseEvent>;
+    oninput?: EventHandler<InputEvent>;
+    onchange?: EventHandler<Event>;
+    onsubmit?: EventHandler<SubmitEvent>;
+    onfocus?: EventHandler<FocusEvent>;
+    onblur?: EventHandler<FocusEvent>;
+    onkeydown?: EventHandler<KeyboardEvent>;
+    onkeyup?: EventHandler<KeyboardEvent>;
+    onkeypress?: EventHandler<KeyboardEvent>;
+    onmouseenter?: EventHandler<MouseEvent>;
+    onmouseleave?: EventHandler<MouseEvent>;
+    onmousemove?: EventHandler<MouseEvent>;
+    onmousedown?: EventHandler<MouseEvent>;
+    onmouseup?: EventHandler<MouseEvent>;
+    ontouchstart?: EventHandler<TouchEvent>;
+    ontouchend?: EventHandler<TouchEvent>;
+    ontouchmove?: EventHandler<TouchEvent>;
+    onscroll?: EventHandler<Event>;
+    onresize?: EventHandler<Event>;
+    onload?: EventHandler<Event>;
+    onerror?: EventHandler<Event>;
   };
 
   export type IntrinsicElements = {
     [K in keyof HTMLElementTagNameMap]: Prettify<
-      HTMLAttributes<Omit<HTMLElementTagNameMap[K], 'style' | 'classList' | 'className'>> & {
+      HTMLAttributes<Omit<HTMLElementTagNameMap[K],
+        | 'style'
+        | 'onclick'
+        | 'oninput'
+        | 'onchange'
+        | 'onsubmit'
+        | 'onfocus'
+        | 'onblur'
+        | 'onkeydown'
+        | 'onkeyup'
+        | 'onkeypress'
+        | 'onmouseenter'
+        | 'onmouseleave'
+        | 'onmousemove'
+        | 'onmousedown'
+        | 'onmouseup'
+        | 'ontouchstart'
+        | 'ontouchend'
+        | 'ontouchmove'
+        | 'onscroll'
+        | 'onresize'
+        | 'onload'
+        | 'onerror'
+
+      >> & {
         style?: ReactiveValue<string | Partial<CSSStyleDeclaration>>;
       }
     >;
