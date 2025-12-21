@@ -129,10 +129,16 @@ export function createSignal<T>(initialValue: T): Signal<T> {
       set: (value: T) => signal.set(value),
       subscribe: (callback: (value: T) => void) => signal.subscribe(callback),
       peek: () => signal.peek(),
-      update: (updater: (current: T) => T) => signal.update(updater),
-      get subscriberCount() { return signal.subscriberCount; }
+      update: (updater: (current: T) => T) => signal.update(updater)
     }
   ) as Signal<T>;
+
+  // Add subscriberCount getter dynamically
+  Object.defineProperty(callableSignal, 'subscriberCount', {
+    get() { return signal.subscriberCount; },
+    enumerable: true,
+    configurable: true
+  });
 
   // Store reference to callable signal
   signal.callableSignal = callableSignal;

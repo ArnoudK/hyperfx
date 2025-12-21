@@ -133,8 +133,8 @@ export function TodoPage() {
             class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
             placeholder="What needs to be done?"
             value={newTodoText}
-            onInput={(e) => newTodoText.set((e.target as HTMLInputElement).value)}
-            onKeyPress={(e) => {
+            oninput={(e) => newTodoText.set((e.target as HTMLInputElement).value)}
+            onkeypress={(e) => {
               if (e.key === 'Enter') {
                 addTodo();
               }
@@ -142,7 +142,7 @@ export function TodoPage() {
           />
           <button
             type="button"
-            onClick={addTodo}
+            onclick={addTodo}
             class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
           >
             Add
@@ -160,7 +160,7 @@ export function TodoPage() {
                 <button
                   key={option}
                   type="button"
-                  onClick={() => filterStatus(option)}
+                  onclick={() => filterStatus(option)}
                   class={`px-3 py-1 rounded-md transition-colors capitalize ${isActive
                     ? 'bg-purple-600 text-white'
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -176,7 +176,7 @@ export function TodoPage() {
             {todos().length > 0 && (
               <button
                 type="button"
-                onClick={toggleAll}
+                onclick={toggleAll}
                 class="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
               >
                 Toggle All
@@ -185,7 +185,7 @@ export function TodoPage() {
             {completedTodos() > 0 && (
               <button
                 type="button"
-                onClick={clearCompleted}
+                onclick={clearCompleted}
                 class="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
               >
                 Clear Completed
@@ -211,7 +211,7 @@ export function TodoPage() {
                       <input
                         type="checkbox"
                         checked={todoItem.completed}
-                        onChange={() => toggleTodo(todoItem.id)}
+                        onchange={() => toggleTodo(todoItem.id)}
                         class="w-5 h-5 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500 focus:ring-2"
                       />
                       <span
@@ -226,7 +226,7 @@ export function TodoPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => deleteTodo(todoItem.id)}
+                    onclick={() => deleteTodo(todoItem.id)}
                     class="ml-2 px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
                   >
                     Delete
