@@ -17,7 +17,7 @@ describe('Signal Attributes in JSX Runtime', () => {
   describe('Basic Reactive Attributes', () => {
     it('should update class attribute when signal changes', () => {
       const className = createSignal('initial-class');
-      const element = jsx('div', { className }) as HTMLElement;
+      const element = jsx('div', { class: className }) as HTMLElement;
       
       container.appendChild(element);
       
@@ -291,7 +291,7 @@ describe('Signal Attributes in JSX Runtime', () => {
       const dataId = createSignal('id1');
       
       const element = jsx('div', { 
-        className, 
+        class: className, 
         title, 
         'data-id': dataId 
       }) as HTMLElement;
@@ -316,7 +316,7 @@ describe('Signal Attributes in JSX Runtime', () => {
       const dynamicClass = createSignal('dynamic');
       const element = jsx('div', {
         id: 'static-id',
-        className: dynamicClass,
+        class: dynamicClass,
         'data-static': 'static-value',
         title: 'static-title'
       }) as HTMLElement;

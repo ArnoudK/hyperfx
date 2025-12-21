@@ -2,6 +2,136 @@ import type { Signal } from "../reactive/signal";
 import { isSignal, createComputed as signal_createComputed } from "../reactive/signal";
 import { ComputedSignal } from "../reactive/state";
 import { Prettify } from "../tools/type_utils";
+// Define a type alias for IntrinsicElements for easier reference
+type IntrinsicElements = JSX.IntrinsicElements;
+
+// HTML5 void elements that cannot have children
+type VoidElements = 'area' | 'base' | 'br' | 'col' | 'embed' | 'hr' | 'img' | 'input' | 'link' | 'meta' | 'param' | 'source' | 'track' | 'wbr';
+
+// JSX namespace for TypeScript
+export namespace JSX {
+  export type Element = JSXElement;
+  export interface ElementChildrenAttribute {
+    children: JSXChildren;
+  }
+  export type IntrinsicElements = {
+    [K in keyof HTMLElementTagNameMap]: (
+      K extends 'a' ? import('./types/structural-attributes').AHTMLAttributes :
+      K extends 'area' ? import('./types/media-attributes').AreaHTMLAttributes :
+      K extends 'audio' ? import('./types/media-attributes').AudioHTMLAttributes :
+      K extends 'base' ? import('./types/semantic-attributes').BaseHTMLAttributes :
+      K extends 'blockquote' ? import('./types/structural-attributes').BlockquoteHTMLAttributes :
+      K extends 'body' ? import('./types/semantic-attributes').BodyHTMLAttributes :
+      K extends 'br' ? import('./types/structural-attributes').BrHTMLAttributes :
+      K extends 'button' ? import('./types/form-attributes').ButtonHTMLAttributes :
+      K extends 'canvas' ? import('./types/semantic-attributes').CanvasHTMLAttributes :
+      K extends 'caption' ? import('./types/structural-attributes').CaptionHTMLAttributes :
+      K extends 'cite' ? import('./types/structural-attributes').CiteHTMLAttributes :
+      K extends 'code' ? import('./types/structural-attributes').CodeHTMLAttributes :
+      K extends 'col' ? import('./types/structural-attributes').ColHTMLAttributes :
+      K extends 'colgroup' ? import('./types/structural-attributes').ColgroupHTMLAttributes :
+      K extends 'data' ? import('./types/semantic-attributes').DataHTMLAttributes :
+      K extends 'datalist' ? import('./types/form-attributes').DatalistHTMLAttributes :
+      K extends 'dd' ? import('./types/structural-attributes').DdHTMLAttributes :
+      K extends 'del' ? import('./types/structural-attributes').DelHTMLAttributes :
+      K extends 'details' ? import('./types/structural-attributes').DetailsHTMLAttributes :
+      K extends 'dfn' ? import('./types/structural-attributes').DfnHTMLAttributes :
+      K extends 'dialog' ? import('./types/structural-attributes').DialogHTMLAttributes :
+      K extends 'div' ? import('./types/structural-attributes').DivHTMLAttributes :
+      K extends 'dl' ? import('./types/structural-attributes').DlHTMLAttributes :
+      K extends 'dt' ? import('./types/structural-attributes').DtHTMLAttributes :
+      K extends 'em' ? import('./types/structural-attributes').EmHTMLAttributes :
+      K extends 'embed' ? import('./types/media-attributes').EmbedHTMLAttributes :
+      K extends 'fieldset' ? import('./types/form-attributes').FieldsetHTMLAttributes :
+      K extends 'figcaption' ? import('./types/structural-attributes').FigcaptionHTMLAttributes :
+      K extends 'figure' ? import('./types/structural-attributes').FigureHTMLAttributes :
+      K extends 'footer' ? import('./types/semantic-attributes').FooterHTMLAttributes :
+      K extends 'form' ? import('./types/form-attributes').FormHTMLAttributes :
+      K extends 'h1' ? import('./types/semantic-attributes').H1HTMLAttributes :
+      K extends 'h2' ? import('./types/semantic-attributes').H2HTMLAttributes :
+      K extends 'h3' ? import('./types/semantic-attributes').H3HTMLAttributes :
+      K extends 'h4' ? import('./types/semantic-attributes').H4HTMLAttributes :
+      K extends 'h5' ? import('./types/semantic-attributes').H5HTMLAttributes :
+      K extends 'h6' ? import('./types/semantic-attributes').H6HTMLAttributes :
+      K extends 'head' ? import('./types/semantic-attributes').HeadHTMLAttributes :
+      K extends 'header' ? import('./types/semantic-attributes').HeaderHTMLAttributes :
+      K extends 'hgroup' ? import('./types/semantic-attributes').HgroupHTMLAttributes :
+      K extends 'hr' ? import('./types/structural-attributes').HrHTMLAttributes :
+      K extends 'html' ? import('./types/semantic-attributes').HtmlHTMLAttributes :
+      K extends 'i' ? import('./types/structural-attributes').IHTMLAttributes :
+      K extends 'iframe' ? import('./types/media-attributes').IframeHTMLAttributes :
+      K extends 'img' ? import('./types/media-attributes').ImgHTMLAttributes :
+      K extends 'input' ? import('./types/form-attributes').InputHTMLAttributes :
+      K extends 'ins' ? import('./types/structural-attributes').InsHTMLAttributes :
+      K extends 'kbd' ? import('./types/structural-attributes').KbdHTMLAttributes :
+      K extends 'label' ? import('./types/form-attributes').LabelHTMLAttributes :
+      K extends 'legend' ? import('./types/form-attributes').LegendHTMLAttributes :
+      K extends 'li' ? import('./types/structural-attributes').LiHTMLAttributes :
+      K extends 'link' ? import('./types/semantic-attributes').LinkHTMLAttributes :
+      K extends 'main' ? import('./types/semantic-attributes').MainHTMLAttributes :
+      K extends 'map' ? import('./types/media-attributes').MapHTMLAttributes :
+      K extends 'mark' ? import('./types/structural-attributes').MarkHTMLAttributes :
+      K extends 'menu' ? import('./types/semantic-attributes').MenuHTMLAttributes :
+      K extends 'meta' ? import('./types/semantic-attributes').MetaHTMLAttributes :
+      K extends 'meter' ? import('./types/form-attributes').MeterHTMLAttributes :
+      K extends 'nav' ? import('./types/semantic-attributes').NavHTMLAttributes :
+      K extends 'noscript' ? import('./types/semantic-attributes').NoscriptHTMLAttributes :
+      K extends 'object' ? import('./types/media-attributes').ObjectHTMLAttributes :
+      K extends 'ol' ? import('./types/structural-attributes').OlHTMLAttributes :
+      K extends 'optgroup' ? import('./types/form-attributes').OptgroupHTMLAttributes :
+      K extends 'option' ? import('./types/form-attributes').OptionHTMLAttributes :
+      K extends 'output' ? import('./types/form-attributes').OutputHTMLAttributes :
+      K extends 'p' ? import('./types/structural-attributes').PHTMLAttributes :
+      K extends 'picture' ? import('./types/global-attributes').GlobalHTMLAttributes :
+      K extends 'portal' ? import('./types/semantic-attributes').PortalHTMLAttributes :
+      K extends 'pre' ? import('./types/structural-attributes').PreHTMLAttributes :
+      K extends 'progress' ? import('./types/form-attributes').ProgressHTMLAttributes :
+      K extends 'q' ? import('./types/structural-attributes').QHTMLAttributes :
+      K extends 'rp' ? import('./types/semantic-attributes').RpHTMLAttributes :
+      K extends 'rt' ? import('./types/semantic-attributes').RtHTMLAttributes :
+      K extends 'ruby' ? import('./types/semantic-attributes').RubyHTMLAttributes :
+      K extends 's' ? import('./types/structural-attributes').SHTMLAttributes :
+      K extends 'samp' ? import('./types/structural-attributes').SampHTMLAttributes :
+      K extends 'script' ? import('./types/semantic-attributes').ScriptHTMLAttributes :
+      K extends 'section' ? import('./types/semantic-attributes').SectionHTMLAttributes :
+      K extends 'select' ? import('./types/form-attributes').SelectHTMLAttributes :
+      K extends 'slot' ? import('./types/semantic-attributes').SlotHTMLAttributes :
+      K extends 'small' ? import('./types/structural-attributes').SmallHTMLAttributes :
+      K extends 'source' ? import('./types/media-attributes').SourceHTMLAttributes :
+      K extends 'span' ? import('./types/structural-attributes').SpanHTMLAttributes :
+      K extends 'strong' ? import('./types/structural-attributes').StrongHTMLAttributes :
+      K extends 'style' ? import('./types/semantic-attributes').StyleHTMLAttributes :
+      K extends 'sub' ? import('./types/structural-attributes').SubHTMLAttributes :
+      K extends 'summary' ? import('./types/structural-attributes').SummaryHTMLAttributes :
+      K extends 'sup' ? import('./types/structural-attributes').SupHTMLAttributes :
+      K extends 'table' ? import('./types/structural-attributes').TableHTMLAttributes :
+      K extends 'tbody' ? import('./types/structural-attributes').TbodyHTMLAttributes :
+      K extends 'td' ? import('./types/structural-attributes').TdHTMLAttributes :
+      K extends 'template' ? import('./types/semantic-attributes').TemplateHTMLAttributes :
+      K extends 'textarea' ? import('./types/form-attributes').TextareaHTMLAttributes :
+      K extends 'tfoot' ? import('./types/structural-attributes').TfootHTMLAttributes :
+      K extends 'th' ? import('./types/structural-attributes').ThHTMLAttributes :
+      K extends 'thead' ? import('./types/structural-attributes').TheadHTMLAttributes :
+      K extends 'time' ? import('./types/structural-attributes').TimeHTMLAttributes :
+      K extends 'title' ? import('./types/semantic-attributes').TitleHTMLAttributes :
+      K extends 'tr' ? import('./types/structural-attributes').TrHTMLAttributes :
+      K extends 'track' ? import('./types/media-attributes').TrackHTMLAttributes :
+      K extends 'u' ? import('./types/structural-attributes').UHTMLAttributes :
+      K extends 'ul' ? import('./types/structural-attributes').UlHTMLAttributes :
+      K extends 'var' ? import('./types/structural-attributes').VarHTMLAttributes :
+      K extends 'video' ? import('./types/media-attributes').VideoHTMLAttributes :
+      K extends 'wbr' ? import('./types/semantic-attributes').WbrHTMLAttributes :
+      import('./types/global-attributes').GlobalHTMLAttributes
+    ) & (K extends VoidElements ? {} : { children?: JSXChildren })
+  };
+}
+
+type NormalizedValue<T> = {
+  isReactive: boolean;
+  isFunction: boolean;
+  getValue: () => T;
+  subscribe?: (callback: (v: T) => void) => () => void;
+};
 
 /**
  * Direct DOM JSX Runtime for HyperFX
@@ -73,7 +203,7 @@ function isSSREnvironment(): boolean {
 /**
  * Generate a unique node ID for client-side elements
  */
-function createClientId(): string {
+export function createClientId(): string {
   return String(++clientNodeCounter).padStart(6, '0');
 }
 
@@ -81,16 +211,18 @@ function createClientId(): string {
  * Add a subscription to an element's cleanup list
  */
 function addElementSubscription(element: Element, unsubscribe: () => void): void {
-  if (!elementSubscriptions.has(element)) {
-    elementSubscriptions.set(element, new Set());
+  const subscriptions = elementSubscriptions.get(element);
+  if (!subscriptions) {
+    elementSubscriptions.set(element, new Set([unsubscribe]));
+  } else {
+    subscriptions.add(unsubscribe);
   }
-  elementSubscriptions.get(element)!.add(unsubscribe);
 }
 
 /**
  * Clean up all signal subscriptions for an element
  */
-function cleanupElementSubscriptions(element: Element): void {
+export function cleanupElementSubscriptions(element: Element): void {
   const subscriptions = elementSubscriptions.get(element);
   if (subscriptions) {
     subscriptions.forEach(unsubscribe => {
@@ -101,39 +233,190 @@ function cleanupElementSubscriptions(element: Element): void {
   }
 }
 
-/**
- * Set up a MutationObserver to automatically clean up subscriptions when elements are removed
- */
-const cleanupObserver = new MutationObserver((mutations) => {
-  for (const mutation of mutations) {
-    for (const node of mutation.removedNodes) {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        cleanupElementSubscriptions(node as Element);
-        // Also clean up all child elements recursively
-        const walker = document.createTreeWalker(
-          node,
-          NodeFilter.SHOW_ELEMENT
-        );
-        let child = walker.nextNode() as Element | null;
-        while (child) {
-          cleanupElementSubscriptions(child);
-          child = walker.nextNode() as Element | null;
-        }
-      }
-    }
+// Simple setAttribute function that handles all attribute types
+function setAttribute(element: HTMLElement, key: string, value: any): void {
+  // Skip children and key props
+  if (key === 'children' || key === 'key') {
+    return;
   }
-});
 
-// Start observing the document for removed nodes
-if (typeof document !== 'undefined') {
-  cleanupObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+  // Handle event handlers
+  if (key.startsWith('on') && typeof value === 'function') {
+    const eventName = key.slice(2).toLowerCase();
+    element.addEventListener(eventName, value);
+    return;
+  }
+
+  // Handle reactive signals
+  if (isSignal(value)) {
+    const update = () => setAttribute(element, key, value());
+    update();
+    const unsubscribe = value.subscribe(() => addToBatch(update));
+    addElementSubscription(element, unsubscribe);
+    return;
+  }
+
+  // Handle reactive functions (create computed for reactivity)
+  else if (typeof value === 'function') {
+    const computed = signal_createComputed(value as () => any);
+    const update = () => setAttribute(element, key, computed());
+    update();
+    const unsubscribe = computed.subscribe(() => addToBatch(update));
+    addElementSubscription(element, unsubscribe);
+    return;
+  }
+
+  // Handle class attribute specially
+  if (key === 'class') {
+    if (value != null) {
+      element.className = String(value);
+    } else {
+      element.removeAttribute('class');
+    }
+    return;
+  }
+
+  // Handle boolean attributes
+  const booleanAttrs = new Set([
+    'disabled', 'checked', 'readonly', 'readOnly', 'required', 'autofocus', 'autoplay',
+    'controls', 'default', 'defer', 'hidden', 'inert', 'loop', 'multiple',
+    'muted', 'novalidate', 'open', 'reversed', 'selected'
+  ]);
+
+  if (booleanAttrs.has(key)) {
+    const boolValue = Boolean(value);
+
+    if (key === 'checked' && element instanceof HTMLInputElement) {
+      element.checked = boolValue;
+      element.toggleAttribute('checked', boolValue);
+    } else if ((key === 'readonly' || key === 'readOnly') && element instanceof HTMLInputElement) {
+      element.readOnly = boolValue;
+      element.toggleAttribute('readonly', boolValue);
+    } else if (key === 'disabled') {
+      (element as any).disabled = boolValue;
+      element.toggleAttribute('disabled', boolValue);
+    } else {
+      element.toggleAttribute(key, boolValue);
+    }
+    return;
+  }
+
+  // Handle style attribute
+  if (key === 'style') {
+    if (value == null) {
+      element.removeAttribute('style');
+    } else if (typeof value === 'string') {
+      element.setAttribute('style', value);
+    } else if (typeof value === 'object') {
+      Object.entries(value as any).forEach(([property, styleValue]) => {
+        if (styleValue != null) {
+          try {
+            const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+            (element.style as any)[camelCaseProperty] = String(styleValue);
+          } catch (styleError) {
+            console.warn(`Failed to set CSS property "${property}":`, styleError);
+          }
+        }
+      });
+    } else {
+      element.setAttribute('style', String(value));
+    }
+    return;
+  }
+
+  // Handle input properties
+  if (key === 'value' && element instanceof HTMLInputElement) {
+    element.value = String(value || '');
+    return;
+  }
+
+  if (key === 'innerHTML' || key === 'textContent') {
+    (element as any)[key] = value;
+    return;
+  }
+
+  // Handle all other attributes
+  if (value != null) {
+    element.setAttribute(key, String(value));
+  } else {
+    element.removeAttribute(key);
+  }
 }
 
-// Event handler type (should NOT be reactive)
-export type EventHandler<E extends Event = Event> = (event: E) => void;
+function normalizeValue<T>(value: T | Signal<T> | (() => T)): NormalizedValue<T> {
+  // Handle signals
+  if (isSignal(value)) {
+    return {
+      isReactive: true,
+      isFunction: false,
+      getValue: () => {
+        try {
+          return value();
+        } catch (error) {
+          console.error('Error accessing signal value:', error);
+          return undefined as T;
+        }
+      },
+      subscribe: (callback: (v: T) => void) => {
+        try {
+          return value.subscribe(callback);
+        } catch (error) {
+          console.error('Error subscribing to signal:', error);
+          return () => { };
+        }
+      }
+    };
+  }
+
+  // Handle functions (non-signal)
+  if (typeof value === 'function') {
+    return {
+      isReactive: false,
+      isFunction: true,
+      getValue: () => {
+        try {
+          return (value as () => T)();
+        } catch (error) {
+          console.error('Error executing function value:', error);
+          return undefined as T;
+        }
+      },
+      subscribe: undefined
+    };
+  }
+
+  // Handle static values
+  return {
+    isReactive: false,
+    isFunction: false,
+    getValue: () => value,
+    subscribe: undefined
+  };
+}
+
+
+
+
+// Global attribute manager instance
+const attributeManager = {
+  applyAttribute(element: HTMLElement, key: string, value: any): void {
+    setAttribute(element, key, value);
+  },
+
+  applyAttributes(element: HTMLElement, props: Record<string, any>): void {
+    for (const [key, value] of Object.entries(props)) {
+      this.applyAttribute(element, key, value);
+    }
+  }
+};
+
+// Core reactive prop type - allows any value to be reactive
+export type ReactiveValue<T> = T | Signal<T> | (() => T);
+
+// Specific reactive types for common use cases
+export type ReactiveString = ReactiveValue<string>;
+export type ReactiveNumber = ReactiveValue<number>;
+export type ReactiveBoolean = ReactiveValue<boolean>;
 
 // JSX Element types (actual DOM elements)
 export type JSXElement =
@@ -141,8 +424,6 @@ export type JSXElement =
   | DocumentFragment
   | Text
   | Comment;
-
-
 
 export type JSXChildPrimitive = string | number | boolean | null | undefined;
 
@@ -159,9 +440,11 @@ export type JSXChild = Prettify<
 export type JSXChildren = JSXChild | JSXChild[];
 
 // Event handler types (these should NOT be reactive)
+export type EventHandler<E extends Event = Event> = (event: E) => void;
+
 export interface EventHandlers {
-  onClick?: EventHandler<MouseEvent>;
-  onInput?: EventHandler<InputEvent>;
+  onclick?: EventHandler<MouseEvent>;
+  oninput?: EventHandler<InputEvent>;
   onChange?: EventHandler<Event>;
   onSubmit?: EventHandler<SubmitEvent>;
   onFocus?: EventHandler<FocusEvent>;
@@ -183,8 +466,7 @@ export interface EventHandlers {
   onError?: EventHandler<Event>;
 }
 
-// Reactive element attributes type
-export type ReactiveElementAttributes = Record<string, ReactiveValue<any>> & EventHandlers;
+
 
 // Component props type
 export type ComponentProps<P = {}> = P & {
@@ -194,21 +476,6 @@ export type ComponentProps<P = {}> = P & {
 
 // Function component type
 export type FunctionComponent<P extends ComponentProps = ComponentProps> = (props: P) => JSXElement;
-
-// Type guard for reactive signals
-function isReactiveSignal<T = unknown>(fn: unknown): fn is Signal<T> {
-  if (typeof fn !== 'function') return false;
-  // Check for our custom signal implementation
-  return typeof fn === 'function' && 'get' in fn && 'set' in fn && 'subscribe' in fn;
-}
-
-// Core reactive prop type - allows any value to be reactive
-export type ReactiveValue<T> = T | Signal<T> | (() => T);
-
-// Specific reactive types for common use cases
-export type ReactiveString = ReactiveValue<string>;
-export type ReactiveNumber = ReactiveValue<number>;
-export type ReactiveBoolean = ReactiveValue<boolean>;
 
 // Hydration State
 let hydrationEnabled = false;
@@ -263,176 +530,9 @@ function createElement(tag: string, props?: Record<string, any> | null): HTMLEle
     }
   }
 
+  // Apply all attributes using the unified attribute manager
   if (props) {
-    for (const [key, value] of Object.entries(props)) {
-      if (key === 'children') continue; // Handle children separately
-      if (key === 'key') continue; // Ignore React-style keys
-
-      // Handle special properties like innerHTML and textContent
-      if (key === 'innerHTML' || key === 'textContent') {
-        const updateProp = () => {
-          const val = isSignal(value) ? value() : value;
-          (element as any)[key] = val;
-        };
-        if (isSignal(value)) {
-          const batchedUpdateProp = () => {
-            addToBatch(updateProp);
-          };
-          value.subscribe(batchedUpdateProp);
-        }
-        updateProp();
-      }
-      // Handle event handlers
-      else if (key.startsWith('on') && typeof value === 'function') {
-        const eventName = key.slice(2).toLowerCase();
-        element.addEventListener(eventName, value as EventListener);
-      }
-      // Handle function values (non-reactive)
-      else if (typeof value === 'function' && !isSignal(value)) {
-        const result = value();
-        if (result != null) {
-          element.setAttribute(key, String(result));
-        }
-      }
-      // Handle reactive attributes
-      else if (isSignal(value)) {
-        // Reactive attribute - subscribe to changes
-        const updateAttribute = () => {
-          try {
-            const currentValue = value();
-            if (currentValue == null) {
-              if (key === 'value' && element instanceof HTMLInputElement) {
-                element.value = '';
-              } else if (key === 'checked' && element instanceof HTMLInputElement) {
-                element.checked = false;
-              } else {
-                element.removeAttribute(key);
-              }
-            } else {
-              if (key === 'value' && element instanceof HTMLInputElement) {
-                const stringValue = String(currentValue);
-                element.value = stringValue;
-              } else if (key === 'checked' && element instanceof HTMLInputElement) {
-                element.checked = Boolean(currentValue);
-              } else if (key === 'disabled' && typeof currentValue === 'boolean') {
-                // Handle disabled as a boolean attribute
-                if (currentValue) {
-                  element.setAttribute('disabled', '');
-                  (element as any).disabled = true;
-                } else {
-                  element.removeAttribute('disabled');
-                  (element as any).disabled = false;
-                }
-
-              } else if (key === 'style') {
-                if (currentValue == null) {
-                  element.removeAttribute('style');
-                } else if (typeof currentValue === 'string') {
-                  element.setAttribute('style', currentValue);
-                } else if (typeof currentValue === 'object') {
-                  // Handle CSSStyleDeclaration-like object
-                  const styleObj = currentValue as Partial<CSSStyleDeclaration>;
-                  Object.entries(styleObj).forEach(([property, styleValue]) => {
-                    if (styleValue != null) {
-                      try {
-                        // Convert kebab-case to camelCase for CSS properties
-                        const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-                        const stringValue = String(styleValue);
-                        (element.style as any)[camelCaseProperty] = stringValue;
-                      } catch (styleError) {
-                        console.warn(`Failed to set CSS property "${property}":`, styleError);
-                      }
-                    }
-                  });
-                } else {
-                  element.setAttribute('style', String(currentValue));
-                }
-              } else if (key === 'readOnly' && element instanceof HTMLInputElement) {
-                element.readOnly = Boolean(currentValue);
-                if (currentValue) {
-                  element.setAttribute('readonly', '');
-                } else {
-                  element.removeAttribute('readonly');
-                }
-              } else {
-                // Handle circular references
-                if (currentValue === element) {
-                  console.warn(`Circular reference detected for attribute "${key}" on element`, element);
-                  return;
-                }
-
-                const stringValue = String(currentValue);
-                element.setAttribute(key, stringValue);
-              }
-            }
-          } catch (error) {
-            console.error(`Error updating attribute "${key}" on element:`, error);
-          }
-        };
-
-        try {
-          const batchedUpdateAttribute = () => {
-            addToBatch(updateAttribute);
-          };
-
-          const unsubscribe = value.subscribe(batchedUpdateAttribute);
-          addElementSubscription(element, unsubscribe);
-        } catch (error) {
-          console.error(`Error setting up reactive attribute "${key}":`, error);
-          // Fallback to static attribute
-          try {
-            const fallbackValue = String(value() || '');
-            element.setAttribute(key, fallbackValue);
-          } catch (fallbackError) {
-            console.error(`Error setting fallback for attribute "${key}":`, fallbackError);
-          }
-        }
-      }
-      // Handle regular attributes
-      else if (value != null) {
-        if (key === 'value' && element instanceof HTMLInputElement) {
-          element.value = String(value);
-        } else if (key === 'checked' && element instanceof HTMLInputElement) {
-          element.checked = Boolean(value);
-        } else if (key === 'disabled' && typeof value === 'boolean') {
-          // Handle disabled as a boolean attribute
-          if (value) {
-            element.setAttribute('disabled', '');
-            (element as any).disabled = true;
-          } else {
-            element.removeAttribute('disabled');
-            (element as any).disabled = false;
-          }
-        } else if (key === 'style') {
-          if (value == null) {
-            element.removeAttribute('style');
-          } else if (typeof value === 'string') {
-            element.setAttribute('style', value);
-          } else if (typeof value === 'object') {
-            // Handle CSSStyleDeclaration-like object
-            const styleObj = value as Partial<CSSStyleDeclaration>;
-            Object.entries(styleObj).forEach(([property, styleValue]) => {
-              if (styleValue != null) {
-                // Convert kebab-case to camelCase for CSS properties
-                const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-                (element.style as any)[camelCaseProperty] = String(styleValue);
-              }
-            });
-          } else {
-            element.setAttribute('style', String(value));
-          }
-        } else if (key === 'readOnly' && element instanceof HTMLInputElement) {
-          element.readOnly = Boolean(value);
-          if (value) {
-            element.setAttribute('readonly', '');
-          } else {
-            element.removeAttribute('readonly');
-          }
-        } else {
-          element.setAttribute(key, String(value));
-        }
-      }
-    }
+    attributeManager.applyAttributes(element, props);
   }
 
   return element;
@@ -535,6 +635,13 @@ function renderChildren(parent: HTMLElement | DocumentFragment, children: JSXChi
 
 // JSX Factory Function - creates actual DOM elements
 
+// Fragment component
+export function Fragment(props: { children?: JSXChildren }): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  renderChildren(fragment, props.children);
+  return fragment;
+}
+
 // JSX Factory Function - creates actual DOM elements
 export function jsx(
   type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
@@ -579,13 +686,6 @@ export function jsx(
 export const jsxs = jsx;
 export const jsxDEV = jsx;
 
-// Fragment component
-export function Fragment(props: { children?: JSXChildren }): DocumentFragment {
-  const fragment = document.createDocumentFragment();
-  renderChildren(fragment, props.children);
-  return fragment;
-}
-
 // Classic JSX Factory (for transform runtime)
 export function createJSXElement(
   type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
@@ -623,74 +723,7 @@ export function resetClientNodeCounter(): void {
   clientNodeCounter = 0;
 }
 
-// Export node ID functions for external use
-export { createClientId, cleanupElementSubscriptions };
+// JSX namespace imported from elements.ts
 
-// JSX namespace for TypeScript
-export namespace JSX {
-  export type Element = JSXElement;
 
-  export interface ElementChildrenAttribute {
-    children: JSXChildren;
-  }
-  export type HTMLAttributes<T> = {
-    [P in keyof T]?: P extends 'children' ? JSXChildren : ReactiveValue<T[P]>;
-  } & {
-    class?: string | ReactiveValue<string>;
-    ref?: ((el: HTMLElement) => void) | { current: HTMLElement | null };
-    key?: string | number;
-    onclick?: EventHandler<MouseEvent>;
-    oninput?: EventHandler<InputEvent>;
-    onchange?: EventHandler<Event>;
-    onsubmit?: EventHandler<SubmitEvent>;
-    onfocus?: EventHandler<FocusEvent>;
-    onblur?: EventHandler<FocusEvent>;
-    onkeydown?: EventHandler<KeyboardEvent>;
-    onkeyup?: EventHandler<KeyboardEvent>;
-    onkeypress?: EventHandler<KeyboardEvent>;
-    onmouseenter?: EventHandler<MouseEvent>;
-    onmouseleave?: EventHandler<MouseEvent>;
-    onmousemove?: EventHandler<MouseEvent>;
-    onmousedown?: EventHandler<MouseEvent>;
-    onmouseup?: EventHandler<MouseEvent>;
-    ontouchstart?: EventHandler<TouchEvent>;
-    ontouchend?: EventHandler<TouchEvent>;
-    ontouchmove?: EventHandler<TouchEvent>;
-    onscroll?: EventHandler<Event>;
-    onresize?: EventHandler<Event>;
-    onload?: EventHandler<Event>;
-    onerror?: EventHandler<Event>;
-  };
 
-  export type IntrinsicElements = {
-    [K in keyof HTMLElementTagNameMap]: Prettify<
-      HTMLAttributes<Omit<HTMLElementTagNameMap[K],
-        | 'style'
-        | 'onclick'
-        | 'oninput'
-        | 'onchange'
-        | 'onsubmit'
-        | 'onfocus'
-        | 'onblur'
-        | 'onkeydown'
-        | 'onkeyup'
-        | 'onkeypress'
-        | 'onmouseenter'
-        | 'onmouseleave'
-        | 'onmousemove'
-        | 'onmousedown'
-        | 'onmouseup'
-        | 'ontouchstart'
-        | 'ontouchend'
-        | 'ontouchmove'
-        | 'onscroll'
-        | 'onresize'
-        | 'onload'
-        | 'onerror'
-
-      >> & {
-        style?: ReactiveValue<string | Partial<CSSStyleDeclaration>>;
-      }
-    >;
-  }
-}

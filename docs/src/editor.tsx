@@ -89,7 +89,7 @@ export function editor(): JSX.Element {
           <span>Formatting:</span>
           <button
             class="p-2 rounded-md bg-zinc-800 border-2 border-zinc-950 font-bold text-white hover:bg-zinc-700"
-            onMouseDown={handleBoldClick}
+            onmousedown={handleBoldClick}
             title="Bold selected text"
           >
             <strong>B</strong>
@@ -97,7 +97,7 @@ export function editor(): JSX.Element {
         </div>
         <div class="border-2 rounded-md p-2 bg-white text-black">
           <div id={editor_content_id} class="">
-            <article contenteditable="true" onInput={handleInput}>
+            <article contentEditable="true" oninput={handleInput}>
               <p>Edit me! Select some text and click the <strong>B</strong> button to make it bold.</p>
             </article>
           </div>
@@ -112,7 +112,7 @@ export function editor(): JSX.Element {
       <div class="p-2 bg-purple-950 rounded-md">
         <p class="text-xl font-semibold">JSON:</p>
         <div class="bg-black/20 p-2 border-2 border-gray-500 rounded-md">
-          <output class="" name="json_output" htmlFor={editor_content_id}>
+          <output class="" name="json_output" for={editor_content_id}>
             <pre class="overflow-x-scroll">
               {() => JSON.stringify(articleSignal(), null, "  ")}
             </pre>

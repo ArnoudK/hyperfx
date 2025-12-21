@@ -24,7 +24,7 @@ describe('Memory Management for Signal Subscriptions', () => {
       const elements = signals.map((signal, index): HTMLElement =>
         jsx('div', {
           id: `element-${index}`,
-          className: signal,
+          class: signal,
           title: `title-${index}`
         }) as HTMLElement
       );
@@ -58,7 +58,7 @@ describe('Memory Management for Signal Subscriptions', () => {
 
       // Create and destroy elements rapidly
       for (let i = 0; i < 20; i++) {
-        const element = jsx('div', { className: signal }) as HTMLElement;
+        const element = jsx('div', { class: signal }) as HTMLElement;
         container.appendChild(element);
         
         expect(signal.subscriberCount).toBeLessThanOrEqual(1);
@@ -87,7 +87,7 @@ describe('Memory Management for Signal Subscriptions', () => {
       const baseSignal = createSignal('base');
       const signals = Array.from({ length: 10 }, (_, i) => {
         const computedSignal = createComputed(() => `${baseSignal()}-computed-${i}`);
-        const element = jsx('div', { className: computedSignal }) as HTMLElement;
+        const element = jsx('div', { class: computedSignal }) as HTMLElement;
         container.appendChild(element);
         return { signal: computedSignal, element };
       });
@@ -124,7 +124,7 @@ describe('Memory Management for Signal Subscriptions', () => {
       const signal2 = createSignal('value2');
       
       const element = jsx('div', {
-        className: signal1,
+        class: signal1,
         title: signal2
       }) as HTMLElement;
       
@@ -148,8 +148,8 @@ describe('Memory Management for Signal Subscriptions', () => {
     it('should handle signal reuse across elements', () => {
       const sharedSignal = createSignal('shared');
       
-      const element1 = jsx('div', { className: sharedSignal }) as HTMLElement;
-      const element2 = jsx('div', { className: sharedSignal }) as HTMLElement;
+      const element1 = jsx('div', { class: sharedSignal }) as HTMLElement;
+      const element2 = jsx('div', { class: sharedSignal }) as HTMLElement;
       
       container.appendChild(element1);
       container.appendChild(element2);
@@ -177,7 +177,7 @@ describe('Memory Management for Signal Subscriptions', () => {
     it('should handle elements with no signals', () => {
       const element = jsx('div', { 
         id: 'static-element',
-        className: 'static-class',
+        class: 'static-class',
         title: 'static-title'
       }) as HTMLElement;
       
@@ -194,7 +194,7 @@ describe('Memory Management for Signal Subscriptions', () => {
 
     it('should handle repeated cleanup calls', () => {
       const signal = createSignal('test');
-      const element = jsx('div', { className: signal }) as HTMLElement;
+      const element = jsx('div', { class: signal }) as HTMLElement;
       
       container.appendChild(element);
 

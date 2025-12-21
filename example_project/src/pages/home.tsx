@@ -34,7 +34,7 @@ export function HomePage() {
         </p>
       </div>
       <div>
-        <input value={thing} class="p-2 border border-gray-300 rounded" type="text" onInput={(e) => setThing((e.target as any).value)} />
+        <input value={thing} class="p-2 border border-gray-300 rounded" type="text" oninput={(e) => setThing((e.target as any).value)} />
         <p>{thing}</p>
       </div>
 
@@ -46,7 +46,7 @@ export function HomePage() {
           </h2>
           <div class="space-y-4">
             <div>
-              <label htmlFor="name-input" class="block text-sm font-medium text-gray-300 mb-2">
+              <label for="name-input" class="block text-sm font-medium text-gray-300 mb-2">
                 Enter your name:
               </label>
               <input
@@ -55,7 +55,7 @@ export function HomePage() {
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Your name..."
                 value={name}
-                onInput={(e) => name((e.target as HTMLInputElement).value)}
+                oninput={(e) => name((e.target as HTMLInputElement).value)}
               />
             </div>
             <div class="p-4 bg-gray-700 rounded-md">
@@ -77,21 +77,21 @@ export function HomePage() {
               <div class="space-x-2">
                 <button
                   type="button"
-                  onClick={increment}
+                  onclick={increment}
                   class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 transition-colors cursor-pointer"
                 >
                   +1
                 </button>
                 <button
                   type="button"
-                  onClick={decrement}
+                  onclick={decrement}
                   class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 transition-colors cursor-pointer"
                 >
                   -1
                 </button>
                 <button
                   type="button"
-                  onClick={reset}
+                  onclick={reset}
                   class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 transition-colors cursor-pointer"
                 >
                   Reset

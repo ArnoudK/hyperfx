@@ -16,7 +16,7 @@ function App() {
     <div>
       <h1>My App</h1>
       <p>Count: {count}</p>
-      <button onClick={() => count(count() + 1)}>
+      <button onclick={() => count(count() + 1)}>
         Increment
       </button>
     </div>
@@ -64,11 +64,11 @@ function Profile() {
   return (
     <div>
       <Show when={loggedIn}>
-        <button onClick={() => logout()}>Logout</button>
+        <button onclick={() => logout()}>Logout</button>
       </Show>
       
       <Show when={() => !loggedIn()}>
-        <button onClick={() => login()}>Login</button>
+        <button onclick={() => login()}>Login</button>
       </Show>
     </div>
   );

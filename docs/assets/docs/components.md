@@ -27,7 +27,7 @@ function MyComponent() {
         id="live_type_input"
         type="text"
         value={text()}
-        onInput={(e) => {
+        oninput={(e) => {
           setText((e.target as HTMLInputElement).value);
         }}
       />
@@ -45,6 +45,7 @@ document.body.appendChild(myComponent);
 Yes! Components are the recommended way to structure your HyperFX applications. They provide clean separation of concerns and work seamlessly with the signal-based reactivity system.
 
 Since components are just functions that return JSX elements, you can:
+
 - Pass props as function parameters
 - Use signals for internal state
 - Compose them easily

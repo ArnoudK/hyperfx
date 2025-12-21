@@ -109,7 +109,7 @@ export default function ProductsPage() {
 
               <button
                 class="group px-8 py-4 bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-xl text-lg font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25"
-                onClick={clearCart}
+                onclick={clearCart}
                 disabled={isCartEmpty}
                 type="button"
                 aria-label={`Clear all ${cartItemCount} items from cart`}
@@ -135,7 +135,7 @@ export default function ProductsPage() {
                         </div>
                         <button
                           class="group px-4 py-2 bg-linear-to-r from-red-300 to-rose-400 hover:from-red-800 hover:to-rose-900 rounded-lg text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25 self-start sm:self-center"
-                          onClick={() => removeFromCart(item.id)}
+                          onclick={() => removeFromCart(item.id)}
                           type="button"
                           aria-label={`Remove ${item.name} from cart`}
                         >
@@ -192,7 +192,7 @@ export default function ProductsPage() {
                       </span>
                       <button
                         class="group px-6 py-3 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg bg-linear-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white disabled:from-gray-600 disabled:to-slate-600 disabled:text-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none focus:ring-blue-500/50 hover:shadow-blue-500/25"
-                        onClick={() => addToCart(product)}
+                        onclick={() => addToCart(product)}
                         disabled={isInCart}
                         type="button"
                         aria-label={buttonLabel}

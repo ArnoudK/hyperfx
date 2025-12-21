@@ -158,7 +158,6 @@ export function TodoPage() {
             <For each={filterButtons}>
               {({ option, isActive }) => (
                 <button
-                  key={option}
                   type="button"
                   onclick={() => filterStatus(option)}
                   class={`px-3 py-1 rounded-md transition-colors capitalize ${isActive

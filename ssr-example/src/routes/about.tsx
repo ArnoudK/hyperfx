@@ -75,7 +75,7 @@ export default function AboutPage() {
                                             <span class="text-white font-medium text-lg">{feature}</span>
                                             <button
                                                 class="group px-4 py-2 bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-lg text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25"
-                                                onClick={() => removeFeature(index())}
+                                                onclick={() => removeFeature(index())}
                                                 type="button"
                                                 aria-label={`Remove ${feature} from feature list`}
                                             >
@@ -96,7 +96,7 @@ export default function AboutPage() {
                                     addFeature();
                                 }}
                             >
-                                <label htmlFor="new-feature" class="sr-only">
+                                <label for="new-feature" class="sr-only">
                                     Add new feature
                                 </label>
                                 <input
@@ -121,7 +121,7 @@ export default function AboutPage() {
                                     <button
                                         type="button"
                                         class="group px-8 py-4 bg-linear-to-r from-gray-600 to-slate-600 hover:from-gray-500 hover:to-slate-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-gray-500/25"
-                                        onClick={resetFeatures}
+                                        onclick={resetFeatures}
                                     >
                                         <span class="flex items-center gap-2">
                                             <span class="text-xl group-hover:animate-spin">🔄</span>

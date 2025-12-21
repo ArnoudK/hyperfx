@@ -78,21 +78,21 @@ export function CounterPage() {
             <div class="flex justify-center space-x-2">
               <button
                 type="button"
-                onClick={() => count(count() + step())}
+                onclick={() => count(count() + step())}
                 class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
               >
                 +{step}
               </button>
               <button
                 type="button"
-                onClick={() => count(count() - step())}
+                onclick={() => count(count() - step())}
                 class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
               >
                 -{step}
               </button>
               <button
                 type="button"
-                onClick={() => count(0)}
+                onclick={() => count(0)}
                 class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
               >
                 Reset
@@ -102,21 +102,21 @@ export function CounterPage() {
             <div class="flex justify-center space-x-2">
               <button
                 type="button"
-                onClick={() => count(count() * 2)}
+                onclick={() => count(count() * 2)}
                 class="px-3 py-1 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 transition-colors"
               >
                 ×2
               </button>
               <button
                 type="button"
-                onClick={() => count(Math.floor(count() / 2))}
+                onclick={() => count(Math.floor(count() / 2))}
                 class="px-3 py-1 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 transition-colors"
               >
                 ÷2
               </button>
               <button
                 type="button"
-                onClick={() => count(count() * -1)}
+                onclick={() => count(count() * -1)}
                 class="px-3 py-1 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700 transition-colors"
               >
                 ±
@@ -137,8 +137,7 @@ export function CounterPage() {
                 {({ value, isActive }) => (
                   <button
                     type="button"
-                    key={value}
-                    onClick={() => step(value)}
+                    onclick={() => step(value)}
                     class={`px-3 py-2 rounded-md transition-colors ${isActive
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -151,7 +150,7 @@ export function CounterPage() {
             </div>
 
             <div>
-              <label htmlFor="step-input" class="block text-sm font-medium text-gray-300 mb-2">
+              <label for="step-input" class="block text-sm font-medium text-gray-300 mb-2">
                 Custom Step:
               </label>
               <input
@@ -159,7 +158,7 @@ export function CounterPage() {
                 type="number"
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={step().toString()}
-                onInput={(e) => {
+                oninput={(e) => {
                   const value = parseInt((e.target as HTMLInputElement).value) || 1;
                   step(Math.max(1, value));
                 }}
@@ -168,6 +167,7 @@ export function CounterPage() {
           </div>
         </div>
       </div>
+
 
       {/* History */}
       <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -178,11 +178,10 @@ export function CounterPage() {
           {[0, 1, 10, 50, 100, 500, 1000, -1, -10, -100].map(value => (
             <button
               type="button"
-              key={value}
-              onClick={() => count(value)}
+              onclick={() => count(value)}
               class="px-3 py-2 bg-gray-700 text-gray-300 rounded-md hover:bg-gray-600 transition-colors text-sm"
             >
-              {value}
+              {String(value)}
             </button>
           ))}
         </div>

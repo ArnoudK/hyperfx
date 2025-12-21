@@ -222,7 +222,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
       const classNameSignal = createSignal('my-class');
       
       const element = jsx('div', {
-        className: classNameSignal,
+        class: classNameSignal,
         style: styleSignal,
         title: 'static title'
       }) as HTMLElement;

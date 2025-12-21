@@ -39,7 +39,7 @@ function Counter() {
   return (
     <div>
       <h1>Count: {count}</h1>
-      <button onClick={() => count(count() + 1)}>
+      <button onclick={() => count(count() + 1)}>
         Increment
       </button>
     </div>
@@ -73,7 +73,7 @@ const buttonText = createSignal("Click me");
 
 <button
   style={{ display: () => isVisible() ? 'block' : 'none' }}
-  onClick={() => isVisible(!isVisible())}
+  onclick={() => isVisible(!isVisible())}
 >
   {buttonText}
 </button>
@@ -86,7 +86,7 @@ const inputValue = createSignal("");
 
 <input
   value={inputValue}
-  onInput={(e) => inputValue(e.target.value)}
+  oninput={(e) => inputValue(e.target.value)}
   placeholder="Type something..."
 />
 

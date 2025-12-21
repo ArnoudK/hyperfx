@@ -43,7 +43,7 @@ function Greeting() {
     <div>
       <input 
         value={name} 
-        onInput={(e) => name(e.target.value)} 
+        oninput={(e) => name(e.target.value)} 
       />
       <h1>Hello, {name}!</h1>
     </div>
