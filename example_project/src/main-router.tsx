@@ -57,7 +57,7 @@ function HomePage(): JSX.Element {
         </div>
         <button
           type="button"
-          onClick={() => navigate('/counter')}
+          onclick={() => navigate('/counter')}
           class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Go to Counter
@@ -134,28 +134,28 @@ function AboutPage(): JSX.Element {
           <div class="space-y-4">
             <button
               type="button"
-              onClick={() => navigate('/')}
+              onclick={() => navigate('/')}
               class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
               Back to Home
             </button>
             <button
               type="button"
-              onClick={() => navigate('/counter')}
+              onclick={() => navigate('/counter')}
               class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
             >
               Try Counter Demo
             </button>
             <button
               type="button"
-              onClick={() => navigate('/todo')}
+              onclick={() => navigate('/todo')}
               class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
             >
               Todo App
             </button>
             <button
               type="button"
-              onClick={() => navigate('/form')}
+              onclick={() => navigate('/form')}
               class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
             >
               Form Demo
@@ -183,7 +183,7 @@ function NotFoundPage(): JSX.Element {
       </p>
       <button
         type="button"
-        onClick={() => navigate('/')}
+        onclick={() => navigate('/')}
         class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
       >
         Go Home

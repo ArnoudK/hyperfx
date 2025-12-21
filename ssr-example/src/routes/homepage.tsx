@@ -53,7 +53,7 @@ export default function HomePage() {
                             <div class="flex flex-wrap justify-center gap-6">
                                 <button
                                     class="group px-8 py-4 bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-green-500/25"
-                                    onClick={increment}
+                                    onclick={increment}
                                     type="button"
                                     aria-label="Increment counter"
                                 >
@@ -65,7 +65,7 @@ export default function HomePage() {
 
                                 <button
                                     class="group px-8 py-4 bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-red-500/25"
-                                    onClick={decrement}
+                                    onclick={decrement}
                                     type="button"
                                     aria-label="Decrement counter"
                                 >
@@ -77,7 +77,7 @@ export default function HomePage() {
 
                                 <button
                                     class="group px-8 py-4 bg-linear-to-r from-gray-600 to-slate-600 hover:from-gray-500 hover:to-slate-500 rounded-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 transform hover:scale-105 hover:shadow-lg hover:shadow-gray-500/25"
-                                    onClick={reset}
+                                    onclick={reset}
                                     type="button"
                                     aria-label="Reset counter to zero"
                                 >

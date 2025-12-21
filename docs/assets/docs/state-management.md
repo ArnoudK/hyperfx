@@ -23,7 +23,7 @@ count(count() + 1);
 // Use it directly in JSX
 function Counter() {
   return (
-    <button onClick={() => count(count() + 1)}>
+    <button onclick={() => count(count() + 1)}>
       Count is: {count}
     </button>
   );
@@ -81,7 +81,7 @@ function HookExample() {
   const [count, setCount] = useState(0);
 
   return (
-    <button onClick={() => setCount(count() + 1)}>
+    <button onclick={() => setCount(count() + 1)}>
       Count: {count}
     </button>
   );

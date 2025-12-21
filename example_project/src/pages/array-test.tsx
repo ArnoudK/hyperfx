@@ -13,7 +13,7 @@ export function ArrayTest() {
         <h2 class="text-xl font-semibold mb-4 text-green-600">Reactive Array (Signal)</h2>
         <button
           type="button"
-          onClick={() => reactiveArray.set([...reactiveArray.get(), `Item ${reactiveArray.get().length + 1}`])}
+          onclick={() => reactiveArray.set([...reactiveArray.get(), `Item ${reactiveArray.get().length + 1}`])}
           class="bg-green-500 text-white px-4 py-2 rounded mb-4"
         >
           Add Reactive Item
@@ -33,7 +33,7 @@ export function ArrayTest() {
         <h2 class="text-xl font-semibold mb-4 text-blue-600">Second Reactive Signal</h2>
         <button
           type="button"
-          onClick={() => staticArray.set([...staticArray.get(), `Item ${staticArray.get().length + 1}`])}
+          onclick={() => staticArray.set([...staticArray.get(), `Item ${staticArray.get().length + 1}`])}
           class="bg-blue-500 text-white px-4 py-2 rounded mb-4"
         >
           Add to Second Array

@@ -215,7 +215,7 @@ interface LinkProps {
   activeClass?: string;
   exact?: boolean;
   replace?: boolean;
-  onClick?: (event: MouseEvent) => void;
+  onclick?: (event: MouseEvent) => void;
 }
 
 export function Link(props: LinkProps): JSXElement {
@@ -232,8 +232,8 @@ export function Link(props: LinkProps): JSXElement {
     console.log('Link: clicked', props.to);
     event.preventDefault();
 
-    if (props.onClick) {
-      props.onClick(event);
+    if (props.onclick) {
+      props.onclick(event);
     }
 
     if (context) {

@@ -4,7 +4,6 @@ HyperFX provides a declarative, component-based routing system that allows you t
 
 ## Core Components
 
-
 ### `<Router>`
 
 The `<Router>` component is the root of your routing system. It manages the current path and provides routing context to its children.
@@ -28,7 +27,6 @@ function App() {
 }
 ```
 
-
 ### `<Link>`
 
 The `<Link>` component provides a declarative way to navigate between routes. It prevents full page reloads and updates the URL.
@@ -44,7 +42,6 @@ The `<Link>` component provides a declarative way to navigate between routes. It
 
 ## Routing Hooks
 
-
 ### `usePath()`
 
 Returns a reactive signal containing the current URL path.
@@ -57,7 +54,6 @@ function PathDisplay() {
   return <p>Current path is: {path}</p>;
 }
 ```
-
 
 ### `useNavigate()`
 
@@ -74,14 +70,13 @@ function LogoutButton() {
     navigate("/");
   };
   
-  return <button onClick={handleLogout}>Logout</button>;
+  return <button onclick={handleLogout}>Logout</button>;
 }
 ```
 
 ---
 
 ## Query Parameters & Params
-
 
 ### `getQueryValue(key)`
 
@@ -95,7 +90,6 @@ function Docs() {
   // ...
 }
 ```
-
 
 ### `getParam(key)` (In progress)
 

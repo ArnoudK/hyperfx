@@ -45,7 +45,7 @@ describe('Functional Hydration', () => {
         function Counter(): JSXElement {
             const btn = createElement('button', {
                 id: 'btn',
-                onClick: () => count(count() + 1)
+                onclick: () => count(count() + 1)
             },
                 'Count: ',
                 count // Reactive text

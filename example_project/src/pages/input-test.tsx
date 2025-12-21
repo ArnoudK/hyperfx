@@ -14,13 +14,13 @@ export function InputTest() {
       <input
         type="text"
         value={inputValue}
-        onInput={(e) => inputValue.set((e.target as HTMLInputElement).value)}
+        oninput={(e) => inputValue.set((e.target as HTMLInputElement).value)}
         placeholder="Type something..."
         class="border p-2 mr-2"
       />
       <button
         type="button"
-        onClick={addItem}
+        onclick={addItem}
         class="bg-blue-500 text-white px-4 py-2 rounded"
       >
         Add

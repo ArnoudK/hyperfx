@@ -29,7 +29,7 @@ interface LinkProps {
     activeClass?: string;
     exact?: boolean;
     replace?: boolean;
-    onClick?: (event: MouseEvent) => void;
+    onclick?: (event: MouseEvent) => void;
 }
 export declare function Link(props: LinkProps): JSXElement;
 /**

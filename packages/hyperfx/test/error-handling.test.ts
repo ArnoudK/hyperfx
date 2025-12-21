@@ -43,7 +43,7 @@ describe('Error Handling for Invalid Signal Values', () => {
     it('should handle null signal values gracefully', () => {
       const nullSignal = createSignal<string | null>(null);
       const element = jsx('div', { 
-        className: nullSignal,
+        class: nullSignal,
         id: nullSignal 
       }) as HTMLElement;
       
@@ -112,7 +112,7 @@ describe('Error Handling for Invalid Signal Values', () => {
         configurable: true
       });
 
-      const element = jsx('div', { className: throwingSignal }) as HTMLElement;
+      const element = jsx('div', { class: throwingSignal }) as HTMLElement;
       container.appendChild(element);
       
       expect(element.className).toBe('initial');
@@ -136,7 +136,7 @@ describe('Error Handling for Invalid Signal Values', () => {
         throw new Error('Cannot subscribe to this signal');
       };
 
-      const element = jsx('div', { className: problematicSignal }) as HTMLElement;
+      const element = jsx('div', { class: problematicSignal }) as HTMLElement;
       container.appendChild(element);
       
       // Should attempt to set fallback value
@@ -156,7 +156,7 @@ describe('Error Handling for Invalid Signal Values', () => {
         };
       };
 
-      const element = jsx('div', { className: errorSignal }) as HTMLElement;
+      const element = jsx('div', { class: errorSignal }) as HTMLElement;
       container.appendChild(element);
       
       expect(errorSignal.subscriberCount).toBeGreaterThan(0);

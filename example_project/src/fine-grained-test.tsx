@@ -28,7 +28,7 @@ function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
           <p class="text-2xl mb-4">Count: {count1()}</p>
           <button
             type="button"
-            onClick={() => count1(count1() + 1)}
+            onclick={() => count1(count1() + 1)}
             class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
           >
             Increment Count 1
@@ -41,7 +41,7 @@ function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
           <p class="text-2xl mb-4">Count: {count2()}</p>
           <button
             type="button"
-            onClick={() => count2(count2() + 1)}
+            onclick={() => count2(count2() + 1)}
             class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
           >
             Increment Count 2
@@ -56,14 +56,14 @@ function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
         <div class="flex gap-2">
           <button
             type="button"
-            onClick={() => status('active')}
+            onclick={() => status('active')}
             class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Set Active
           </button>
           <button
             type="button"
-            onClick={() => status('idle')}
+            onclick={() => status('idle')}
             class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           >
             Set Idle

@@ -129,10 +129,10 @@ export function FormPage() {
             User Registration
           </h2>
 
-          <form onSubmit={handleSubmit} class="space-y-6">
+          <form onsubmit={handleSubmit} class="space-y-6">
             {/* Name */}
             <div>
-              <label htmlFor="name" class="block text-sm font-medium text-gray-300 mb-2">
+              <label for="name" class="block text-sm font-medium text-gray-300 mb-2">
                 Name *
               </label>
               <input
@@ -148,7 +148,7 @@ export function FormPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" class="block text-sm font-medium text-gray-300 mb-2">
+              <label for="email" class="block text-sm font-medium text-gray-300 mb-2">
                 Email *
               </label>
               <input
@@ -170,7 +170,7 @@ export function FormPage() {
 
             {/* Age */}
             <div>
-              <label htmlFor="age" class="block text-sm font-medium text-gray-300 mb-2">
+              <label for="age" class="block text-sm font-medium text-gray-300 mb-2">
                 Age *
               </label>
               <input
@@ -193,7 +193,7 @@ export function FormPage() {
 
             {/* Country */}
             <div>
-              <label htmlFor="country" class="block text-sm font-medium text-gray-300 mb-2">
+              <label for="country" class="block text-sm font-medium text-gray-300 mb-2">
                 Country *
               </label>
               <select
@@ -205,7 +205,7 @@ export function FormPage() {
               >
                 <option value="">Select a country</option>
                 <>
-                  {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {countries.map((c) => <option value={c}>{c}</option>)}
                 </>
               </select>
             </div>
@@ -217,7 +217,7 @@ export function FormPage() {
               </label>
               <div class="grid grid-cols-2 gap-2">
                 {availableInterests.map((interest) => (
-                  <label key={interest} class="flex items-center">
+                  <label class="flex items-center">
                     <input
                       type="checkbox"
                       checked={interests().includes(interest)}
@@ -245,7 +245,7 @@ export function FormPage() {
 
             {/* Comments */}
             <div>
-              <label htmlFor="comments" class="block text-sm font-medium text-gray-300 mb-2">
+              <label for="comments" class="block text-sm font-medium text-gray-300 mb-2">
                 Comments
               </label>
               <textarea

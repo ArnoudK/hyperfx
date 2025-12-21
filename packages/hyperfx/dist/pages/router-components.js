@@ -158,8 +158,8 @@ export function Link(props) {
     const handleClick = (event) => {
         console.log('Link: clicked', props.to);
         event.preventDefault();
-        if (props.onClick) {
-            props.onClick(event);
+        if (props.onclick) {
+            props.onclick(event);
         }
         if (context) {
             context.navigate(props.to, { replace: props.replace !== undefined ? props.replace : false });

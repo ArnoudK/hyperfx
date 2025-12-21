@@ -62,22 +62,25 @@ function isSSREnvironment() {
 /**
  * Generate a unique node ID for client-side elements
  */
-function createClientId() {
+export function createClientId() {
     return String(++clientNodeCounter).padStart(6, '0');
 }
 /**
  * Add a subscription to an element's cleanup list
  */
 function addElementSubscription(element, unsubscribe) {
-    if (!elementSubscriptions.has(element)) {
-        elementSubscriptions.set(element, new Set());
+    const subscriptions = elementSubscriptions.get(element);
+    if (!subscriptions) {
+        elementSubscriptions.set(element, new Set([unsubscribe]));
     }
-    elementSubscriptions.get(element).add(unsubscribe);
+    else {
+        subscriptions.add(unsubscribe);
+    }
 }
 /**
  * Clean up all signal subscriptions for an element
  */
-function cleanupElementSubscriptions(element) {
+export function cleanupElementSubscriptions(element) {
     const subscriptions = elementSubscriptions.get(element);
     if (subscriptions) {
         subscriptions.forEach(unsubscribe => {
@@ -87,39 +90,175 @@ function cleanupElementSubscriptions(element) {
         elementSubscriptions.delete(element);
     }
 }
-/**
- * Set up a MutationObserver to automatically clean up subscriptions when elements are removed
- */
-const cleanupObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-        for (const node of mutation.removedNodes) {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-                cleanupElementSubscriptions(node);
-                // Also clean up all child elements recursively
-                const walker = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT);
-                let child = walker.nextNode();
-                while (child) {
-                    cleanupElementSubscriptions(child);
-                    child = walker.nextNode();
+// Simple setAttribute function that handles all attribute types
+function setAttribute(element, key, value) {
+    // Skip children and key props
+    if (key === 'children' || key === 'key') {
+        return;
+    }
+    // Handle event handlers
+    if (key.startsWith('on') && typeof value === 'function') {
+        const eventName = key.slice(2).toLowerCase();
+        element.addEventListener(eventName, value);
+        return;
+    }
+    // Handle reactive signals
+    if (isSignal(value)) {
+        const update = () => setAttribute(element, key, value());
+        update();
+        const unsubscribe = value.subscribe(() => addToBatch(update));
+        addElementSubscription(element, unsubscribe);
+        return;
+    }
+    // Handle reactive functions (create computed for reactivity)
+    else if (typeof value === 'function') {
+        const computed = signal_createComputed(value);
+        const update = () => setAttribute(element, key, computed());
+        update();
+        const unsubscribe = computed.subscribe(() => addToBatch(update));
+        addElementSubscription(element, unsubscribe);
+        return;
+    }
+    // Handle class attribute specially
+    if (key === 'class') {
+        if (value != null) {
+            element.className = String(value);
+        }
+        else {
+            element.removeAttribute('class');
+        }
+        return;
+    }
+    // Handle boolean attributes
+    const booleanAttrs = new Set([
+        'disabled', 'checked', 'readonly', 'readOnly', 'required', 'autofocus', 'autoplay',
+        'controls', 'default', 'defer', 'hidden', 'inert', 'loop', 'multiple',
+        'muted', 'novalidate', 'open', 'reversed', 'selected'
+    ]);
+    if (booleanAttrs.has(key)) {
+        const boolValue = Boolean(value);
+        if (key === 'checked' && element instanceof HTMLInputElement) {
+            element.checked = boolValue;
+            element.toggleAttribute('checked', boolValue);
+        }
+        else if ((key === 'readonly' || key === 'readOnly') && element instanceof HTMLInputElement) {
+            element.readOnly = boolValue;
+            element.toggleAttribute('readonly', boolValue);
+        }
+        else if (key === 'disabled') {
+            element.disabled = boolValue;
+            element.toggleAttribute('disabled', boolValue);
+        }
+        else {
+            element.toggleAttribute(key, boolValue);
+        }
+        return;
+    }
+    // Handle style attribute
+    if (key === 'style') {
+        if (value == null) {
+            element.removeAttribute('style');
+        }
+        else if (typeof value === 'string') {
+            element.setAttribute('style', value);
+        }
+        else if (typeof value === 'object') {
+            Object.entries(value).forEach(([property, styleValue]) => {
+                if (styleValue != null) {
+                    try {
+                        const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                        element.style[camelCaseProperty] = String(styleValue);
+                    }
+                    catch (styleError) {
+                        console.warn(`Failed to set CSS property "${property}":`, styleError);
+                    }
+                }
+            });
+        }
+        else {
+            element.setAttribute('style', String(value));
+        }
+        return;
+    }
+    // Handle input properties
+    if (key === 'value' && element instanceof HTMLInputElement) {
+        element.value = String(value || '');
+        return;
+    }
+    if (key === 'innerHTML' || key === 'textContent') {
+        element[key] = value;
+        return;
+    }
+    // Handle all other attributes
+    if (value != null) {
+        element.setAttribute(key, String(value));
+    }
+    else {
+        element.removeAttribute(key);
+    }
+}
+function normalizeValue(value) {
+    // Handle signals
+    if (isSignal(value)) {
+        return {
+            isReactive: true,
+            isFunction: false,
+            getValue: () => {
+                try {
+                    return value();
+                }
+                catch (error) {
+                    console.error('Error accessing signal value:', error);
+                    return undefined;
+                }
+            },
+            subscribe: (callback) => {
+                try {
+                    return value.subscribe(callback);
+                }
+                catch (error) {
+                    console.error('Error subscribing to signal:', error);
+                    return () => { };
                 }
             }
+        };
+    }
+    // Handle functions (non-signal)
+    if (typeof value === 'function') {
+        return {
+            isReactive: false,
+            isFunction: true,
+            getValue: () => {
+                try {
+                    return value();
+                }
+                catch (error) {
+                    console.error('Error executing function value:', error);
+                    return undefined;
+                }
+            },
+            subscribe: undefined
+        };
+    }
+    // Handle static values
+    return {
+        isReactive: false,
+        isFunction: false,
+        getValue: () => value,
+        subscribe: undefined
+    };
+}
+// Global attribute manager instance
+const attributeManager = {
+    applyAttribute(element, key, value) {
+        setAttribute(element, key, value);
+    },
+    applyAttributes(element, props) {
+        for (const [key, value] of Object.entries(props)) {
+            this.applyAttribute(element, key, value);
         }
     }
-});
-// Start observing the document for removed nodes
-if (typeof document !== 'undefined') {
-    cleanupObserver.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-}
-// Type guard for reactive signals
-function isReactiveSignal(fn) {
-    if (typeof fn !== 'function')
-        return false;
-    // Check for our custom signal implementation
-    return typeof fn === 'function' && 'get' in fn && 'set' in fn && 'subscribe' in fn;
-}
+};
 // Hydration State
 let hydrationEnabled = false;
 let hydrationMap = null;
@@ -168,200 +307,9 @@ function createElement(tag, props) {
             element.setAttribute('data-hfxh', createClientId());
         }
     }
+    // Apply all attributes using the unified attribute manager
     if (props) {
-        for (const [key, value] of Object.entries(props)) {
-            if (key === 'children')
-                continue; // Handle children separately
-            if (key === 'key')
-                continue; // Ignore React-style keys
-            // Handle special properties like innerHTML and textContent
-            if (key === 'innerHTML' || key === 'textContent') {
-                const updateProp = () => {
-                    const val = isSignal(value) ? value() : value;
-                    element[key] = val;
-                };
-                if (isSignal(value)) {
-                    const batchedUpdateProp = () => {
-                        addToBatch(updateProp);
-                    };
-                    value.subscribe(batchedUpdateProp);
-                }
-                updateProp();
-            }
-            // Handle event handlers
-            else if (key.startsWith('on') && typeof value === 'function') {
-                const eventName = key.slice(2).toLowerCase();
-                element.addEventListener(eventName, value);
-            }
-            // Handle function values (non-reactive)
-            else if (typeof value === 'function' && !isSignal(value)) {
-                const result = value();
-                if (result != null) {
-                    element.setAttribute(key, String(result));
-                }
-            }
-            // Handle reactive attributes
-            else if (isSignal(value)) {
-                // Reactive attribute - subscribe to changes
-                const updateAttribute = () => {
-                    try {
-                        const currentValue = value();
-                        if (currentValue == null) {
-                            if (key === 'value' && element instanceof HTMLInputElement) {
-                                element.value = '';
-                            }
-                            else if (key === 'checked' && element instanceof HTMLInputElement) {
-                                element.checked = false;
-                            }
-                            else {
-                                element.removeAttribute(key);
-                            }
-                        }
-                        else {
-                            if (key === 'value' && element instanceof HTMLInputElement) {
-                                const stringValue = String(currentValue);
-                                element.value = stringValue;
-                            }
-                            else if (key === 'checked' && element instanceof HTMLInputElement) {
-                                element.checked = Boolean(currentValue);
-                            }
-                            else if (key === 'disabled' && typeof currentValue === 'boolean') {
-                                // Handle disabled as a boolean attribute
-                                if (currentValue) {
-                                    element.setAttribute('disabled', '');
-                                    element.disabled = true;
-                                }
-                                else {
-                                    element.removeAttribute('disabled');
-                                    element.disabled = false;
-                                }
-                            }
-                            else if (key === 'style') {
-                                if (currentValue == null) {
-                                    element.removeAttribute('style');
-                                }
-                                else if (typeof currentValue === 'string') {
-                                    element.setAttribute('style', currentValue);
-                                }
-                                else if (typeof currentValue === 'object') {
-                                    // Handle CSSStyleDeclaration-like object
-                                    const styleObj = currentValue;
-                                    Object.entries(styleObj).forEach(([property, styleValue]) => {
-                                        if (styleValue != null) {
-                                            try {
-                                                // Convert kebab-case to camelCase for CSS properties
-                                                const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-                                                const stringValue = String(styleValue);
-                                                element.style[camelCaseProperty] = stringValue;
-                                            }
-                                            catch (styleError) {
-                                                console.warn(`Failed to set CSS property "${property}":`, styleError);
-                                            }
-                                        }
-                                    });
-                                }
-                                else {
-                                    element.setAttribute('style', String(currentValue));
-                                }
-                            }
-                            else if (key === 'readOnly' && element instanceof HTMLInputElement) {
-                                element.readOnly = Boolean(currentValue);
-                                if (currentValue) {
-                                    element.setAttribute('readonly', '');
-                                }
-                                else {
-                                    element.removeAttribute('readonly');
-                                }
-                            }
-                            else {
-                                // Handle circular references
-                                if (currentValue === element) {
-                                    console.warn(`Circular reference detected for attribute "${key}" on element`, element);
-                                    return;
-                                }
-                                const stringValue = String(currentValue);
-                                element.setAttribute(key, stringValue);
-                            }
-                        }
-                    }
-                    catch (error) {
-                        console.error(`Error updating attribute "${key}" on element:`, error);
-                    }
-                };
-                try {
-                    const batchedUpdateAttribute = () => {
-                        addToBatch(updateAttribute);
-                    };
-                    const unsubscribe = value.subscribe(batchedUpdateAttribute);
-                    addElementSubscription(element, unsubscribe);
-                }
-                catch (error) {
-                    console.error(`Error setting up reactive attribute "${key}":`, error);
-                    // Fallback to static attribute
-                    try {
-                        const fallbackValue = String(value() || '');
-                        element.setAttribute(key, fallbackValue);
-                    }
-                    catch (fallbackError) {
-                        console.error(`Error setting fallback for attribute "${key}":`, fallbackError);
-                    }
-                }
-            }
-            // Handle regular attributes
-            else if (value != null) {
-                if (key === 'value' && element instanceof HTMLInputElement) {
-                    element.value = String(value);
-                }
-                else if (key === 'checked' && element instanceof HTMLInputElement) {
-                    element.checked = Boolean(value);
-                }
-                else if (key === 'disabled' && typeof value === 'boolean') {
-                    // Handle disabled as a boolean attribute
-                    if (value) {
-                        element.setAttribute('disabled', '');
-                        element.disabled = true;
-                    }
-                    else {
-                        element.removeAttribute('disabled');
-                        element.disabled = false;
-                    }
-                }
-                else if (key === 'style') {
-                    if (value == null) {
-                        element.removeAttribute('style');
-                    }
-                    else if (typeof value === 'string') {
-                        element.setAttribute('style', value);
-                    }
-                    else if (typeof value === 'object') {
-                        // Handle CSSStyleDeclaration-like object
-                        const styleObj = value;
-                        Object.entries(styleObj).forEach(([property, styleValue]) => {
-                            if (styleValue != null) {
-                                // Convert kebab-case to camelCase for CSS properties
-                                const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-                                element.style[camelCaseProperty] = String(styleValue);
-                            }
-                        });
-                    }
-                    else {
-                        element.setAttribute('style', String(value));
-                    }
-                }
-                else if (key === 'readOnly' && element instanceof HTMLInputElement) {
-                    element.readOnly = Boolean(value);
-                    if (value) {
-                        element.setAttribute('readonly', '');
-                    }
-                    else {
-                        element.removeAttribute('readonly');
-                    }
-                }
-                else {
-                    element.setAttribute(key, String(value));
-                }
-            }
-        }
+        attributeManager.applyAttributes(element, props);
     }
     return element;
 }
@@ -456,6 +404,12 @@ function renderChildren(parent, children) {
     }
 }
 // JSX Factory Function - creates actual DOM elements
+// Fragment component
+export function Fragment(props) {
+    const fragment = document.createDocumentFragment();
+    renderChildren(fragment, props.children);
+    return fragment;
+}
 // JSX Factory Function - creates actual DOM elements
 export function jsx(type, props, key) {
     // Handle fragments
@@ -490,12 +444,6 @@ export function jsx(type, props, key) {
 // jsxs is used for multiple children in automatic runtime, same logic for us
 export const jsxs = jsx;
 export const jsxDEV = jsx;
-// Fragment component
-export function Fragment(props) {
-    const fragment = document.createDocumentFragment();
-    renderChildren(fragment, props.children);
-    return fragment;
-}
 // Classic JSX Factory (for transform runtime)
 export function createJSXElement(type, props, ...children) {
     const allProps = { ...props, children: children.length > 0 ? children.flat() : props?.children };
@@ -524,6 +472,5 @@ export { createJSXElement as createElement };
 export function resetClientNodeCounter() {
     clientNodeCounter = 0;
 }
-// Export node ID functions for external use
-export { createClientId, cleanupElementSubscriptions };
+// JSX namespace imported from elements.ts
 //# sourceMappingURL=jsx-runtime.js.map

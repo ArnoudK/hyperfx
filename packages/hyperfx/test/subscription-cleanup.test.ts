@@ -19,7 +19,7 @@ describe('Subscription Cleanup for Signal Attributes', () => {
     const signal2 = createSignal('value2');
 
     const element = jsx('div', {
-      className: signal1,
+      class: signal1,
       title: signal2
     }) as HTMLElement;
 
@@ -143,7 +143,7 @@ describe('Subscription Cleanup for Signal Attributes', () => {
 
   it('should handle multiple cleanup calls safely', () => {
     const signal = createSignal('value');
-    const element = jsx('div', { className: signal }) as HTMLElement;
+    const element = jsx('div', { class: signal }) as HTMLElement;
 
     container.appendChild(element);
 
@@ -160,7 +160,7 @@ describe('Subscription Cleanup for Signal Attributes', () => {
 
   it('should handle cleanup for elements without subscriptions', () => {
     const element = jsx('div', { 
-      className: 'static-class',
+      class: 'static-class',
       title: 'static-title' 
     }) as HTMLElement;
 

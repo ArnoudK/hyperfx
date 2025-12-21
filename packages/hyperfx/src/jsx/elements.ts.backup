@@ -1,0 +1,669 @@
+import type { ReactiveValue } from './jsx-runtime';
+
+// Re-export for convenience
+export type { ReactiveValue } from './jsx-runtime';
+
+// Base reactive types for common primitives
+export type ReactiveString = ReactiveValue<string>;
+export type ReactiveNumber = ReactiveValue<number>;
+export type ReactiveBoolean = ReactiveValue<boolean>;
+export type ReactiveObject<T = Record<string, any>> = ReactiveValue<T>;
+
+// ========================================
+// GLOBAL ATTRIBUTES - VALID ON ALL HTML ELEMENTS
+// ========================================
+
+export interface GlobalHTMLAttributes {
+  // Core attributes
+  id?: ReactiveString;
+  class?: ReactiveString;
+  style?: ReactiveValue<string | Partial<CSSStyleDeclaration>>;
+  title?: ReactiveString;
+  lang?: ReactiveString;
+  dir?: ReactiveString;
+  contenteditable?: ReactiveBoolean | ReactiveString;
+  draggable?: ReactiveBoolean | ReactiveString;
+  hidden?: ReactiveBoolean;
+  inert?: ReactiveBoolean;
+  spellcheck?: ReactiveBoolean | ReactiveString;
+  tabindex?: ReactiveNumber | ReactiveString;
+  translate?: ReactiveString;
+
+  // Content attributes (for text manipulation)
+  innerHTML?: ReactiveString;
+  textContent?: ReactiveString;
+
+  // ARIA attributes
+  role?: ReactiveString;
+  'aria-activedescendant'?: ReactiveString;
+  'aria-atomic'?: ReactiveBoolean | ReactiveString;
+  'aria-autocomplete'?: ReactiveString;
+  'aria-busy'?: ReactiveBoolean | ReactiveString;
+  'aria-checked'?: ReactiveBoolean | ReactiveString;
+  'aria-colcount'?: ReactiveNumber | ReactiveString;
+  'aria-colindex'?: ReactiveNumber | ReactiveString;
+  'aria-colspan'?: ReactiveNumber | ReactiveString;
+  'aria-controls'?: ReactiveString;
+  'aria-current'?: ReactiveString;
+  'aria-describedby'?: ReactiveString;
+  'aria-details'?: ReactiveString;
+  'aria-disabled'?: ReactiveBoolean | ReactiveString;
+  'aria-errormessage'?: ReactiveString;
+  'aria-expanded'?: ReactiveBoolean | ReactiveString;
+  'aria-flowto'?: ReactiveString;
+  'aria-grabbed'?: ReactiveBoolean | ReactiveString;
+  'aria-haspopup'?: ReactiveString;
+  'aria-hidden'?: ReactiveBoolean | ReactiveString;
+  'aria-invalid'?: ReactiveString;
+  'aria-keyshortcuts'?: ReactiveString;
+  'aria-label'?: ReactiveString;
+  'aria-labelledby'?: ReactiveString;
+  'aria-level'?: ReactiveNumber | ReactiveString;
+  'aria-live'?: ReactiveString;
+  'aria-modal'?: ReactiveBoolean | ReactiveString;
+  'aria-multiline'?: ReactiveBoolean | ReactiveString;
+  'aria-multiselectable'?: ReactiveBoolean | ReactiveString;
+  'aria-orientation'?: ReactiveString;
+  'aria-owns'?: ReactiveString;
+  'aria-placeholder'?: ReactiveString;
+  'aria-posinset'?: ReactiveNumber | ReactiveString;
+  'aria-pressed'?: ReactiveBoolean | ReactiveString;
+  'aria-readonly'?: ReactiveBoolean | ReactiveString;
+  'aria-relevant'?: ReactiveString;
+  'aria-required'?: ReactiveBoolean | ReactiveString;
+  'aria-roledescription'?: ReactiveString;
+  'aria-rowcount'?: ReactiveNumber | ReactiveString;
+  'aria-rowindex'?: ReactiveNumber | ReactiveString;
+  'aria-rowspan'?: ReactiveNumber | ReactiveString;
+  'aria-selected'?: ReactiveBoolean | ReactiveString;
+  'aria-setsize'?: ReactiveNumber | ReactiveString;
+  'aria-sort'?: ReactiveString;
+  'aria-valuemax'?: ReactiveNumber | ReactiveString;
+  'aria-valuemin'?: ReactiveNumber | ReactiveString;
+  'aria-valuenow'?: ReactiveNumber | ReactiveString;
+  'aria-valuetext'?: ReactiveString;
+
+  // Data attributes
+  'data-*'?: ReactiveString;
+
+  // Event handlers (non-reactive)
+  onclick?: (event: MouseEvent) => void;
+  oninput?: (event: InputEvent) => void;
+  onchange?: (event: Event) => void;
+  onsubmit?: (event: SubmitEvent) => void;
+  onfocus?: (event: FocusEvent) => void;
+  onblur?: (event: FocusEvent) => void;
+  onkeydown?: (event: KeyboardEvent) => void;
+  onkeyup?: (event: KeyboardEvent) => void;
+  onkeypress?: (event: KeyboardEvent) => void;
+  onmouseenter?: (event: MouseEvent) => void;
+  onmouseleave?: (event: MouseEvent) => void;
+  onmousemove?: (event: MouseEvent) => void;
+  onmousedown?: (event: MouseEvent) => void;
+  onmouseup?: (event: MouseEvent) => void;
+  ontouchstart?: (event: TouchEvent) => void;
+  ontouchend?: (event: TouchEvent) => void;
+  ontouchmove?: (event: TouchEvent) => void;
+  onscroll?: (event: Event) => void;
+  onresize?: (event: Event) => void;
+  onload?: (event: Event) => void;
+  onerror?: (event: Event) => void;
+}
+
+// ========================================
+// FORM-ASSOCIATED ATTRIBUTES - SHARED BY FORM ELEMENTS
+// ========================================
+
+export interface FormAssociatedAttributes {
+  disabled?: ReactiveBoolean;
+  form?: ReactiveString;
+  name?: ReactiveString;
+}
+
+// ========================================
+// ELEMENT-SPECIFIC ATTRIBUTE INTERFACES
+// ========================================
+
+// Anchor (<a>) attributes
+export interface AnchorHTMLAttributes extends GlobalHTMLAttributes {
+  href?: ReactiveString;
+  target?: ReactiveString;
+  rel?: ReactiveString;
+  download?: ReactiveString;
+  hreflang?: ReactiveString;
+  type?: ReactiveString;
+}
+
+// Area (<area>) attributes
+export interface AreaHTMLAttributes extends GlobalHTMLAttributes {
+  alt?: ReactiveString;
+  coords?: ReactiveString;
+  download?: ReactiveString;
+  href?: ReactiveString;
+  hreflang?: ReactiveString;
+  media?: ReactiveString;
+  referrerpolicy?: ReactiveString;
+  rel?: ReactiveString;
+  shape?: ReactiveString;
+  target?: ReactiveString;
+}
+
+// Audio (<audio>) attributes
+export interface AudioHTMLAttributes extends GlobalHTMLAttributes {
+  autoplay?: ReactiveBoolean;
+  controls?: ReactiveBoolean;
+  crossorigin?: ReactiveString;
+  loop?: ReactiveBoolean;
+  muted?: ReactiveBoolean;
+  preload?: ReactiveString;
+  src?: ReactiveString;
+}
+
+// Base (<base>) attributes
+export interface BaseHTMLAttributes extends GlobalHTMLAttributes {
+  href?: ReactiveString;
+  target?: ReactiveString;
+}
+
+// Blockquote (<blockquote>) attributes
+export interface BlockquoteHTMLAttributes extends GlobalHTMLAttributes {
+  cite?: ReactiveString;
+}
+
+// Button (<button>) attributes
+export interface ButtonHTMLAttributes extends GlobalHTMLAttributes, FormAssociatedAttributes {
+  autofocus?: ReactiveBoolean;
+  formaction?: ReactiveString;
+  formenctype?: ReactiveString;
+  formmethod?: ReactiveString;
+  formnovalidate?: ReactiveBoolean;
+  formtarget?: ReactiveString;
+  type?: ReactiveString;
+  value?: ReactiveString;
+}
+
+// Canvas (<canvas>) attributes
+export interface CanvasHTMLAttributes extends GlobalHTMLAttributes {
+  height?: ReactiveNumber | ReactiveString;
+  width?: ReactiveNumber | ReactiveString;
+}
+
+// Col (<col>) attributes
+export interface ColHTMLAttributes extends GlobalHTMLAttributes {
+  span?: ReactiveNumber | ReactiveString;
+}
+
+// Colgroup (<colgroup>) attributes
+export interface ColgroupHTMLAttributes extends GlobalHTMLAttributes {
+  span?: ReactiveNumber | ReactiveString;
+}
+
+// Data (<data>) attributes
+export interface DataHTMLAttributes extends GlobalHTMLAttributes {
+  value?: ReactiveString;
+}
+
+// Del (<del>) attributes
+export interface DelHTMLAttributes extends GlobalHTMLAttributes {
+  cite?: ReactiveString;
+  datetime?: ReactiveString;
+}
+
+// Details (<details>) attributes
+export interface DetailsHTMLAttributes extends GlobalHTMLAttributes {
+  open?: ReactiveBoolean;
+}
+
+// Dialog (<dialog>) attributes
+export interface DialogHTMLAttributes extends GlobalHTMLAttributes {
+  open?: ReactiveBoolean;
+}
+
+// Embed (<embed>) attributes
+export interface EmbedHTMLAttributes extends GlobalHTMLAttributes {
+  height?: ReactiveNumber | ReactiveString;
+  src?: ReactiveString;
+  type?: ReactiveString;
+  width?: ReactiveNumber | ReactiveString;
+}
+
+// Fieldset (<fieldset>) attributes
+export interface FieldsetHTMLAttributes extends GlobalHTMLAttributes, FormAssociatedAttributes {
+  disabled?: ReactiveBoolean;
+}
+
+// Form (<form>) attributes
+export interface FormHTMLAttributes extends GlobalHTMLAttributes {
+  acceptCharset?: ReactiveString;
+  action?: ReactiveString;
+  autocomplete?: ReactiveString;
+  enctype?: ReactiveString;
+  method?: ReactiveString;
+  name?: ReactiveString;
+  novalidate?: ReactiveBoolean;
+  target?: ReactiveString;
+}
+
+// Iframe (<iframe>) attributes
+export interface IframeHTMLAttributes extends GlobalHTMLAttributes {
+  allow?: ReactiveString;
+  allowfullscreen?: ReactiveBoolean;
+  height?: ReactiveNumber | ReactiveString;
+  loading?: ReactiveString;
+  name?: ReactiveString;
+  referrerpolicy?: ReactiveString;
+  sandbox?: ReactiveString;
+  src?: ReactiveString;
+  srcdoc?: ReactiveString;
+  width?: ReactiveNumber | ReactiveString;
+}
+
+// Image (<img>) attributes
+export interface ImgHTMLAttributes extends GlobalHTMLAttributes {
+  alt?: ReactiveString;
+  crossorigin?: ReactiveString;
+  decoding?: ReactiveString;
+  height?: ReactiveNumber | ReactiveString;
+  loading?: ReactiveString;
+  referrerpolicy?: ReactiveString;
+  sizes?: ReactiveString;
+  src?: ReactiveString;
+  srcset?: ReactiveString;
+  usemap?: ReactiveString;
+  width?: ReactiveNumber | ReactiveString;
+}
+
+// Input (<input>) attributes
+export interface InputHTMLAttributes extends GlobalHTMLAttributes, FormAssociatedAttributes {
+  accept?: ReactiveString;
+  alt?: ReactiveString;
+  autocomplete?: ReactiveString;
+  autofocus?: ReactiveBoolean;
+  capture?: ReactiveBoolean | ReactiveString;
+  checked?: ReactiveBoolean;
+  dirname?: ReactiveString;
+  formaction?: ReactiveString;
+  formenctype?: ReactiveString;
+  formmethod?: ReactiveString;
+  formnovalidate?: ReactiveBoolean;
+  formtarget?: ReactiveString;
+  height?: ReactiveNumber | ReactiveString;
+  list?: ReactiveString;
+  max?: ReactiveNumber | ReactiveString;
+  maxlength?: ReactiveNumber | ReactiveString;
+  min?: ReactiveNumber | ReactiveString;
+  minlength?: ReactiveNumber | ReactiveString;
+  multiple?: ReactiveBoolean;
+  pattern?: ReactiveString;
+  placeholder?: ReactiveString;
+  readonly?: ReactiveBoolean;
+  required?: ReactiveBoolean;
+  size?: ReactiveNumber | ReactiveString;
+  src?: ReactiveString;
+  step?: ReactiveNumber | ReactiveString;
+  type?: ReactiveString;
+  value?: ReactiveString;
+  width?: ReactiveNumber | ReactiveString;
+}
+
+// Ins (<ins>) attributes
+export interface InsHTMLAttributes extends GlobalHTMLAttributes {
+  cite?: ReactiveString;
+  datetime?: ReactiveString;
+}
+
+// Label (<label>) attributes
+export interface LabelHTMLAttributes extends GlobalHTMLAttributes {
+  for?: ReactiveString;
+}
+
+// Li (<li>) attributes
+export interface LiHTMLAttributes extends GlobalHTMLAttributes {
+  value?: ReactiveNumber | ReactiveString;
+}
+
+// Link (<link>) attributes
+export interface LinkHTMLAttributes extends GlobalHTMLAttributes {
+  as?: ReactiveString;
+  crossorigin?: ReactiveString;
+  href?: ReactiveString;
+  hreflang?: ReactiveString;
+  integrity?: ReactiveString;
+  media?: ReactiveString;
+  referrerpolicy?: ReactiveString;
+  rel?: ReactiveString;
+  sizes?: ReactiveString;
+  type?: ReactiveString;
+}
+
+// Map (<map>) attributes
+export interface MapHTMLAttributes extends GlobalHTMLAttributes {
+  name?: ReactiveString;
+}
+
+// Meta (<meta>) attributes
+export interface MetaHTMLAttributes extends GlobalHTMLAttributes {
+  charset?: ReactiveString;
+  content?: ReactiveString;
+  httpEquiv?: ReactiveString;
+  name?: ReactiveString;
+}
+
+// Meter (<meter>) attributes
+export interface MeterHTMLAttributes extends GlobalHTMLAttributes {
+  form?: ReactiveString;
+  high?: ReactiveNumber | ReactiveString;
+  low?: ReactiveNumber | ReactiveString;
+  max?: ReactiveNumber | ReactiveString;
+  min?: ReactiveNumber | ReactiveString;
+  optimum?: ReactiveNumber | ReactiveString;
+  value?: ReactiveString | ReadonlyArray<ReactiveString> | ReactiveNumber;
+}
+
+// Object (<object>) attributes
+export interface ObjectHTMLAttributes extends GlobalHTMLAttributes {
+  data?: ReactiveString;
+  form?: ReactiveString;
+  height?: ReactiveNumber | ReactiveString;
+  name?: ReactiveString;
+  type?: ReactiveString;
+  usemap?: ReactiveString;
+  width?: ReactiveNumber | ReactiveString;
+}
+
+// Ol (<ol>) attributes
+export interface OlHTMLAttributes extends GlobalHTMLAttributes {
+  reversed?: ReactiveBoolean;
+  start?: ReactiveNumber | ReactiveString;
+  type?: ReactiveString;
+}
+
+// Optgroup (<optgroup>) attributes
+export interface OptgroupHTMLAttributes extends GlobalHTMLAttributes {
+  disabled?: ReactiveBoolean;
+  label?: ReactiveString;
+}
+
+// Option (<option>) attributes
+export interface OptionHTMLAttributes extends GlobalHTMLAttributes {
+  disabled?: ReactiveBoolean;
+  label?: ReactiveString;
+  selected?: ReactiveBoolean;
+  value?: ReactiveString;
+}
+
+// Output (<output>) attributes
+export interface OutputHTMLAttributes extends GlobalHTMLAttributes, FormAssociatedAttributes {
+  for?: ReactiveString;
+  form?: ReactiveString;
+}
+
+// Progress (<progress>) attributes
+export interface ProgressHTMLAttributes extends GlobalHTMLAttributes {
+  max?: ReactiveNumber | ReactiveString;
+  value?: ReactiveString | ReadonlyArray<ReactiveString> | ReactiveNumber;
+}
+
+// Quote (<q>) attributes
+export interface QuoteHTMLAttributes extends GlobalHTMLAttributes {
+  cite?: ReactiveString;
+}
+
+// Script (<script>) attributes
+export interface ScriptHTMLAttributes extends GlobalHTMLAttributes {
+  async?: ReactiveBoolean;
+  crossorigin?: ReactiveString;
+  defer?: ReactiveBoolean;
+  integrity?: ReactiveString;
+  nomodule?: ReactiveBoolean;
+  referrerpolicy?: ReactiveString;
+  src?: ReactiveString;
+  type?: ReactiveString;
+}
+
+// Select (<select>) attributes
+export interface SelectHTMLAttributes extends GlobalHTMLAttributes, FormAssociatedAttributes {
+  autocomplete?: ReactiveString;
+  autofocus?: ReactiveBoolean;
+  multiple?: ReactiveBoolean;
+  required?: ReactiveBoolean;
+  size?: ReactiveNumber | ReactiveString;
+  value?: ReactiveString;
+}
+
+// Slot (<slot>) attributes
+export interface SlotHTMLAttributes extends GlobalHTMLAttributes {
+  name?: ReactiveString;
+}
+
+// Source (<source>) attributes
+export interface SourceHTMLAttributes extends GlobalHTMLAttributes {
+  media?: ReactiveString;
+  sizes?: ReactiveString;
+  src?: ReactiveString;
+  srcset?: ReactiveString;
+  type?: ReactiveString;
+}
+
+// Style (<style>) attributes
+export interface StyleHTMLAttributes extends GlobalHTMLAttributes {
+  media?: ReactiveString;
+  type?: ReactiveString;
+}
+
+// Table (<table>) attributes
+export interface TableHTMLAttributes extends GlobalHTMLAttributes {
+  cellpadding?: ReactiveNumber | ReactiveString;
+  cellspacing?: ReactiveNumber | ReactiveString;
+  summary?: ReactiveString;
+  width?: ReactiveNumber | ReactiveString;
+}
+
+// Td (<td>) attributes
+export interface TdHTMLAttributes extends GlobalHTMLAttributes {
+  align?: ReactiveString;
+  colspan?: ReactiveNumber | ReactiveString;
+  headers?: ReactiveString;
+  rowspan?: ReactiveNumber | ReactiveString;
+  valign?: ReactiveString;
+}
+
+// Textarea (<textarea>) attributes
+export interface TextareaHTMLAttributes extends GlobalHTMLAttributes, FormAssociatedAttributes {
+  autocomplete?: ReactiveString;
+  autofocus?: ReactiveBoolean;
+  cols?: ReactiveNumber | ReactiveString;
+  dirname?: ReactiveString;
+  maxlength?: ReactiveNumber | ReactiveString;
+  minlength?: ReactiveNumber | ReactiveString;
+  placeholder?: ReactiveString;
+  readonly?: ReactiveBoolean;
+  required?: ReactiveBoolean;
+  rows?: ReactiveNumber | ReactiveString;
+  value?: ReactiveString;
+  wrap?: ReactiveString;
+}
+
+// Th (<th>) attributes
+export interface ThHTMLAttributes extends GlobalHTMLAttributes {
+  align?: ReactiveString;
+  colspan?: ReactiveNumber | ReactiveString;
+  headers?: ReactiveString;
+  rowspan?: ReactiveNumber | ReactiveString;
+  scope?: ReactiveString;
+  valign?: ReactiveString;
+}
+
+// Time (<time>) attributes
+export interface TimeHTMLAttributes extends GlobalHTMLAttributes {
+  datetime?: ReactiveString;
+}
+
+// Track (<track>) attributes
+export interface TrackHTMLAttributes extends GlobalHTMLAttributes {
+  default?: ReactiveBoolean;
+  kind?: ReactiveString;
+  label?: ReactiveString;
+  src?: ReactiveString;
+  srclang?: ReactiveString;
+}
+
+// Video (<video>) attributes
+export interface VideoHTMLAttributes extends GlobalHTMLAttributes {
+  autoplay?: ReactiveBoolean;
+  controls?: ReactiveBoolean;
+  crossorigin?: ReactiveString;
+  height?: ReactiveNumber | ReactiveString;
+  loop?: ReactiveBoolean;
+  muted?: ReactiveBoolean;
+  playsinline?: ReactiveBoolean;
+  poster?: ReactiveString;
+  preload?: ReactiveString;
+  src?: ReactiveString;
+  width?: ReactiveNumber | ReactiveString;
+}
+
+// WebView (<webview>) attributes (non-standard, but used in Electron)
+export interface WebviewHTMLAttributes extends GlobalHTMLAttributes {
+  allowfullscreen?: ReactiveBoolean;
+  allowpopups?: ReactiveBoolean;
+  autosize?: ReactiveBoolean;
+  blinkfeatures?: ReactiveString;
+  disableblinkfeatures?: ReactiveString;
+  disableguestresize?: ReactiveBoolean;
+  disablewebsecurity?: ReactiveBoolean;
+  guestinstance?: ReactiveString;
+  httpreferrer?: ReactiveString;
+  nodeintegration?: ReactiveBoolean;
+  partition?: ReactiveString;
+  plugins?: ReactiveBoolean;
+  preload?: ReactiveString;
+  src?: ReactiveString;
+  useragent?: ReactiveString;
+  webpreferences?: ReactiveString;
+}
+
+// Import JSXChildren for IntrinsicElements
+import type { JSXChildren } from './jsx-runtime';
+
+// Custom elements support - allows extension without loose fallbacks
+export interface CustomElementAttributes extends GlobalHTMLAttributes {
+  [key: string]: any; // Only for custom elements, use with caution
+}
+
+// Default attributes for elements not explicitly defined
+export interface DefaultHTMLAttributes extends GlobalHTMLAttributes {
+  // Any additional attributes can be added here if needed
+}
+
+// IntrinsicElements mapping - exhaustive for standard HTML elements
+export type IntrinsicElements = {
+  [K in keyof HTMLElementTagNameMap]: (
+    K extends 'a' ? AnchorHTMLAttributes :
+    K extends 'area' ? AreaHTMLAttributes :
+    K extends 'audio' ? AudioHTMLAttributes :
+    K extends 'base' ? BaseHTMLAttributes :
+    K extends 'blockquote' ? BlockquoteHTMLAttributes :
+    K extends 'button' ? ButtonHTMLAttributes :
+    K extends 'canvas' ? CanvasHTMLAttributes :
+    K extends 'col' ? ColHTMLAttributes :
+    K extends 'colgroup' ? ColgroupHTMLAttributes :
+    K extends 'data' ? DataHTMLAttributes :
+    K extends 'del' ? DelHTMLAttributes :
+    K extends 'details' ? DetailsHTMLAttributes :
+    K extends 'dialog' ? DialogHTMLAttributes :
+    K extends 'embed' ? EmbedHTMLAttributes :
+    K extends 'fieldset' ? FieldsetHTMLAttributes :
+    K extends 'form' ? FormHTMLAttributes :
+    K extends 'iframe' ? IframeHTMLAttributes :
+    K extends 'img' ? ImgHTMLAttributes :
+    K extends 'input' ? InputHTMLAttributes :
+    K extends 'ins' ? InsHTMLAttributes :
+    K extends 'label' ? LabelHTMLAttributes :
+    K extends 'li' ? LiHTMLAttributes :
+    K extends 'link' ? LinkHTMLAttributes :
+    K extends 'map' ? MapHTMLAttributes :
+    K extends 'meta' ? MetaHTMLAttributes :
+    K extends 'meter' ? MeterHTMLAttributes :
+    K extends 'object' ? ObjectHTMLAttributes :
+    K extends 'ol' ? OlHTMLAttributes :
+    K extends 'optgroup' ? OptgroupHTMLAttributes :
+    K extends 'option' ? OptionHTMLAttributes :
+    K extends 'output' ? OutputHTMLAttributes :
+    K extends 'progress' ? ProgressHTMLAttributes :
+    K extends 'q' ? QuoteHTMLAttributes :
+    K extends 'script' ? ScriptHTMLAttributes :
+    K extends 'select' ? SelectHTMLAttributes :
+    K extends 'slot' ? SlotHTMLAttributes :
+    K extends 'source' ? SourceHTMLAttributes :
+    K extends 'style' ? StyleHTMLAttributes :
+    K extends 'table' ? TableHTMLAttributes :
+    K extends 'td' ? TdHTMLAttributes :
+    K extends 'textarea' ? TextareaHTMLAttributes :
+    K extends 'th' ? ThHTMLAttributes :
+    K extends 'time' ? TimeHTMLAttributes :
+    K extends 'track' ? TrackHTMLAttributes :
+    K extends 'video' ? VideoHTMLAttributes :
+    K extends 'webview' ? WebviewHTMLAttributes :
+    DefaultHTMLAttributes
+  ) & { children?: JSXChildren }
+};
+
+// JSX namespace for TypeScript integration
+export namespace JSX {
+  export type Element = import('./jsx-runtime').JSXElement;
+  export interface ElementChildrenAttribute {
+    children: JSXChildren;
+  }
+  export type IntrinsicElements = {
+    [K in keyof HTMLElementTagNameMap]: (
+      K extends 'a' ? AnchorHTMLAttributes :
+      K extends 'area' ? AreaHTMLAttributes :
+      K extends 'audio' ? AudioHTMLAttributes :
+      K extends 'base' ? BaseHTMLAttributes :
+      K extends 'blockquote' ? BlockquoteHTMLAttributes :
+      K extends 'button' ? ButtonHTMLAttributes :
+      K extends 'canvas' ? CanvasHTMLAttributes :
+      K extends 'col' ? ColHTMLAttributes :
+      K extends 'colgroup' ? ColgroupHTMLAttributes :
+      K extends 'data' ? DataHTMLAttributes :
+      K extends 'del' ? DelHTMLAttributes :
+      K extends 'details' ? DetailsHTMLAttributes :
+      K extends 'dialog' ? DialogHTMLAttributes :
+      K extends 'embed' ? EmbedHTMLAttributes :
+      K extends 'fieldset' ? FieldsetHTMLAttributes :
+      K extends 'form' ? FormHTMLAttributes :
+      K extends 'iframe' ? IframeHTMLAttributes :
+      K extends 'img' ? ImgHTMLAttributes :
+      K extends 'input' ? InputHTMLAttributes :
+      K extends 'ins' ? InsHTMLAttributes :
+      K extends 'label' ? LabelHTMLAttributes :
+      K extends 'li' ? LiHTMLAttributes :
+      K extends 'link' ? LinkHTMLAttributes :
+      K extends 'map' ? MapHTMLAttributes :
+      K extends 'meta' ? MetaHTMLAttributes :
+      K extends 'meter' ? MeterHTMLAttributes :
+      K extends 'object' ? ObjectHTMLAttributes :
+      K extends 'ol' ? OlHTMLAttributes :
+      K extends 'optgroup' ? OptgroupHTMLAttributes :
+      K extends 'option' ? OptionHTMLAttributes :
+      K extends 'output' ? OutputHTMLAttributes :
+      K extends 'progress' ? ProgressHTMLAttributes :
+      K extends 'q' ? QuoteHTMLAttributes :
+      K extends 'script' ? ScriptHTMLAttributes :
+      K extends 'select' ? SelectHTMLAttributes :
+      K extends 'slot' ? SlotHTMLAttributes :
+      K extends 'source' ? SourceHTMLAttributes :
+      K extends 'style' ? StyleHTMLAttributes :
+      K extends 'table' ? TableHTMLAttributes :
+      K extends 'td' ? TdHTMLAttributes :
+      K extends 'textarea' ? TextareaHTMLAttributes :
+      K extends 'th' ? ThHTMLAttributes :
+      K extends 'time' ? TimeHTMLAttributes :
+      K extends 'track' ? TrackHTMLAttributes :
+      K extends 'video' ? VideoHTMLAttributes :
+      K extends 'webview' ? WebviewHTMLAttributes :
+      DefaultHTMLAttributes
+    ) & { children?: JSXChildren }
+  };
+}

@@ -90,7 +90,7 @@ function DocumentationPage(): JSX.Element {
       <div class="flex flex-auto">
         <SideNavComp />
         <article class="p-4 flex flex-col overflow-auto mx-auto w-full max-w-4xl">
-          <div class="markdown-body" innerHTML={parsedMarkdown} />
+          <div class="markdown-body" innerHTML={parsedMarkdown as unknown as string} />
         </article>
       </div>
     </Show>
@@ -100,9 +100,10 @@ function DocumentationPage(): JSX.Element {
         <article class="p-4 mx-auto w-full max-w-4xl">
           <div
             class="markdown-body-main"
-            innerHTML={hello_text}
+            innerHTML={hello_text as string}
           />
         </article>
+
         <div class="p-2 bg-red-950 text-white mt-4 mx-auto">
           <p class="text-xl">This is a work in progress!</p>
           <p class="text-xl">The docs are not finished yet!</p>
