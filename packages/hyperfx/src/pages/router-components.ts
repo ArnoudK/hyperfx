@@ -61,7 +61,7 @@ export function Router(props: RouterProps): JSXElement {
   });
 
   const navigate = (path: string, options: { replace?: boolean } = {}): void => {
-    console.log('Router: navigate called', path);
+    // console.log('Router: navigate called', path);
     if (options.replace) {
       window.history.replaceState({}, '', path);
       const newStack = [...historyStack()];
@@ -73,7 +73,7 @@ export function Router(props: RouterProps): JSXElement {
       historyStack(newStack);
       historyIndex(historyIndex() + 1);
     }
-    console.log('Router: updating currentPath signal', path);
+    // console.log('Router: updating currentPath signal', path);
     currentPath(path);
     // Context is stable, no need to update it
   };
@@ -225,11 +225,11 @@ export function Link(props: LinkProps): JSXElement {
 
   // Capture context during render
   const context = useContext(RouterContext);
-  console.log('Link: render', props.to, 'context:', !!context);
+  // console.log('Link: render', props.to, 'context:', !!context);
 
   // Handle clicks
   const handleClick = (event: MouseEvent): void => {
-    console.log('Link: clicked', props.to);
+    //console.log('Link: clicked', props.to);
     event.preventDefault();
 
     if (props.onclick) {
@@ -405,11 +405,9 @@ export function Redirect(props: { to: string; replace?: boolean }): JSXElement {
  * Get query parameter value from current URL as a reactive signal
  */
 export function getQueryValue(name: string): ReactiveSignal<string | null> {
-  const context = useContext(RouterContext);
   return createComputed(() => {
-    if (context) {
-      context.currentPath(); // Track path changes
-    }
+    const context = useContext(RouterContext);
+    context?.currentPath()
     const searchParams = new URLSearchParams(window.location.search);
     return searchParams.get(name);
   });

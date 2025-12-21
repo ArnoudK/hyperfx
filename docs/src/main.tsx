@@ -25,7 +25,7 @@ hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("html", html);
 hljs.registerLanguage("bash", bash);
 
-const hello_text = parse(index_md)
+const hello_text = parse(index_md) as string
 // Helper functions for metadata
 function Title(title: string) {
   document.title = title;
@@ -44,24 +44,11 @@ function DocumentationPage(): JSX.Element {
   const path = usePath();
 
   const docToRender = createComputed(() => {
+    // path();
+    // console.log(path());
     const doc = getQueryValue("doc")() || "main";
+    console.log('docname:', doc);
     const md_doc = docsMD.find((a) => a.route_name == doc);
-    return md_doc;
-  });
-
-  const parsedMarkdown = createComputed(() => {
-    const md_doc = docToRender();
-    if (md_doc) {
-      const data = parse(md_doc.data);
-
-      return data;
-    }
-    return "";
-  });
-
-  createEffect(() => {
-    const md_doc = docToRender();
-
     if (md_doc) {
       Title(`${md_doc.title} | HyperFX`);
       MetaDescription(`HyperFX docs about ${md_doc.title}.`);
@@ -69,7 +56,19 @@ function DocumentationPage(): JSX.Element {
       Title("HyperFX");
       MetaDescription("HyperFX docs");
     }
+    return md_doc;
   });
+
+  const parsedMarkdown = createComputed(() => {
+    const md_doc = docToRender();
+    if (md_doc) {
+      const data = parse(md_doc.data) as string;
+      console.log(data.slice(0, 100));
+      return data;
+    }
+    return "";
+  });
+
 
 
 
@@ -82,15 +81,15 @@ function DocumentationPage(): JSX.Element {
       for (const codeBlock of codeBlocks) {
         hljs.highlightElement(codeBlock as HTMLElement);
       }
-    }, 0);
+    }, 1);
   });
 
   return <>
-    <Show when={() => docToRender() !== undefined && docToRender()!.route_name !== "main"}>
+    <Show when={() => parsedMarkdown} >
       <div class="flex flex-auto">
         <SideNavComp />
         <article class="p-4 flex flex-col overflow-auto mx-auto w-full max-w-4xl">
-          <div class="markdown-body" innerHTML={parsedMarkdown as unknown as string} />
+          <div class="markdown-body" innerHTML={parsedMarkdown} />
         </article>
       </div>
     </Show>
