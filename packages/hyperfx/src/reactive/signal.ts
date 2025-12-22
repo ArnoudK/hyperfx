@@ -2,7 +2,7 @@
  * Custom Signal Implementation for HyperFX
  *
  * A simple, synchronous signal system optimized for reactive DOM updates.
- * Replaces alien-signals with a more direct approach for JSX reactive attributes.
+ * 
  */
 
 // Global tracking context for automatic dependency detection

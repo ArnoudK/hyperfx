@@ -18,12 +18,14 @@ import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import typescript from "highlight.js/lib/languages/typescript";
 import html from "highlight.js/lib/languages/xml";
+import json from "highlight.js/lib/languages/json";
 import { editor } from "./editor";
 import editor_code from "./editor?raw";
 
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("html", html);
 hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("json", json);
 
 const hello_text = parse(index_md) as string
 // Helper functions for metadata

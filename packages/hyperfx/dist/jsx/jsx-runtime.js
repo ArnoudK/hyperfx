@@ -350,7 +350,7 @@ function createElement(tag, props) {
         const id = createClientId();
         const existing = hydrationMap?.get(id);
         // Check if existing node matches the requested tag
-        if (existing && existing.tagName.toLowerCase() === tag.toLowerCase()) {
+        if (existing?.tagName.toLowerCase() === tag.toLowerCase()) {
             element = existing;
             claimed = true;
         }
