@@ -9,31 +9,54 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./jsx": {
       "types": "./dist/jsx/jsx-runtime.d.ts",
-      "import": "./dist/jsx/jsx-runtime.js"
+      "node": "./dist/jsx/jsx-server-runtime.js",
+      "default": "./dist/jsx/jsx-runtime.js"
+    },
+    "./jsx-server": {
+      "types": "./dist/jsx/jsx-server-runtime.d.ts",
+      "default": "./dist/jsx/jsx-server-runtime.js"
+    },
+    "./jsx-server/jsx-runtime": {
+      "types": "./dist/jsx/jsx-server-runtime.d.ts",
+      "default": "./dist/jsx/jsx-server-runtime.js"
+    },
+    "./jsx-server/jsx-dev-runtime": {
+      "types": "./dist/jsx/jsx-server-runtime.d.ts",
+      "default": "./dist/jsx/jsx-server-runtime.js"
     },
     "./jsx-runtime": {
       "types": "./dist/jsx/jsx-runtime.d.ts",
-      "import": "./dist/jsx/jsx-runtime.js"
+      "node": "./dist/jsx/jsx-server-runtime.js",
+      "default": "./dist/jsx/jsx-runtime.js"
     },
     "./jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
-      "import": "./dist/jsx/jsx-dev-runtime.js"
+      "default": "./dist/jsx/jsx-dev-runtime.js"
+    },
+    "./jsx-server-runtime": {
+      "types": "./dist/jsx/jsx-server-runtime.d.ts",
+      "default": "./dist/jsx/jsx-server-runtime.js"
     },
     "./jsx/jsx-runtime": {
       "types": "./dist/jsx/jsx-runtime.d.ts",
-      "import": "./dist/jsx/jsx-runtime.js"
+      "node": "./dist/jsx/jsx-server-runtime.js",
+      "default": "./dist/jsx/jsx-runtime.js"
     },
     "./jsx/jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
-      "import": "./dist/jsx/jsx-dev-runtime.js"
+      "default": "./dist/jsx/jsx-dev-runtime.js"
     },
     "./jsx-runtime/jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
-      "import": "./dist/jsx/jsx-dev-runtime.js"
+      "default": "./dist/jsx/jsx-dev-runtime.js"
+    },
+    "./runtime-dom": {
+      "types": "./dist/runtime-dom/index.d.ts",
+      "default": "./dist/runtime-dom/index.js"
     }
   },
   "author": {
@@ -58,10 +81,12 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.4",
+    "@effect/platform": "^0.94.2",
     "@eslint/js": "^9.28.0",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.15.31",
     "@vitest/ui": "^4.0.16",
+    "effect": "^3.11.0",
     "happy-dom": "^20.0.11",
     "jsdom": "^26.1.0",
     "ts-node": "^10.9.2",
@@ -72,5 +97,16 @@
   },
   "files": [
     "dist/"
-  ]
+  ],
+  "dependencies": {
+  },
+  "peerDependencies": {
+    "effect": "^3.11.0",
+    "@effect/platform": "^0.94.0"
+  },
+  "peerDependenciesMeta": {
+    "@effect/platform": {
+      "optional": true
+    }
+  }
 }

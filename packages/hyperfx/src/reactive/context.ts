@@ -36,19 +36,25 @@ export function createContext<T>(defaultValue: T): Context<T> {
 
         // Execute children
         let children: any;
+        
         try {
             if (typeof props.children === 'function') {
-                children = props.children();
+                children = (props.children as () => JSXElement)();
             } else {
-                // If children is not a function, it's already evaluated,
-                // so it ran outside this provider's scope!
-                // We warn but proceed (context won't work for them).
-                console.warn('Context.Provider: children should be a function to receive context value.');
+                // If children is not a function, it's already evaluated.
+                // This happens during SSR with JSX automatic transform.
+                // The children were already executed before this Provider ran,
+                // so they couldn't access the context we just pushed.
+                // We keep the context on the stack and don't pop it yet.
                 children = props.children;
             }
         } finally {
-            // Pop value from stack
-            stack.pop();
+            // Only pop if children were a function (executed inside the try block)
+            // For SSR pre-executed children, we leave context on stack
+            // (it will be cleaned up after SSR rendering completes)
+            if (typeof props.children === 'function') {
+                stack.pop();
+            }
         }
 
         // Render logic (handled by JSX runtime, we just return the result)
@@ -87,4 +93,29 @@ export function useContext<T>(context: Context<T>): T {
         return stack[stack.length - 1];
     }
     return context.defaultValue;
+}
+
+/**
+ * Manually push a context value onto the stack
+ * This is useful for SSR where children are pre-evaluated
+ * @internal
+ */
+export function pushContext<T>(context: Context<T>, value: T): void {
+    let stack = contextStacks.get(context.id);
+    if (!stack) {
+        stack = [];
+        contextStacks.set(context.id, stack);
+    }
+    stack.push(value);
+}
+
+/**
+ * Manually pop a context value from the stack
+ * @internal
+ */
+export function popContext<T>(context: Context<T>): void {
+    const stack = contextStacks.get(context.id);
+    if (stack && stack.length > 0) {
+        stack.pop();
+    }
 }

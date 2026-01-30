@@ -8,7 +8,7 @@ import { TopNav } from '../components/topnav';
 
 
 export default function HomePage() {
-    const count = createSignal<number>(0);
+    const count = createSignal<number>(0, { key: 'homepage-counter' });
 
     const increment = () => {
         count(count() + 1);

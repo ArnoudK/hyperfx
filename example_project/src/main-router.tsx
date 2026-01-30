@@ -1,4 +1,5 @@
 import { FineGrainedTest } from './fine-grained-test';
+import { EffectDemoPage } from './pages/effect-demo';
 /// <reference types="hyperfx/jsx" />
 import './index.css';
 import { Router, Route, Link, usePath, useNavigate } from "hyperfx";
@@ -21,6 +22,9 @@ function Navigation(): JSX.Element {
             </Link>
             <Link to="/todo" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
               Todo
+            </Link>
+            <Link to="/effect" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+              Effect Demo
             </Link>
             <Link to="/form" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
               Form
@@ -202,6 +206,7 @@ function App(): JSX.Element {
           {/* Route definitions */}
           <Route path="/" component={HomePage} exact />
           <Route path="/about" component={AboutPage} />
+          <Route path="/effect" component={EffectDemoPage} />
           <Route path="/test" component={FineGrainedTest} title="Fine Grained Reactivity" />
           <Route path="/counter" component={() => <div>Counter component would go here</div>} />
           <Route path="/todo" component={() => <div>Todo component would go here</div>} />

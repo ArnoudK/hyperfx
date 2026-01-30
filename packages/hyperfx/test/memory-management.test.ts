@@ -15,7 +15,7 @@ describe('Memory Management for Signal Subscriptions', () => {
   });
 
   describe('Subscription Memory Leaks', () => {
-    it('should not leak subscriptions when elements are removed', () => {
+    it('should not leak subscriptions when elements are removed', async () => {
       const signals = Array.from({ length: 50 }, (_, i) => 
         createSignal(`value${i}`)
       );
@@ -43,15 +43,15 @@ describe('Memory Management for Signal Subscriptions', () => {
       container.innerHTML = '';
 
       // Wait for cleanup to happen
-      setTimeout(() => {
-        // All subscriptions should be cleaned up
-        signals.forEach((signal): void => {
-          expect(signal.subscriberCount).toBe(0);
-        });
-      }, 10);
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // All subscriptions should be cleaned up
+      signals.forEach((signal): void => {
+        expect(signal.subscriberCount).toBe(0);
+      });
     });
 
-    it('should handle rapid element creation and destruction', () => {
+    it('should handle rapid element creation and destruction', async () => {
       const signal = createSignal('test-value');
       let creationCount = 0;
       let destructionCount = 0;
@@ -71,15 +71,16 @@ describe('Memory Management for Signal Subscriptions', () => {
       expect(creationCount).toBe(20);
       expect(destructionCount).toBe(20);
 
-      setTimeout(() => {
-        // Final subscription count should be 0
-        expect(signal.subscriberCount).toBe(0);
-      }, 10);
+      // Wait for cleanup
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Final subscription count should be 0
+      expect(signal.subscriberCount).toBe(0);
     });
   });
 
   describe('Computed Signal Memory', () => {
-    it('should clean up computed signal dependencies', () => {
+    it('should clean up computed signal dependencies', async () => {
       const baseSignal = createSignal('base');
       const signals = Array.from({ length: 10 }, (_, i) => {
         const computedSignal = createComputed(() => `${baseSignal()}-computed-${i}`);
@@ -102,15 +103,16 @@ describe('Memory Management for Signal Subscriptions', () => {
       });
       container.innerHTML = '';
 
-      setTimeout(() => {
-        // Computed signal subscriptions should be cleaned up
-        signals.forEach(({ signal }): void => {
-          expect(signal.subscriberCount).toBe(0);
-        });
-        
-        // Base signal subscriptions should also be cleaned up
-        expect(baseSignal.subscriberCount).toBe(0);
-      }, 10);
+      // Wait for cleanup to occur
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Computed signal subscriptions should be cleaned up
+      signals.forEach(({ signal }): void => {
+        expect(signal.subscriberCount).toBe(0);
+      });
+      
+      // Base signal subscriptions should also be cleaned up
+      expect(baseSignal.subscriberCount).toBe(0);
     });
   });
 
@@ -141,7 +143,7 @@ describe('Memory Management for Signal Subscriptions', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle signal reuse across elements', () => {
+    it('should handle signal reuse across elements', async () => {
       const sharedSignal = createSignal('shared');
       
       const element1 = jsx('div', { class: sharedSignal }) as HTMLElement;
@@ -156,18 +158,20 @@ describe('Memory Management for Signal Subscriptions', () => {
       // Remove one element
       element1.remove();
 
-      setTimeout(() => {
-        // Should have 1 subscriber left
-        expect(sharedSignal.subscriberCount).toBe(1);
-        
-        // Remove second element
-        element2.remove();
-        
-        setTimeout(() => {
-          // Should have 0 subscribers
-          expect(sharedSignal.subscriberCount).toBe(0);
-        }, 10);
-      }, 10);
+      // Wait for cleanup
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Should have 1 subscriber left
+      expect(sharedSignal.subscriberCount).toBe(1);
+      
+      // Remove second element
+      element2.remove();
+      
+      // Wait for cleanup
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Should have 0 subscribers
+      expect(sharedSignal.subscriberCount).toBe(0);
     });
 
     it('should handle elements with no signals', () => {
@@ -206,7 +210,7 @@ describe('Memory Management for Signal Subscriptions', () => {
   });
 
   describe('Performance Impact', () => {
-    it('should maintain performance with many subscriptions', () => {
+    it('should maintain performance with many subscriptions', async () => {
       const signals = Array.from({ length: 100 }, (_, i) => 
         createSignal(`value${i}`)
       );
@@ -245,18 +249,19 @@ describe('Memory Management for Signal Subscriptions', () => {
       const cleanupEndTime = performance.now();
       const cleanupTime = cleanupEndTime - cleanupStartTime;
 
-      setTimeout(() => {
-        // Performance should be reasonable
-        expect(createTime).toBeLessThan(100); // 0.1 second to create
-        expect(addTime).toBeLessThan(100);    // 0.1 second to add to DOM
-        expect(updateTime).toBeLessThan(50);   // 0.05 seconds for 100 updates
-        expect(cleanupTime).toBeLessThan(50);   // 0.05 seconds for cleanup
+      // Wait for async cleanup
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Performance should be reasonable
+      expect(createTime).toBeLessThan(100); // 0.1 second to create
+      expect(addTime).toBeLessThan(100);    // 0.1 second to add to DOM
+      expect(updateTime).toBeLessThan(50);   // 0.05 seconds for 100 updates
+      expect(cleanupTime).toBeLessThan(50);   // 0.05 seconds for cleanup
 
-        // All subscriptions should be cleaned up
-        signals.forEach((signal): void => {
-          expect(signal.subscriberCount).toBe(0);
-        });
-      }, 10);
+      // All subscriptions should be cleaned up
+      signals.forEach((signal): void => {
+        expect(signal.subscriberCount).toBe(0);
+      });
     });
   });
 });

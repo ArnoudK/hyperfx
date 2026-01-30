@@ -101,7 +101,7 @@ function DocumentationPage(): JSX.Element {
         <article class="p-4 mx-auto w-full max-w-4xl">
           <div
             class="markdown-body-main"
-            innerHTML={hello_text as string}
+            innerHTML={hello_text}
           />
         </article>
 

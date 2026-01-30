@@ -86,7 +86,7 @@ export abstract class ClassComponent<P = ComponentProps> {
     // Override in subclasses
   }
 
-  protected componentDidUpdate(newProps: P, prevProps: P | undefined): void {
+  protected componentDidUpdate(_newProps: P, _prevProps: P | undefined): void {
     // Override in subclasses
   }
 
@@ -143,10 +143,12 @@ export function mountComponent<P = ComponentProps>(
   }
 
   // Insert into DOM
+  // Note: mount functions only run on client, so element is always a DOM Node
+  const domElement = element as Node;
   if (anchor) {
-    container.insertBefore(element, anchor);
+    container.insertBefore(domElement, anchor);
   } else {
-    container.appendChild(element);
+    container.appendChild(domElement);
   }
 
   return element;
@@ -172,8 +174,10 @@ export function unmountComponent<P = ComponentProps>(
   }
 
   // Remove from DOM
-  if (element.parentNode === container) {
-    container.removeChild(element);
+  // Note: unmount functions only run on client, so element is always a DOM Node
+  const domElement = element as Node;
+  if (domElement && domElement.parentNode === container) {
+    container.removeChild(domElement);
   }
 }
 
