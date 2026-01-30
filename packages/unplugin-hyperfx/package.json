@@ -1,0 +1,75 @@
+{
+  "name": "unplugin-hyperfx",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "HyperFX compiler plugin for Vite, Rollup, Webpack, esbuild, and more",
+  "keywords": [
+    "hyperfx",
+    "unplugin",
+    "vite",
+    "rollup",
+    "webpack",
+    "esbuild",
+    "compiler",
+    "jsx"
+  ],
+  "author": "Arnoud kerkhof",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "default": "./dist/vite.js"
+    },
+    "./webpack": {
+      "types": "./dist/webpack.d.ts",
+      "default": "./dist/webpack.js"
+    },
+    "./rollup": {
+      "types": "./dist/rollup.d.ts",
+      "default": "./dist/rollup.js"
+    },
+    "./esbuild": {
+      "types": "./dist/esbuild.d.ts",
+      "default": "./dist/esbuild.js"
+    },
+    "./rspack": {
+      "types": "./dist/rspack.d.ts",
+      "default": "./dist/rspack.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@babel/parser": "^7.24.0",
+    "@babel/traverse": "^7.24.0",
+    "@babel/types": "^7.24.0",
+    "@types/babel__core": "^7.20.0",
+    "@types/babel__traverse": "^7.20.0",
+    "@types/node": "^20.0.0",
+    "magic-string": "^0.30.0",
+    "typescript": "^5.0.0",
+    "unplugin": "^3.0.0",
+    "vitest": "^2.1.8"
+  },
+  "peerDependencies": {
+    "@babel/parser": "^7.24.0",
+    "@babel/traverse": "^7.24.0",
+    "@babel/types": "^7.24.0",
+    "hyperfx": "workspace:*",
+    "magic-string": "^0.30.0",
+    "unplugin": "^3.0.0"
+  }
+}

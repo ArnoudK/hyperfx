@@ -2,20 +2,32 @@ import { createEffect } from "../reactive/state";
 import type { JSXElement, ReactiveValue } from "../jsx/jsx-runtime";
 import type { Signal } from "../reactive/signal";
 import { isSignal, createSignal } from "../reactive/signal";
+import { 
+  isSSR, 
+  createRouterFragment, 
+  createRouterComment,
+  type UniversalFragment 
+} from "../pages/router-helpers";
 
 interface ForProps<T> {
   each: ReactiveValue<T[]>;
-  children: (item: T, index: () => number) => JSXElement;
+  children: (item: T, index: Signal<number>) => JSXElement;
   fallback?: JSXElement;
 }
 
 export function For<T>(props: ForProps<T>): JSXElement {
-  const fragment = document.createDocumentFragment();
-  const startMarker = document.createComment('For start');
-  const endMarker = document.createComment('For end');
+  const fragment = createRouterFragment();
+  const startMarker = createRouterComment('For start');
+  const endMarker = createRouterComment('For end');
 
-  fragment.appendChild(startMarker);
-  fragment.appendChild(endMarker);
+  // Append markers to fragment
+  if (isSSR()) {
+    const virtualFragment = fragment as any;
+    virtualFragment.children.push(startMarker, endMarker);
+  } else {
+    (fragment as DocumentFragment).appendChild(startMarker as Comment);
+    (fragment as DocumentFragment).appendChild(endMarker as Comment);
+  }
 
   const renderItem = Array.isArray(props.children) ? props.children[0] : props.children;
 
@@ -30,7 +42,7 @@ export function For<T>(props: ForProps<T>): JSXElement {
 
   const instanceMap = new Map<T, ItemInstance[]>();
   // We keep track of the current order of instances to manage the DOM
-  let currentInstances: ItemInstance[] = [];
+  let _currentInstances: ItemInstance[] = [];
 
   const updateList = (): void => {
     // Resolve the reactive value
@@ -46,7 +58,7 @@ export function For<T>(props: ForProps<T>): JSXElement {
     if (!Array.isArray(newItems)) newItems = [];
 
     // Important: Use startMarker.parentNode. If null (not mounted yet), use the fragment.
-    const parent = startMarker.parentNode || fragment;
+    const parent = isSSR() ? fragment : ((startMarker as Comment).parentNode || fragment);
 
     const nextInstances: ItemInstance[] = [];
     const availableInstances = new Map<T, ItemInstance[]>();
@@ -65,13 +77,19 @@ export function For<T>(props: ForProps<T>): JSXElement {
         nextInstances.push(instance);
       } else {
         const indexSignal = createSignal(index);
-        const element = renderItem(item, indexSignal as any);
+        const element = (renderItem as (item: T, index: Signal<number>) => JSXElement)(item, indexSignal);
 
         let nodes: Node[] = [];
-        if (element instanceof DocumentFragment) {
-          nodes = Array.from(element.childNodes);
-        } else if (element instanceof Node) {
-          nodes = [element];
+        if (isSSR()) {
+          // On server, treat elements as virtual nodes stored in array
+          nodes = [element as any];
+        } else {
+          // Client: handle DOM nodes
+          if (element instanceof DocumentFragment) {
+            nodes = Array.from(element.childNodes);
+          } else if (element instanceof Node) {
+            nodes = [element];
+          }
         }
 
         nextInstances.push({ nodes, indexSignal: indexSignal as Signal<number> });
@@ -81,25 +99,46 @@ export function For<T>(props: ForProps<T>): JSXElement {
     // 2. Cleanup Phase: Remove nodes that are no longer in the list
     availableInstances.forEach((stack) => {
       stack.forEach(instance => {
-        instance.nodes.forEach(node => node.parentElement?.removeChild(node));
+        if (!isSSR()) {
+          instance.nodes.forEach(node => node.parentElement?.removeChild(node));
+        }
       });
     });
 
     // 3. DOM Sync Phase: Adjust positions
-    let cursor: Node = endMarker;
-    // We iterate backwards to use insertBefore(node, cursor) effectively
-    for (let i = nextInstances.length - 1; i >= 0; i--) {
-      const instance = nextInstances[i];
-      if (!instance) continue;
-      const nodes = instance.nodes;
-
-
-      for (let j = nodes.length - 1; j >= 0; j--) {
-        const node = nodes[j]!;
-        if (node.nextSibling !== cursor) {
-          parent.insertBefore(node, cursor);
+    if (isSSR()) {
+      // Server: Just add all nodes to virtual fragment before endMarker
+      const virtualParent = parent as any;
+      const endIndex = virtualParent.children.indexOf(endMarker);
+      
+      // Clear existing items between markers
+      if (endIndex > 0) {
+        const startIndex = virtualParent.children.indexOf(startMarker);
+        if (startIndex >= 0 && startIndex < endIndex) {
+          virtualParent.children.splice(startIndex + 1, endIndex - startIndex - 1);
         }
-        cursor = node;
+      }
+      
+      // Insert all nodes
+      const insertIndex = virtualParent.children.indexOf(endMarker);
+      const allNodes = nextInstances.flatMap(inst => inst.nodes);
+      virtualParent.children.splice(insertIndex, 0, ...allNodes);
+    } else {
+      // Client: adjust DOM positions
+      let cursor: Node = endMarker as Comment;
+      // We iterate backwards to use insertBefore(node, cursor) effectively
+      for (let i = nextInstances.length - 1; i >= 0; i--) {
+        const instance = nextInstances[i];
+        if (!instance) continue;
+        const nodes = instance.nodes;
+
+        for (let j = nodes.length - 1; j >= 0; j--) {
+          const node = nodes[j]!;
+          if (node.nextSibling !== cursor) {
+            (parent as Node).insertBefore(node, cursor);
+          }
+          cursor = node;
+        }
       }
     }
 
@@ -111,10 +150,17 @@ export function For<T>(props: ForProps<T>): JSXElement {
       stack.push(instance);
       instanceMap.set(item, stack);
     });
-    currentInstances = nextInstances;
+    _currentInstances = nextInstances;
   };
 
-  createEffect(updateList);
+  // SSR: render once, synchronously
+  if (isSSR()) {
+    updateList();
+  } else {
+    // Client: reactive rendering
+    createEffect(updateList);
+  }
+  
   return fragment;
 }
 
@@ -122,19 +168,25 @@ export function Index<T>(props: {
   each: ReactiveValue<T[]>,
   children: (item: () => T, index: number) => JSXElement
 }): JSXElement {
-  const fragment = document.createDocumentFragment();
-  const startMarker = document.createComment('Index start');
-  const endMarker = document.createComment('Index end');
-  fragment.appendChild(startMarker);
-  fragment.appendChild(endMarker);
+  const fragment = createRouterFragment();
+  const startMarker = createRouterComment('Index start');
+  const endMarker = createRouterComment('Index end');
+  
+  if (isSSR()) {
+    const virtualFragment = fragment as any;
+    virtualFragment.children.push(startMarker, endMarker);
+  } else {
+    (fragment as DocumentFragment).appendChild(startMarker as Comment);
+    (fragment as DocumentFragment).appendChild(endMarker as Comment);
+  }
 
   // We store signals for each index so we can update values without re-rendering the whole row
   const itemSignals: Signal<T>[] = [];
   const renderedNodes: Node[][] = [];
 
-  createEffect(() => {
+  const update = () => {
     const newItems = isSignal(props.each) ? props.each() : (typeof props.each === 'function' ? (props.each as Function)() : props.each);
-    const parent = startMarker.parentNode || fragment;
+    const parent = isSSR() ? fragment : ((startMarker as Comment).parentNode || fragment);
 
     // Grow list
     while (itemSignals.length < newItems.length) {
@@ -143,17 +195,27 @@ export function Index<T>(props: {
       itemSignals.push(signal as Signal<T>);
 
       const element = props.children(() => signal(), index);
-      const nodes = element instanceof DocumentFragment ? Array.from(element.childNodes) : [element as Node];
-      renderedNodes.push(nodes);
-
-      nodes.forEach(n => parent.insertBefore(n, endMarker));
+      
+      if (isSSR()) {
+        const nodes = [element as any];
+        renderedNodes.push(nodes);
+        const virtualParent = parent as any;
+        const insertIndex = virtualParent.children.indexOf(endMarker);
+        virtualParent.children.splice(insertIndex, 0, ...nodes);
+      } else {
+        const nodes = element instanceof DocumentFragment ? Array.from(element.childNodes) : [element as Node];
+        renderedNodes.push(nodes);
+        nodes.forEach(n => (parent as Node).insertBefore(n, endMarker as Comment));
+      }
     }
 
     // Shrink list
     while (itemSignals.length > newItems.length) {
       itemSignals.pop();
       const nodes = renderedNodes.pop();
-      nodes?.forEach(n => n.parentElement?.removeChild(n));
+      if (!isSSR()) {
+        nodes?.forEach(n => n.parentElement?.removeChild(n));
+      }
     }
 
     // Update existing signals
@@ -162,40 +224,155 @@ export function Index<T>(props: {
         itemSignals[i]!(newItems[i]);
       }
     }
-  });
+  };
+
+  // SSR: render once, synchronously
+  if (isSSR()) {
+    update();
+  } else {
+    // Client: reactive rendering
+    createEffect(update);
+  }
 
   return fragment;
 }
 
-export function Show(props: {
-  when: any,
-  children: JSXElement | (() => JSXElement),
+export function Show<T>(props: {
+  when: T,
+  children: JSXElement | ((data: T) => JSXElement),
   fallback?: JSXElement | (() => JSXElement)
 }): JSXElement {
-  const fragment = document.createDocumentFragment();
-  const startMarker = document.createComment('Show start');
-  const endMarker = document.createComment('Show end');
-  fragment.appendChild(startMarker);
-  fragment.appendChild(endMarker);
+  const fragment = createRouterFragment();
+  const startMarker = createRouterComment('Show start');
+  const endMarker = createRouterComment('Show end');
+  
+  if (isSSR()) {
+    const virtualFragment = fragment as any;
+    virtualFragment.children.push(startMarker, endMarker);
+  } else {
+    (fragment as DocumentFragment).appendChild(startMarker as Comment);
+    (fragment as DocumentFragment).appendChild(endMarker as Comment);
+  }
 
   let currentNodes: Node[] = [];
 
-  createEffect(() => {
-    const condition = typeof props.when === 'function' ? props.when() : (isSignal(props.when) ? props.when() : props.when);
-    const parent = startMarker.parentNode || fragment;
+  const update = () => {
+    // Resolve the when prop
+    const when = typeof props.when === 'function' ? props.when() : (isSignal(props.when) ? props.when() : props.when);
+    
+    const condition = !!when
+    const data = when
+    
+    const parent = isSSR() ? fragment : ((startMarker as Comment).parentNode || fragment);
 
     // Cleanup old nodes
-    currentNodes.forEach(n => n.parentElement?.removeChild(n));
+    if (!isSSR()) {
+      currentNodes.forEach(n => n.parentElement?.removeChild(n));
+    }
     currentNodes = [];
 
     const content = condition ? props.children : props.fallback;
     if (content) {
-      const result = typeof content === 'function' ? (content as Function)() : content;
-      const nodes = result instanceof DocumentFragment ? Array.from(result.childNodes) : [result as Node];
-      nodes.forEach(n => parent.insertBefore(n, endMarker));
-      currentNodes = nodes;
+      const result = typeof content === 'function' ? content(data) : content;
+      
+      if (isSSR()) {
+        const nodes = [result as any];
+        const virtualParent = parent as any;
+        const insertIndex = virtualParent.children.indexOf(endMarker);
+        virtualParent.children.splice(insertIndex, 0, ...nodes);
+        currentNodes = nodes;
+      } else {
+        const nodes = result instanceof DocumentFragment ? Array.from(result.childNodes) : [result as Node];
+        nodes.forEach(n => (parent as Node).insertBefore(n, endMarker as Comment));
+        currentNodes = nodes;
+      }
     }
-  });
+  };
+
+  // SSR: render once, synchronously
+  if (isSSR()) {
+    update();
+  } else {
+    // Client: reactive rendering
+    createEffect(update);
+  }
 
   return fragment;
+}
+
+/**
+ * ErrorBoundary component for catching and handling errors
+ * Can run an Effect when an error occurs
+ * 
+ * @example
+ * ```tsx
+ * <ErrorBoundary
+ *   fallback={(error) => <div>Error: {error.message}</div>}
+ *   onError={(error) => Effect.sync(() => console.error(error))}
+ * >
+ *   <MyComponent />
+ * </ErrorBoundary>
+ * ```
+ */
+export function ErrorBoundary(props: {
+  fallback: (error: unknown) => JSXElement
+  onError?: (error: unknown) => void
+  children: JSXElement
+}): JSXElement {
+  const fragment = createRouterFragment();
+  const errorSignal = createSignal<unknown | null>(null)
+  const marker = createRouterComment('ErrorBoundary');
+  
+  if (isSSR()) {
+    const virtualFragment = fragment as any;
+    virtualFragment.children.push(marker);
+  } else {
+    (fragment as DocumentFragment).appendChild(marker as Comment);
+  }
+  
+  // Try to render children
+  try {
+    if (isSSR()) {
+      const virtualFragment = fragment as any;
+      virtualFragment.children.push(props.children);
+    } else if (props.children instanceof Node) {
+      (fragment as DocumentFragment).appendChild(props.children);
+    }
+  } catch (error) {
+    errorSignal(error)
+    if (props.onError) {
+      props.onError(error)
+    }
+  }
+  
+  // Create effect to handle error state changes (client only)
+  if (!isSSR()) {
+    createEffect(() => {
+      const error = errorSignal()
+      const parent = (marker as Comment).parentNode || fragment
+      
+      // Remove all nodes after marker
+      let node: ChildNode | null = (marker as Comment).nextSibling
+      while (node) {
+        const next: ChildNode | null = node?.nextSibling || null
+        if (node) {
+          (parent as Node).removeChild(node as Node)
+        }
+        node = next
+      }
+      
+      if (error) {
+        const fallback = props.fallback(error)
+        if (fallback instanceof Node) {
+          (parent as Node).appendChild(fallback)
+        }
+      } else {
+        if (props.children instanceof Node) {
+          (parent as Node).appendChild(props.children)
+        }
+      }
+    })
+  }
+  
+  return fragment
 }

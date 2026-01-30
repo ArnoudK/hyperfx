@@ -34,7 +34,7 @@ export declare abstract class ClassComponent<P = ComponentProps> {
     unmount(): void;
     update(newProps: P): void;
     protected componentDidMount(): void;
-    protected componentDidUpdate(newProps: P, prevProps: P | undefined): void;
+    protected componentDidUpdate(_newProps: P, _prevProps: P | undefined): void;
     protected componentWillUnmount(): void;
     protected addEffect(effect: () => void): void;
     private cleanup;

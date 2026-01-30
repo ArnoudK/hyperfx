@@ -1,0 +1,1 @@
+{"version":3,"file":"hydration.js","sourceRoot":"","sources":["../../../src/jsx/runtime/hydration.ts"],"names":[],"mappings":"AAAA,uDAAuD;AACvD,IAAI,gBAAgB,GAAG,KAAK,CAAC;AAE7B;;GAEG;AACH,MAAM,UAAU,cAAc;IAC5B,gBAAgB,GAAG,IAAI,CAAC;AAC1B,CAAC;AAED;;GAEG;AACH,MAAM,UAAU,YAAY;IAC1B,gBAAgB,GAAG,KAAK,CAAC;AAC3B,CAAC;AAED;;GAEG;AACH,MAAM,UAAU,kBAAkB;IAChC,OAAO,gBAAgB,CAAC;AAC1B,CAAC"}

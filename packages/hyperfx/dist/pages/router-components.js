@@ -1,4 +1,61 @@
 import { createSignal, createEffect, createComputed } from "../reactive/state";
+import { isSSR, createRouterFragment, createRouterComment, createRouterText, removeChild, } from './router-helpers';
+/**
+ * SSR-safe element creation
+ * On client: uses document.createElement
+ * On server: creates a minimal mock that satisfies JSXElement interface
+ */
+function createSafeElement(tag) {
+    if (typeof document !== 'undefined') {
+        return document.createElement(tag);
+    }
+    // Server: return a mock element structure
+    // This will be processed by the server's renderToString which expects HTMLElement-like objects
+    // However, our new virtual node system doesn't use these...
+    // The issue is that JSXElement type is defined as HTMLElement | DocumentFragment | Text | Comment
+    // But on the server we use VirtualNodes
+    // For now, create a minimal mock that has the properties we use
+    const mock = {
+        tagName: tag.toUpperCase(),
+        children: [],
+        childNodes: [],
+        className: '',
+        href: '',
+        textContent: '',
+        attributes: [],
+        classList: {
+            add: () => { },
+            remove: () => { },
+        },
+        style: {},
+        setAttribute: () => { },
+        getAttribute: () => null,
+        addEventListener: () => { },
+        removeEventListener: () => { },
+        appendChild: function (child) {
+            this.children.push(child);
+            this.childNodes.push(child);
+            return child;
+        },
+        removeChild: function (child) {
+            const idx = this.children.indexOf(child);
+            if (idx > -1)
+                this.children.splice(idx, 1);
+            const idx2 = this.childNodes.indexOf(child);
+            if (idx2 > -1)
+                this.childNodes.splice(idx2, 1);
+        },
+        replaceChild: function (newChild, oldChild) {
+            const idx = this.children.indexOf(oldChild);
+            if (idx > -1)
+                this.children[idx] = newChild;
+            const idx2 = this.childNodes.indexOf(oldChild);
+            if (idx2 > -1)
+                this.childNodes[idx2] = newChild;
+        },
+    };
+    return mock;
+}
 import { createContext, useContext } from "../reactive/context";
 /**
  * Global router context
@@ -10,62 +67,74 @@ export function Router(props) {
     if (parentContext) {
         console.warn('Router: Nested routers are not fully supported yet');
     }
-    const currentPath = createSignal(props.initialPath || (window.location.pathname + window.location.search));
+    // Determine initial path safely for SSR
+    const getInitialPath = () => {
+        if (props.initialPath) {
+            return props.initialPath;
+        }
+        // During SSR, window might be from happy-dom - use initialPath or default to '/'
+        if (typeof window !== 'undefined' && window.location) {
+            return window.location.pathname + window.location.search;
+        }
+        return '/';
+    };
+    const currentPath = createSignal(getInitialPath());
     const historyStack = createSignal([currentPath()]);
     const historyIndex = createSignal(0);
-    // Set up navigation effects
-    // Set up navigation effects
-    createEffect(() => {
-        // Handle browser navigation
-        const handlePopState = () => {
-            const newPath = (window.location.pathname + window.location.search) || '/';
-            currentPath(newPath);
-            const newStack = [...historyStack()];
-            newStack[historyIndex()] = newPath;
-            historyStack(newStack);
-        };
-        window.addEventListener('popstate', handlePopState);
-        return () => {
-            window.removeEventListener('popstate', handlePopState);
-        };
-    });
+    // Check if we're in a browser environment (not SSR)
+    const isBrowser = typeof window !== 'undefined' && typeof window.addEventListener === 'function' &&
+        typeof window.history !== 'undefined';
+    // Set up navigation effects only in browser
+    if (isBrowser) {
+        createEffect(() => {
+            // Handle browser navigation
+            const handlePopState = () => {
+                const newPath = (window.location.pathname + window.location.search) || '/';
+                currentPath(newPath);
+                const newStack = [...historyStack()];
+                newStack[historyIndex()] = newPath;
+                historyStack(newStack);
+            };
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        });
+    }
     const navigate = (path, options = {}) => {
-        // console.log('Router: navigate called', path);
-        if (options.replace) {
-            window.history.replaceState({}, '', path);
-            const newStack = [...historyStack()];
-            newStack[historyIndex()] = path;
-            historyStack(newStack);
+        if (isBrowser) {
+            if (options.replace) {
+                window.history.replaceState({}, '', path);
+                const newStack = [...historyStack()];
+                newStack[historyIndex()] = path;
+                historyStack(newStack);
+            }
+            else {
+                window.history.pushState({}, '', path);
+                const newStack = [...historyStack().slice(0, historyIndex() + 1), path];
+                historyStack(newStack);
+                historyIndex(historyIndex() + 1);
+            }
         }
-        else {
-            window.history.pushState({}, '', path);
-            const newStack = [...historyStack().slice(0, historyIndex() + 1), path];
-            historyStack(newStack);
-            historyIndex(historyIndex() + 1);
-        }
-        // console.log('Router: updating currentPath signal', path);
         currentPath(path);
-        // Context is stable, no need to update it
     };
     const back = () => {
-        if (historyIndex() > 0) {
+        if (isBrowser && historyIndex() > 0) {
             const newIndex = historyIndex() - 1;
             historyIndex(newIndex);
             const path = historyStack()[newIndex] || '/';
             window.history.back();
             currentPath(path);
         }
-        // Context is stable, no need to update it
     };
     const forward = () => {
-        if (historyIndex() < historyStack().length - 1) {
+        if (isBrowser && historyIndex() < historyStack().length - 1) {
             const newIndex = historyIndex() + 1;
             historyIndex(newIndex);
             const path = historyStack()[newIndex] || '/';
             window.history.forward();
             currentPath(path);
         }
-        // Context is stable, no need to update it
     };
     const context = {
         currentPath,
@@ -74,25 +143,46 @@ export function Router(props) {
         forward,
     };
     // Use Provider to pass context to children
-    return (RouterContext.Provider({
+    const result = RouterContext.Provider({
         value: context,
-        children: props.children
-    }) // Type cast needed because our Provider argument typing is strict but usage requires flexibility
-    );
+        children: () => {
+            // Render children - handle both function and direct children
+            if (typeof props.children === 'function') {
+                return props.children();
+            }
+            return props.children;
+        }
+    });
+    return result;
 }
 export function Route(props) {
-    const fragment = document.createDocumentFragment();
-    const startMarker = document.createComment(`Route start: ${props.path}`);
-    const endMarker = document.createComment(`Route end: ${props.path}`);
-    fragment.appendChild(startMarker);
-    fragment.appendChild(endMarker);
+    const fragment = createRouterFragment();
+    const startMarker = createRouterComment(`Route start: ${props.path}`);
+    const endMarker = createRouterComment(`Route end: ${props.path}`);
+    // Append markers to fragment
+    if (isSSR()) {
+        // Server: manually add to virtual fragment's children array
+        const virtualFragment = fragment;
+        virtualFragment.children.push(startMarker, endMarker);
+    }
+    else {
+        // Client: use DOM API
+        fragment.appendChild(startMarker);
+        fragment.appendChild(endMarker);
+    }
     let renderedNodes = [];
     let wasMatched = false;
     // Extract Route-specific props, pass the rest to the child component
     const { path, component, children, exact, ...restProps } = props;
-    // Capture context once
-    const context = useContext(RouterContext);
-    createEffect(() => {
+    // DON'T capture context during construction - defer it to render time
+    // This is crucial for SSR where Route is created before Router Provider runs
+    let context = null;
+    // Helper function to render route content
+    const renderRouteContent = () => {
+        // Lazily get context on first render if we don't have it yet
+        if (!context) {
+            context = useContext(RouterContext);
+        }
         if (!context)
             return;
         const currentPath = context.currentPath;
@@ -101,17 +191,33 @@ export function Route(props) {
         const matches = (exact !== undefined ? exact : false)
             ? pathWithoutQuery === path
             : pathWithoutQuery.startsWith(path);
-        if (matches === wasMatched) {
-            return; // No change in match state, do nothing
+        // Skip if no change in match state AND we've already rendered
+        if (matches === wasMatched && renderedNodes.length > 0) {
+            return;
         }
         wasMatched = matches;
-        const parent = startMarker.parentNode;
-        const currentParent = parent || fragment;
+        // Determine parent container
+        let currentParent;
+        if (isSSR()) {
+            // Server: fragment is the parent
+            currentParent = fragment;
+        }
+        else {
+            // Client: use parentNode if available, otherwise fragment
+            currentParent = (startMarker.parentNode || fragment);
+        }
         // Remove old nodes from currentParent
         renderedNodes.forEach(node => {
-            if (node.parentNode === currentParent) {
-                // console.log('Removed old node:', node);
-                node.parentNode?.removeChild(node);
+            if (isSSR()) {
+                // Server: remove from virtual children
+                removeChild(currentParent, node);
+            }
+            else {
+                // Client: check if node is still in parent before removing
+                const domNode = node;
+                if (domNode.parentNode === currentParent) {
+                    currentParent.removeChild(domNode);
+                }
             }
         });
         renderedNodes = [];
@@ -131,26 +237,66 @@ export function Route(props) {
             if (content) {
                 const nodesToAdd = Array.isArray(content) ? content : [content];
                 nodesToAdd.forEach(node => {
-                    if (node instanceof Node) {
-                        currentParent.insertBefore(node, endMarker);
+                    if (isSSR()) {
+                        // Server: insert before endMarker in virtual children array
+                        const virtualParent = currentParent;
+                        const endIndex = virtualParent.children.indexOf(endMarker);
+                        if (endIndex !== -1) {
+                            virtualParent.children.splice(endIndex, 0, node);
+                        }
+                        else {
+                            virtualParent.children.push(node);
+                        }
                         renderedNodes.push(node);
                     }
-                    else if (node != null) {
-                        // Handle primitives by converting to text nodes
-                        const textNode = document.createTextNode(String(node));
-                        currentParent.insertBefore(textNode, endMarker);
-                        renderedNodes.push(textNode);
+                    else {
+                        // Client: DOM manipulation
+                        if (node instanceof Node) {
+                            currentParent.insertBefore(node, endMarker);
+                            renderedNodes.push(node);
+                        }
+                        else if (node != null) {
+                            // Handle primitives by converting to text nodes
+                            const textNode = createRouterText(String(node));
+                            currentParent.insertBefore(textNode, endMarker);
+                            renderedNodes.push(textNode);
+                        }
                     }
                 });
             }
         }
-    });
+    };
+    // SSR: render once, synchronously (static rendering - matched route only)
+    if (isSSR()) {
+        renderRouteContent();
+    }
+    else {
+        // Client: reactive rendering with effects
+        createEffect(renderRouteContent);
+    }
     return fragment;
 }
 export function Link(props) {
-    const link = document.createElement('a');
+    const link = createSafeElement('a');
     link.href = props.to;
     link.className = props.class !== undefined ? props.class : '';
+    // Skip interactive behavior on server
+    if (typeof document === 'undefined') {
+        // Server-side: just add children and return
+        if (typeof props.children === 'string') {
+            link.textContent = props.children;
+        }
+        else if (Array.isArray(props.children)) {
+            props.children.forEach((child) => {
+                link.appendChild(child);
+            });
+        }
+        else if (props.children) {
+            link.appendChild(props.children);
+        }
+        return link;
+    }
+    // Client: full interactive link with routing
     // Capture context during render
     const context = useContext(RouterContext);
     // console.log('Link: render', props.to, 'context:', !!context);
@@ -264,7 +410,7 @@ export function useNavigate() {
  */
 export function Outlet(props) {
     if (props.children) {
-        const container = document.createElement('div');
+        const container = createSafeElement('div');
         container.className = 'router-outlet';
         if (Array.isArray(props.children)) {
             props.children.forEach((child) => {
@@ -276,7 +422,7 @@ export function Outlet(props) {
         }
         return container;
     }
-    const outlet = document.createElement('div');
+    const outlet = createSafeElement('div');
     outlet.className = 'router-outlet';
     outlet.textContent = 'Outlet placeholder';
     return outlet;
@@ -285,7 +431,7 @@ export function Outlet(props) {
  * Switch Component - Renders first matching route
  */
 export function Switch(props) {
-    const container = document.createElement('div');
+    const container = createSafeElement('div');
     container.className = 'router-switch';
     if (Array.isArray(props.children)) {
         props.children.forEach((child) => {
@@ -305,8 +451,8 @@ export function Redirect(props) {
     if (context) {
         context.navigate(props.to, { replace: props.replace !== undefined ? props.replace : false });
     }
-    else {
-        // Deferred redirect handled in effect
+    else if (!isSSR()) {
+        // Only create effect on client - no-op on server
         createEffect(() => {
             const ctx = useContext(RouterContext);
             if (ctx) {
@@ -314,7 +460,7 @@ export function Redirect(props) {
             }
         });
     }
-    return document.createComment('Redirect component');
+    return createRouterComment('Redirect component');
 }
 /**
  * Get query parameter value from current URL as a reactive signal

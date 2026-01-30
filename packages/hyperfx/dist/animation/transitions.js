@@ -30,7 +30,7 @@ export const easings = {
 export function createAnimatedValue(initialValue, options = {}) {
     const currentValue = createSignal(initialValue);
     let animationId = null;
-    let isAnimating = false;
+    let _isAnimating = false;
     const animateTo = (target) => {
         return new Promise((resolve) => {
             if (animationId) {
@@ -59,11 +59,11 @@ export function createAnimatedValue(initialValue, options = {}) {
                 }
                 else {
                     animationId = null;
-                    isAnimating = false;
+                    _isAnimating = false;
                     resolve();
                 }
             };
-            isAnimating = true;
+            _isAnimating = true;
             animationId = requestAnimationFrame(animate);
         });
     };

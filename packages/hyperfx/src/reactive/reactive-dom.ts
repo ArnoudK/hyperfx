@@ -138,9 +138,11 @@ export function ReactiveList<T>(
     const currentItems = items();
 
     // Clear existing elements
+    // Note: ReactiveList only runs on client, so elements are always DOM Nodes
     currentElements.forEach((element) => {
-      if (element.parentNode === listContainer) {
-        listContainer.removeChild(element);
+      const domElement = element as Node;
+      if (domElement && domElement.parentNode === listContainer) {
+        listContainer.removeChild(domElement);
       }
     });
     currentElements.length = 0;
@@ -149,7 +151,7 @@ export function ReactiveList<T>(
     const itemsArray = currentItems; // Get the array value
     itemsArray.forEach((item, index) => {
       const element = renderItem(item, index);
-      listContainer.appendChild(element);
+      listContainer.appendChild(element as Node);
       currentElements.push(element);
     });
   };
@@ -174,8 +176,12 @@ export function ReactiveIf(
 
   const update = (): void => {
     // Remove current element
-    if (currentElement && currentElement.parentNode === wrapperContainer) {
-      wrapperContainer.removeChild(currentElement);
+    // Note: ReactiveIf only runs on client, so elements are always DOM Nodes
+    if (currentElement) {
+      const domElement = currentElement as Node;
+      if (domElement.parentNode === wrapperContainer) {
+        wrapperContainer.removeChild(domElement);
+      }
     }
 
     // Add appropriate element
@@ -188,7 +194,7 @@ export function ReactiveIf(
     }
 
     if (currentElement) {
-      wrapperContainer.appendChild(currentElement);
+      wrapperContainer.appendChild(currentElement as Node);
     }
   };
 
@@ -265,7 +271,6 @@ export function reactiveTemplate(
 // Batch DOM updates for performance
 export function batchDOMUpdates<T>(updates: (() => T)[]): T[] {
   // Use DocumentFragment for batching DOM operations
-  const fragment = document.createDocumentFragment();
   const results: T[] = [];
 
   // Prevent layout thrashing by batching reads/writes

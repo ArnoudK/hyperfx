@@ -13,6 +13,7 @@
     "dependencies": {
         "@happy-dom/global-registrator": "^20.0.11",
         "@tailwindcss/vite": "^4.1.18",
+        "unplugin-hyperfx": "workspace:*",  
         "happy-dom": "^20.0.11",
         "hyperfx": "workspace:*",
         "nitro": "3.0.1-alpha.1",

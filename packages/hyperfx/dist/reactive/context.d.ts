@@ -23,3 +23,14 @@ export declare function createContext<T>(defaultValue: T): Context<T>;
  * @param context The context object
  */
 export declare function useContext<T>(context: Context<T>): T;
+/**
+ * Manually push a context value onto the stack
+ * This is useful for SSR where children are pre-evaluated
+ * @internal
+ */
+export declare function pushContext<T>(context: Context<T>, value: T): void;
+/**
+ * Manually pop a context value from the stack
+ * @internal
+ */
+export declare function popContext<T>(context: Context<T>): void;

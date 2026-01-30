@@ -12,8 +12,15 @@ export * from "./reactive/state";
 export * from "./reactive/context";
 export * from "./reactive/reactive-dom";
 
+// Effect Integration
+export * from "./reactive/resource";
+export * from "./reactive/resource-state";
+export * from "./reactive/async-component";
+export * from "./runtime";
+
 // Direct DOM Routing System
 export * from "./pages/router-components";
+export * from "./pages/router-helpers";
 
 // JSX Runtime for Direct DOM
 export * from "./jsx/jsx-runtime";
@@ -25,11 +32,7 @@ export * from "./jsx/control-flow";
 
 
 // Additional features
-export * from "./fetcher";
 export * from "./json_representation/hfx_object";
-export * from "./performance/optimizations";
-export * from "./animation/transitions";
-export * from "./dev/dev-tools";
 export * from "./ssr";
 
 /* Extension methods */

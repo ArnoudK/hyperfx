@@ -1,4 +1,4 @@
-import type { ReactiveString, ReactiveBoolean, ReactiveValue, ReactiveNumber } from './base';
+import type { ReactiveString, ReactiveBoolean, ReactiveNumber } from './base';
 import type { GlobalHTMLAttributes } from './global-attributes';
 
 // ========================================
@@ -96,8 +96,6 @@ export interface CaptionHTMLAttributes extends GlobalHTMLAttributes {}
 // ========================================
 // LISTS AND DEFINITIONS
 // ========================================
-
-export interface MenuHTMLAttributes extends GlobalHTMLAttributes {}
 
 export interface DetailsHTMLAttributes extends GlobalHTMLAttributes {
   open?: ReactiveBoolean;

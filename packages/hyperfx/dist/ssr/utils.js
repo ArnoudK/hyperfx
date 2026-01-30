@@ -11,20 +11,23 @@ export class SSRRenderer {
      * Render a page with full HTML document
      */
     renderPage(element, options = {}) {
-        const documentOptions = {
-            title: this.config.title || 'HyperFX App',
-            description: this.config.description,
-            lang: 'en',
-            charset: 'UTF-8',
-            viewport: 'width=device-width, initial-scale=1.0',
-            ...options,
-            // Add meta tags for SEO
-            inlineStyles: [
-                options.inlineStyles || '',
-                this.generateCriticalCSS()
-            ].filter(Boolean).join('\n'),
-        };
-        return this.renderDocument(element, documentOptions);
+        return this.renderDocument(element, options);
+    }
+    /**
+     * Render with streaming support (for large pages)
+     */
+    async *renderStream(element, options = {}) {
+        yield '<!DOCTYPE html>';
+        yield `<html lang="${options.lang || 'en'}">`;
+        yield '<head>';
+        const metaTags = this.generateMetaTags(options);
+        yield metaTags;
+        yield '</head>';
+        yield '<body>';
+        // Render element in chunks
+        yield this.renderPage(element);
+        yield '</body>';
+        yield '</html>';
     }
     /**
      * Render with hydration support
@@ -49,11 +52,11 @@ export class SSRRenderer {
     renderDocument(element, options) {
         let elementToRender;
         if (Array.isArray(element)) {
-            const fragment = document.createDocumentFragment();
-            element.forEach(child => {
-                fragment.appendChild(child);
-            });
-            elementToRender = fragment;
+            // Create a virtual fragment for multiple elements
+            elementToRender = {
+                type: 'fragment',
+                children: element
+            };
         }
         else {
             elementToRender = element;
@@ -80,7 +83,7 @@ ${options.inlineScripts ? `<script>\n${options.inlineScripts}\n</script>` : ''}
     /**
      * Generate meta tags for SEO
      */
-    generateMetaTags(options) {
+    generateMetaTags(_options) {
         const tags = [];
         // Keywords
         if (this.config.keywords?.length) {
@@ -155,7 +158,7 @@ export class StaticGenerator {
         this.routes = new Map();
     }
     /**
-     * Register a route for static generation
+     * Add a route handler
      */
     addRoute(path, component) {
         this.routes.set(path, component);
@@ -163,7 +166,7 @@ export class StaticGenerator {
     /**
      * Generate static HTML for all routes
      */
-    async generateAll(outputDir = './dist') {
+    async generateAll(_outputDir = './dist') {
         const pages = new Map();
         for (const [path, component] of this.routes) {
             try {
@@ -243,11 +246,16 @@ export const SSRUtils = {
      * Create placeholder for client-side hydration
      */
     createHydrationPlaceholder(id, tagName = 'div') {
-        const element = document.createElement(tagName);
-        element.id = id;
-        element.setAttribute('data-hydration-placeholder', 'true');
-        element.style.display = 'none';
-        return element;
+        return {
+            type: 'element',
+            tag: tagName,
+            props: {
+                id,
+                'data-hydration-placeholder': 'true',
+                style: 'display: none'
+            },
+            children: []
+        };
     }
 };
 //# sourceMappingURL=utils.js.map

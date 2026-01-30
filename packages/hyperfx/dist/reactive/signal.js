@@ -8,6 +8,36 @@
 let currentComputation = null;
 let isTracking = false;
 const accessedSignals = new Set();
+// Global signal registry for SSR serialization
+const globalSignalRegistry = new Map();
+let isSSRMode = false;
+/**
+ * Enable SSR mode for signal tracking
+ */
+export function enableSSRMode() {
+    if (!isSSRMode) {
+        isSSRMode = true;
+        globalSignalRegistry.clear();
+    }
+}
+/**
+ * Disable SSR mode
+ */
+export function disableSSRMode() {
+    isSSRMode = false;
+}
+/**
+ * Get all registered signals for SSR serialization
+ */
+export function getRegisteredSignals() {
+    return globalSignalRegistry;
+}
+/**
+ * Register a signal with a key for SSR
+ */
+export function registerSignal(key, signal) {
+    globalSignalRegistry.set(key, signal);
+}
 class SignalImpl {
     constructor(initialValue) {
         this.subscribers = new Set();
@@ -31,8 +61,10 @@ class SignalImpl {
             return newValue; // No change, skip notification
         }
         this._value = newValue;
-        // Immediately notify all subscribers
-        this.subscribers.forEach((callback) => {
+        // Copy subscribers array before iterating to avoid issues
+        // when subscribers modify the subscription list during notification
+        const subscribersToNotify = Array.from(this.subscribers);
+        subscribersToNotify.forEach((callback) => {
             try {
                 callback(newValue);
             }
@@ -76,7 +108,7 @@ class SignalImpl {
 /**
  * Create a new signal with callable API and object methods
  */
-export function createSignal(initialValue) {
+export function createSignal(initialValue, options) {
     const signal = new SignalImpl(initialValue);
     // Create callable function with methods
     const callableSignal = Object.assign((value) => {
@@ -89,7 +121,8 @@ export function createSignal(initialValue) {
         set: (value) => signal.set(value),
         subscribe: (callback) => signal.subscribe(callback),
         peek: () => signal.peek(),
-        update: (updater) => signal.update(updater)
+        update: (updater) => signal.update(updater),
+        key: options?.key
     });
     // Add subscriberCount getter dynamically
     Object.defineProperty(callableSignal, 'subscriberCount', {
@@ -99,6 +132,14 @@ export function createSignal(initialValue) {
     });
     // Store reference to callable signal
     signal.callableSignal = callableSignal;
+    // Register signal if it has a key and we're in SSR mode
+    if (options?.key) {
+        if (globalSignalRegistry.has(options.key)) {
+            console.warn(`Signal with key "${options.key}" already exists. Using existing signal.`);
+            return globalSignalRegistry.get(options.key);
+        }
+        registerSignal(options.key, callableSignal);
+    }
     return callableSignal;
 }
 /**
@@ -134,42 +175,85 @@ export function createComputed(computeFn) {
         const newValue = computeFn();
         originalSet(newValue);
     }));
-    // Store unsubscribers for cleanup
-    signal._unsubscribers = unsubscribers;
-    return signal;
+    // Add destroy method to clean up subscriptions
+    const computedSignal = Object.assign(signal, {
+        destroy: () => {
+            // Unsubscribe from all dependencies
+            unsubscribers.forEach(unsub => unsub());
+            // Clear the unsubscribers array
+            unsubscribers.length = 0;
+        }
+    });
+    return computedSignal;
 }
 /**
  * Create an effect that runs when signals change
+ * Effects automatically track dependencies and re-subscribe when they change
  */
 export function createEffect(effectFn) {
-    // Track dependencies during initial effect run
-    const oldTracking = isTracking;
-    isTracking = true;
-    accessedSignals.clear();
     let cleanup;
-    // Run effect and track dependencies
-    cleanup = effectFn();
-    // Subscribe to all accessed signals
-    const dependencies = Array.from(accessedSignals);
-    const unsubscribers = dependencies.map(dep => dep.subscribe(() => {
-        // Re-run effect when dependency changes
-        const oldTrack = isTracking;
-        isTracking = true;
-        accessedSignals.clear();
-        // Call previous cleanup if any
-        if (typeof cleanup === 'function') {
-            cleanup();
+    let unsubscribers = [];
+    let isDisposed = false;
+    let isRunning = false; // Prevent re-entrance during signal notifications
+    let pendingRun = false; // Track if we should run after current execution
+    // Function to run the effect and update subscriptions
+    const runEffect = () => {
+        if (isDisposed)
+            return;
+        // If already running, defer this run until current one completes
+        if (isRunning) {
+            pendingRun = true;
+            return;
         }
-        // Re-run effect
-        cleanup = effectFn();
-        isTracking = oldTrack;
-        accessedSignals.clear();
-    }));
-    // Reset tracking
-    isTracking = oldTracking;
-    accessedSignals.clear();
+        // Loop to stabilize when effects trigger themselves
+        let iterations = 0;
+        const MAX_ITERATIONS = 100;
+        while (iterations < MAX_ITERATIONS) {
+            pendingRun = false;
+            // Unsubscribe from previous dependencies
+            unsubscribers.forEach(unsub => unsub());
+            unsubscribers = [];
+            // Call previous cleanup if any
+            if (typeof cleanup === 'function') {
+                cleanup();
+                cleanup = undefined;
+            }
+            // Track dependencies during effect run
+            const oldTracking = isTracking;
+            isTracking = true;
+            accessedSignals.clear();
+            try {
+                // Run effect
+                cleanup = effectFn();
+            }
+            finally {
+                // Reset tracking
+                isTracking = oldTracking;
+            }
+            // Subscribe to all accessed signals
+            const dependencies = Array.from(accessedSignals);
+            accessedSignals.clear();
+            unsubscribers = dependencies.map(dep => dep.subscribe(() => {
+                // Trigger effect to run (will be deferred if currently running)
+                runEffect();
+            }));
+            // If no new run was triggered during execution, we're done
+            if (!pendingRun) {
+                break;
+            }
+            iterations++;
+        }
+        if (iterations >= MAX_ITERATIONS) {
+            console.error('createEffect: Maximum iterations reached - possible infinite loop in effect');
+            pendingRun = false;
+        }
+        isRunning = false;
+    };
+    // Initial run (synchronous)
+    runEffect();
     // Return cleanup function that unsubscribes
     return () => {
+        isDisposed = true;
         unsubscribers.forEach((unsub) => {
             unsub();
         });
@@ -185,6 +269,20 @@ export function batch(fn) {
     // Simple implementation - just run the function
     // In a full implementation, this would defer notifications
     return fn();
+}
+/**
+ * Run a function without tracking signal accesses
+ * Useful for reading signals inside effects without creating dependencies
+ */
+export function untrack(fn) {
+    const wasTracking = isTracking;
+    isTracking = false;
+    try {
+        return fn();
+    }
+    finally {
+        isTracking = wasTracking;
+    }
 }
 /**
  * Utility to check if a value is a Signal

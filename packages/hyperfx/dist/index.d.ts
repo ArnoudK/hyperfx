@@ -3,14 +3,15 @@ export * from "./reactive/reactive-dom";
 export * from "./reactive/state";
 export * from "./reactive/context";
 export * from "./reactive/reactive-dom";
+export * from "./reactive/resource";
+export * from "./reactive/resource-state";
+export * from "./reactive/async-component";
+export * from "./runtime";
 export * from "./pages/router-components";
+export * from "./pages/router-helpers";
 export * from "./jsx/jsx-runtime";
 export * from "./jsx/control-flow";
-export * from "./fetcher";
 export * from "./json_representation/hfx_object";
-export * from "./performance/optimizations";
-export * from "./animation/transitions";
-export * from "./dev/dev-tools";
 export * from "./ssr";
 declare global {
     interface HTMLElement {

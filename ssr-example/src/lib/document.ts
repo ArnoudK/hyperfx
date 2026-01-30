@@ -7,13 +7,21 @@ export interface DocumentOptions {
   body: string;
   hydrationScript: string;
   styles?: string;
+  clientScript?: string;
 }
 
 /**
  * Create a complete HTML document for SSR
  */
 export function createDocument(options: DocumentOptions): string {
-  const { title, description, body, hydrationScript, styles = '/styles.css' } = options;
+  const { 
+    title, 
+    description, 
+    body, 
+    hydrationScript, 
+    styles = '/styles.css',
+    clientScript = '/assets/client.js'  // Will be overridden by server
+  } = options;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -28,7 +36,7 @@ export function createDocument(options: DocumentOptions): string {
 <body>
     ${body}
     ${hydrationScript}
-    <script src="/src/client.tsx" type="module"></script>
+    <script src="${clientScript}" type="module"></script>
 </body>
 </html>`;
 }

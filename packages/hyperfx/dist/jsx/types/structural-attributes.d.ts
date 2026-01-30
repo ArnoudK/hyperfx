@@ -74,8 +74,6 @@ export interface ColgroupHTMLAttributes extends GlobalHTMLAttributes {
 }
 export interface CaptionHTMLAttributes extends GlobalHTMLAttributes {
 }
-export interface MenuHTMLAttributes extends GlobalHTMLAttributes {
-}
 export interface DetailsHTMLAttributes extends GlobalHTMLAttributes {
     open?: ReactiveBoolean;
 }

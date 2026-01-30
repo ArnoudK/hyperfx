@@ -1,4 +1,4 @@
-import type { ReactiveValue } from './jsx-runtime';
+import type { ReactiveValue, JSXElement } from './jsx-runtime';
 
 // Re-export for convenience
 export type { ReactiveValue } from './jsx-runtime';
@@ -611,7 +611,7 @@ export type IntrinsicElements = {
 
 // JSX namespace for TypeScript integration
 export namespace JSX {
-  export type Element = import('./jsx-runtime').JSXElement;
+  export type Element = JSXElement;
   export interface ElementChildrenAttribute {
     children: JSXChildren;
   }

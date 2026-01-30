@@ -1,6 +1,6 @@
-// SSR utilities and common patterns - Direct DOM Implementation
-import { JSXElement } from "../jsx/jsx-runtime";
-import { renderToString, renderWithHydration } from "./render";
+// SSR utilities and common patterns - Virtual Node Implementation
+import type { VirtualNode } from "../jsx/runtime/virtual-node";
+import { renderToString } from "./render";
 
 /**
  * SSR context for passing server-side data
@@ -68,30 +68,40 @@ export class SSRRenderer {
    * Render a page with full HTML document
    */
   renderPage(
-    element: JSXElement | JSXElement[],
-    options: Partial<HtmlDocumentOptions> = {}
+    element: VirtualNode | VirtualNode[],
+    options: HtmlDocumentOptions = {}
   ): string {
-    const documentOptions: HtmlDocumentOptions = {
-      title: this.config.title || 'HyperFX App',
-      description: this.config.description,
-      lang: 'en',
-      charset: 'UTF-8',
-      viewport: 'width=device-width, initial-scale=1.0',
-      ...options,
-      // Add meta tags for SEO
-      inlineStyles: [
-        options.inlineStyles || '',
-        this.generateCriticalCSS()
-      ].filter(Boolean).join('\n'),
-    };
+    return this.renderDocument(element, options);
+  }
 
-    return this.renderDocument(element, documentOptions);
+  /**
+   * Render with streaming support (for large pages)
+   */
+  async *renderStream(
+    element: VirtualNode | VirtualNode[],
+    options: HtmlDocumentOptions = {}
+  ): AsyncIterableIterator<string> {
+    yield '<!DOCTYPE html>';
+    yield `<html lang="${options.lang || 'en'}">`;
+    yield '<head>';
+    
+    const metaTags = this.generateMetaTags(options);
+    yield metaTags;
+    
+    yield '</head>';
+    yield '<body>';
+    
+    // Render element in chunks
+    yield this.renderPage(element);
+    
+    yield '</body>';
+    yield '</html>';
   }
 
   /**
    * Render with hydration support
    */
-  renderWithHydration(element: JSXElement): {
+  renderWithHydration(element: VirtualNode): {
     html: string;
     hydrationScript: string;
     fullDocument?: string;
@@ -117,16 +127,16 @@ export class SSRRenderer {
    * Render a full HTML document
    */
   private renderDocument(
-    element: JSXElement | JSXElement[],
+    element: VirtualNode | VirtualNode[],
     options: HtmlDocumentOptions
   ): string {
-    let elementToRender: JSXElement;
+    let elementToRender: VirtualNode;
     if (Array.isArray(element)) {
-      const fragment = document.createDocumentFragment();
-      element.forEach(child => {
-        fragment.appendChild(child);
-      });
-      elementToRender = fragment;
+      // Create a virtual fragment for multiple elements
+      elementToRender = {
+        type: 'fragment',
+        children: element
+      };
     } else {
       elementToRender = element;
     }
@@ -156,7 +166,7 @@ ${options.inlineScripts ? `<script>\n${options.inlineScripts}\n</script>` : ''}
   /**
    * Generate meta tags for SEO
    */
-  private generateMetaTags(options: HtmlDocumentOptions): string {
+  private generateMetaTags(_options: HtmlDocumentOptions): string {
     const tags: string[] = [];
 
     // Keywords
@@ -228,19 +238,19 @@ ${options.inlineScripts ? `<script>\n${options.inlineScripts}\n</script>` : ''}
  * Static site generation helpers
  */
 export class StaticGenerator {
-  private routes: Map<string, () => JSXElement | Promise<JSXElement>> = new Map();
+  private routes: Map<string, () => VirtualNode | Promise<VirtualNode>> = new Map();
 
   /**
-   * Register a route for static generation
+   * Add a route handler
    */
-  addRoute(path: string, component: () => JSXElement | Promise<JSXElement>): void {
+  addRoute(path: string, component: () => VirtualNode | Promise<VirtualNode>): void {
     this.routes.set(path, component);
   }
 
   /**
    * Generate static HTML for all routes
    */
-  async generateAll(outputDir: string = './dist'): Promise<Map<string, string>> {
+  async generateAll(_outputDir: string = './dist'): Promise<Map<string, string>> {
     const pages = new Map<string, string>();
 
     for (const [path, component] of this.routes) {
@@ -282,10 +292,10 @@ export const SSRUtils = {
    * Create a server-safe component that handles client-only features
    */
   serverSafe<T>(
-    serverComponent: () => JSXElement,
+    serverComponent: () => VirtualNode,
     clientComponent: () => T,
-    fallback?: () => JSXElement
-  ): () => JSXElement | T {
+    fallback?: () => VirtualNode
+  ): () => VirtualNode | T {
     return () => {
       if (typeof window === 'undefined') {
         // Server-side
@@ -305,7 +315,7 @@ export const SSRUtils = {
   /**
    * Conditional rendering based on environment
    */
-  clientOnly<T>(component: () => T, fallback?: () => JSXElement): () => JSXElement | T | null {
+  clientOnly<T>(component: () => T, fallback?: () => VirtualNode): () => VirtualNode | T | null {
     return () => {
       if (typeof window === 'undefined') {
         return fallback ? fallback() : null;
@@ -317,7 +327,7 @@ export const SSRUtils = {
   /**
    * Server-only rendering
    */
-  serverOnly(component: () => JSXElement): () => JSXElement | null {
+  serverOnly(component: () => VirtualNode): () => VirtualNode | null {
     return () => {
       if (typeof window === 'undefined') {
         return component();
@@ -329,11 +339,16 @@ export const SSRUtils = {
   /**
    * Create placeholder for client-side hydration
    */
-  createHydrationPlaceholder(id: string, tagName: string = 'div'): JSXElement {
-    const element = document.createElement(tagName);
-    element.id = id;
-    element.setAttribute('data-hydration-placeholder', 'true');
-    element.style.display = 'none';
-    return element;
+  createHydrationPlaceholder(id: string, tagName: string = 'div'): VirtualNode {
+    return {
+      type: 'element',
+      tag: tagName,
+      props: {
+        id,
+        'data-hydration-placeholder': 'true',
+        style: 'display: none'
+      },
+      children: []
+    };
   }
 };

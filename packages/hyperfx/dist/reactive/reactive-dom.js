@@ -102,9 +102,11 @@ export function ReactiveList(items, renderItem, container) {
     const update = () => {
         const currentItems = items();
         // Clear existing elements
+        // Note: ReactiveList only runs on client, so elements are always DOM Nodes
         currentElements.forEach((element) => {
-            if (element.parentNode === listContainer) {
-                listContainer.removeChild(element);
+            const domElement = element;
+            if (domElement && domElement.parentNode === listContainer) {
+                listContainer.removeChild(domElement);
             }
         });
         currentElements.length = 0;
@@ -125,8 +127,12 @@ export function ReactiveIf(condition, renderTrue, renderFalse, container) {
     let currentElement = null;
     const update = () => {
         // Remove current element
-        if (currentElement && currentElement.parentNode === wrapperContainer) {
-            wrapperContainer.removeChild(currentElement);
+        // Note: ReactiveIf only runs on client, so elements are always DOM Nodes
+        if (currentElement) {
+            const domElement = currentElement;
+            if (domElement.parentNode === wrapperContainer) {
+                wrapperContainer.removeChild(domElement);
+            }
         }
         // Add appropriate element
         if (condition()) {
@@ -194,7 +200,6 @@ export function reactiveTemplate(strings, ...values) {
 // Batch DOM updates for performance
 export function batchDOMUpdates(updates) {
     // Use DocumentFragment for batching DOM operations
-    const fragment = document.createDocumentFragment();
     const results = [];
     // Prevent layout thrashing by batching reads/writes
     updates.forEach(update => {

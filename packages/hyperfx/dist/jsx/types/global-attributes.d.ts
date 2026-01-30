@@ -1,4 +1,5 @@
 import type { ReactiveString, ReactiveBoolean, ReactiveValue } from './base';
+import type { EventHandler } from './events';
 export interface GlobalHTMLAttributes {
     id?: ReactiveString;
     class?: ReactiveString;
@@ -93,12 +94,3 @@ export type ARIAPopupType = 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog';
 export type ARIALiveRegion = 'off' | 'assertive' | 'polite';
 export type ARIARelevant = 'additions' | 'removals' | 'text' | 'all';
 export type ARIASort = 'none' | 'ascending' | 'descending' | 'other';
-export type EventHandler<E extends Event = Event> = (event: E) => void;
-export type MouseEventHandler = EventHandler<MouseEvent>;
-export type KeyboardEventHandler = EventHandler<KeyboardEvent>;
-export type TouchEventHandler = EventHandler<TouchEvent>;
-export type FocusEventHandler = EventHandler<FocusEvent>;
-export type FormEventHandler = EventHandler<Event>;
-export type ChangeEventHandler = EventHandler<Event>;
-export type SubmitEventHandler = EventHandler<SubmitEvent>;
-export type InputEventHandler = EventHandler<InputEvent>;

@@ -1,5 +1,7 @@
 import type { ReactiveString, ReactiveBoolean, ReactiveValue } from './base';
 
+import type { EventHandler } from './events';
+
 // ========================================
 // GLOBAL ATTRIBUTES - VALID ON ALL HTML ELEMENTS
 // ========================================
@@ -188,14 +190,3 @@ export type ARIASort = 'none' | 'ascending' | 'descending' | 'other';
 // ENHANCED EVENT TYPES
 // ========================================
 
-export type EventHandler<E extends Event = Event> = (event: E) => void;
-
-// Specific event handler types for better typing
-export type MouseEventHandler = EventHandler<MouseEvent>;
-export type KeyboardEventHandler = EventHandler<KeyboardEvent>;
-export type TouchEventHandler = EventHandler<TouchEvent>;
-export type FocusEventHandler = EventHandler<FocusEvent>;
-export type FormEventHandler = EventHandler<Event>;
-export type ChangeEventHandler = EventHandler<Event>;
-export type SubmitEventHandler = EventHandler<SubmitEvent>;
-export type InputEventHandler = EventHandler<InputEvent>;

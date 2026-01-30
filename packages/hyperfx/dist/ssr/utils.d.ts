@@ -1,4 +1,4 @@
-import { JSXElement } from "../jsx/jsx-runtime";
+import type { VirtualNode } from "../jsx/runtime/virtual-node";
 /**
  * SSR context for passing server-side data
  */
@@ -56,11 +56,15 @@ export declare class SSRRenderer {
     /**
      * Render a page with full HTML document
      */
-    renderPage(element: JSXElement | JSXElement[], options?: Partial<HtmlDocumentOptions>): string;
+    renderPage(element: VirtualNode | VirtualNode[], options?: HtmlDocumentOptions): string;
+    /**
+     * Render with streaming support (for large pages)
+     */
+    renderStream(element: VirtualNode | VirtualNode[], options?: HtmlDocumentOptions): AsyncIterableIterator<string>;
     /**
      * Render with hydration support
      */
-    renderWithHydration(element: JSXElement): {
+    renderWithHydration(element: VirtualNode): {
         html: string;
         hydrationScript: string;
         fullDocument?: string;
@@ -88,13 +92,13 @@ export declare class SSRRenderer {
 export declare class StaticGenerator {
     private routes;
     /**
-     * Register a route for static generation
+     * Add a route handler
      */
-    addRoute(path: string, component: () => JSXElement | Promise<JSXElement>): void;
+    addRoute(path: string, component: () => VirtualNode | Promise<VirtualNode>): void;
     /**
      * Generate static HTML for all routes
      */
-    generateAll(outputDir?: string): Promise<Map<string, string>>;
+    generateAll(_outputDir?: string): Promise<Map<string, string>>;
     /**
      * Generate sitemap.xml
      */
@@ -107,17 +111,17 @@ export declare const SSRUtils: {
     /**
      * Create a server-safe component that handles client-only features
      */
-    serverSafe<T>(serverComponent: () => JSXElement, clientComponent: () => T, fallback?: () => JSXElement): () => JSXElement | T;
+    serverSafe<T>(serverComponent: () => VirtualNode, clientComponent: () => T, fallback?: () => VirtualNode): () => VirtualNode | T;
     /**
      * Conditional rendering based on environment
      */
-    clientOnly<T>(component: () => T, fallback?: () => JSXElement): () => JSXElement | T | null;
+    clientOnly<T>(component: () => T, fallback?: () => VirtualNode): () => VirtualNode | T | null;
     /**
      * Server-only rendering
      */
-    serverOnly(component: () => JSXElement): () => JSXElement | null;
+    serverOnly(component: () => VirtualNode): () => VirtualNode | null;
     /**
      * Create placeholder for client-side hydration
      */
-    createHydrationPlaceholder(id: string, tagName?: string): JSXElement;
+    createHydrationPlaceholder(id: string, tagName?: string): VirtualNode;
 };

@@ -2,248 +2,40 @@
 // MAIN TYPE EXPORTS - JSX ELEMENT TYPES FOR HYPERFX
 // ========================================
 
-// Base reactive types and utilities
-export type {
-  ReactiveString,
-  ReactiveNumber,
-  ReactiveBoolean,
-  ReactiveObject,
-  MaybeReactive,
-  UnwrapReactive,
-  ReactiveProps,
-  Reactive,
-} from './base';
 
-export {
-  isReactive,
-  isSignal,
-} from './base';
+export * from './base';
 
 // Global attributes (valid on all elements)
-export type {
-  GlobalHTMLAttributes,
-  ARIARole,
-  ARIAAutocomplete,
-  ARIACurrent,
-  ARIAPopupType,
-  ARIALiveRegion,
-  ARIARelevant,
-  ARIASort,
-  EventHandler,
-  MouseEventHandler,
-  KeyboardEventHandler,
-  TouchEventHandler,
-  FocusEventHandler,
-  FormEventHandler,
-  ChangeEventHandler,
-  InputEventHandler,
-  SubmitEventHandler,
-} from './global-attributes';
+export * from './global-attributes';
 
 // Form attributes and elements
-export type {
-  FormAssociatedAttributes,
-  ButtonHTMLAttributes,
-  FormHTMLAttributes,
-  InputHTMLAttributes,
-  LabelHTMLAttributes,
-  SelectHTMLAttributes,
-  TextareaHTMLAttributes,
-  OptionHTMLAttributes,
-  OptgroupHTMLAttributes,
-  FieldsetHTMLAttributes,
-  LegendHTMLAttributes,
-  MeterHTMLAttributes,
-  OutputHTMLAttributes,
-  ProgressHTMLAttributes,
-  DatalistHTMLAttributes,
-  InputType,
-  FormEncType,
-  FormMethod,
-  AutoComplete,
-} from './form-attributes';
+export * from './form-attributes';
 
 // Media elements
-export type {
-  AudioHTMLAttributes,
-  VideoHTMLAttributes,
-  ImgHTMLAttributes,
-  EmbedHTMLAttributes,
-  IframeHTMLAttributes,
-  ObjectHTMLAttributes,
-  SourceHTMLAttributes,
-  TrackHTMLAttributes,
-  MapHTMLAttributes,
-  AreaHTMLAttributes,
-  ReferrerPolicy,
-  PreloadType,
-  LoadingType,
-  DecodingType,
-  CrossOriginType,
-  MediaType,
-} from './media-attributes';
+export * from './media-attributes';
 
 // Structural elements
-export type {
-  DivHTMLAttributes,
-  SpanHTMLAttributes,
-  PHTMLAttributes,
-  // Heading and sectioning elements moved to semantic-attributes.ts
-  UlHTMLAttributes,
-  OlHTMLAttributes,
-  LiHTMLAttributes,
-  DlHTMLAttributes,
-  DtHTMLAttributes,
-  DdHTMLAttributes,
-  BlockquoteHTMLAttributes,
-  PreHTMLAttributes,
-  HrHTMLAttributes,
-  BrHTMLAttributes,
-  TableHTMLAttributes,
-  TheadHTMLAttributes,
-  TbodyHTMLAttributes,
-  TfootHTMLAttributes,
-  TrHTMLAttributes,
-  ThHTMLAttributes,
-  TdHTMLAttributes,
-  ColHTMLAttributes,
-  ColgroupHTMLAttributes,
-  CaptionHTMLAttributes,
-  AHTMLAttributes,
-  StrongHTMLAttributes,
-  EmHTMLAttributes,
-  BHTMLAttributes,
-  IHTMLAttributes,
-  UHTMLAttributes,
-  SHTMLAttributes,
-  SmallHTMLAttributes,
-  MarkHTMLAttributes,
-  DelHTMLAttributes,
-  InsHTMLAttributes,
-  SubHTMLAttributes,
-  SupHTMLAttributes,
-  QHTMLAttributes,
-  CiteHTMLAttributes,
-  AbbrHTMLAttributes,
-  TimeHTMLAttributes,
-  CodeHTMLAttributes,
-  VarHTMLAttributes,
-  SampHTMLAttributes,
-  KbdHTMLAttributes,
-  DfnHTMLAttributes,
-  AddressHTMLAttributes,
-  FigureHTMLAttributes,
-  FigcaptionHTMLAttributes,
-} from './structural-attributes';
+export * from './structural-attributes';
 
 // Semantic elements
-export type {
-  BodyHTMLAttributes,
-  HtmlHTMLAttributes,
-  HeadHTMLAttributes,
-  TitleHTMLAttributes,
-  BaseHTMLAttributes,
-  LinkHTMLAttributes,
-  MetaHTMLAttributes,
-  StyleHTMLAttributes,
-  ScriptHTMLAttributes,
-  HeaderHTMLAttributes,
-  FooterHTMLAttributes,
-  MainHTMLAttributes,
-  SectionHTMLAttributes,
-  ArticleHTMLAttributes,
-  AsideHTMLAttributes,
-  NavHTMLAttributes,
-  HgroupHTMLAttributes,
-  H1HTMLAttributes,
-  H2HTMLAttributes,
-  H3HTMLAttributes,
-  H4HTMLAttributes,
-  H5HTMLAttributes,
-  H6HTMLAttributes,
-  DataHTMLAttributes,
-  RubyHTMLAttributes,
-  RtHTMLAttributes,
-  RpHTMLAttributes,
-  BdiHTMLAttributes,
-  BdoHTMLAttributes,
-  WbrHTMLAttributes,
-  CanvasHTMLAttributes,
-  NoscriptHTMLAttributes,
-  TemplateHTMLAttributes,
-  MenuHTMLAttributes,
-  SlotHTMLAttributes,
-  PortalHTMLAttributes,
-} from './semantic-attributes';
+export * from './semantic-attributes';
 
 // Custom elements support
-export type {
-  CustomElementAttributes,
-  WebComponentAttributes,
-  DataBoundElementAttributes,
-  SlottedElementAttributes,
-  CreateCustomElementAttributes,
-  CreatePolymorphicElementAttributes,
-  UnknownCustomElementAttributes,
-} from './custom-elements';
+export * from './custom-elements';
 
 // Enhanced event types
-export type {
-  ClipboardEventHandler,
-  CompositionEventHandler,
-  DragEventHandler,
-  InvalidEventHandler,
-  PointerEventHandler,
-  SelectEventHandler,
-  WheelEventHandler,
-  AnimationEventHandler,
-  TransitionEventHandler,
-  LoadStartEventHandler,
-  ProgressEventHandler,
-  SuspendEventHandler,
-  AbortEventHandler,
-  MediaErrorEventHandler,
-  EmptiedEventHandler,
-  StalledEventHandler,
-  LoadedMetadataEventHandler,
-  LoadedDataEventHandler,
-  CanPlayEventHandler,
-  CanPlayThroughEventHandler,
-  PlayingEventHandler,
-  WaitingEventHandler,
-  SeekingEventHandler,
-  SeekedEventHandler,
-  EndedEventHandler,
-  DurationChangeEventHandler,
-  TimeUpdateEventHandler,
-  PlayEventHandler,
-  PauseEventHandler,
-  RateChangeEventHandler,
-  ResizeEventHandler,
-  VolumeChangeEventHandler,
-  LoadEventHandler,
-  ResetEventHandler,
-  SubmitEventHandlerDetailed,
-  WindowEventHandler,
-  DocumentEventHandler,
-  BeforeUnloadEventHandler,
-  HashChangeEventHandler,
-  PopStateEventHandler,
-  PageTransitionEventHandler,
-  StorageEventHandler,
-  MessageEventHandler,
-  PromiseRejectionEventHandler,
-  EventFromHandler,
-  EventHandlerMap,
-  GenericEventHandler,
-} from './events';
+export * from './events';
 
 // ========================================
 // INTRINSIC ELEMENTS MAPPING
 // ========================================
 
-import type { JSXChildren } from '../jsx-runtime';
+import type { JSXChildren, JSXElement } from '../jsx-runtime';
 import type { GlobalHTMLAttributes } from './global-attributes';
+import type * as StructuralAttributes from './structural-attributes';
+import type * as MediaAttributes from './media-attributes';
+import type * as SemanticAttributes from './semantic-attributes';
+import type * as FormAttributes from './form-attributes';
 
 // Default attributes for elements not explicitly defined
 export interface DefaultHTMLAttributes extends GlobalHTMLAttributes {
@@ -253,118 +45,118 @@ export interface DefaultHTMLAttributes extends GlobalHTMLAttributes {
 // IntrinsicElements mapping - exhaustive for standard HTML elements
 export type IntrinsicElements = {
   [K in keyof HTMLElementTagNameMap]: (
-    K extends 'a' ? import('./structural-attributes').AHTMLAttributes :
-    K extends 'abbr' ? import('./structural-attributes').AbbrHTMLAttributes :
-    K extends 'address' ? import('./structural-attributes').AddressHTMLAttributes :
-    K extends 'area' ? import('./media-attributes').AreaHTMLAttributes :
-    K extends 'article' ? import('./semantic-attributes').ArticleHTMLAttributes :
-    K extends 'aside' ? import('./semantic-attributes').AsideHTMLAttributes :
-    K extends 'audio' ? import('./media-attributes').AudioHTMLAttributes :
-    K extends 'b' ? import('./structural-attributes').BHTMLAttributes :
-    K extends 'base' ? import('./semantic-attributes').BaseHTMLAttributes :
-    K extends 'bdi' ? import('./semantic-attributes').BdiHTMLAttributes :
-    K extends 'bdo' ? import('./semantic-attributes').BdoHTMLAttributes :
-    K extends 'blockquote' ? import('./structural-attributes').BlockquoteHTMLAttributes :
-    K extends 'body' ? import('./semantic-attributes').BodyHTMLAttributes :
-    K extends 'br' ? import('./structural-attributes').BrHTMLAttributes :
-    K extends 'button' ? import('./form-attributes').ButtonHTMLAttributes :
-    K extends 'canvas' ? import('./semantic-attributes').CanvasHTMLAttributes :
-    K extends 'caption' ? import('./structural-attributes').CaptionHTMLAttributes :
-    K extends 'cite' ? import('./structural-attributes').CiteHTMLAttributes :
-    K extends 'code' ? import('./structural-attributes').CodeHTMLAttributes :
-    K extends 'col' ? import('./structural-attributes').ColHTMLAttributes :
-    K extends 'colgroup' ? import('./structural-attributes').ColgroupHTMLAttributes :
-    K extends 'data' ? import('./semantic-attributes').DataHTMLAttributes :
-    K extends 'datalist' ? import('./form-attributes').DatalistHTMLAttributes :
-    K extends 'dd' ? import('./structural-attributes').DdHTMLAttributes :
-    K extends 'del' ? import('./structural-attributes').DelHTMLAttributes :
-    K extends 'details' ? import('./structural-attributes').DetailsHTMLAttributes :
-    K extends 'dfn' ? import('./structural-attributes').DfnHTMLAttributes :
-    K extends 'dialog' ? import('./structural-attributes').DialogHTMLAttributes :
-    K extends 'div' ? import('./structural-attributes').DivHTMLAttributes :
-    K extends 'dl' ? import('./structural-attributes').DlHTMLAttributes :
-    K extends 'dt' ? import('./structural-attributes').DtHTMLAttributes :
-    K extends 'em' ? import('./structural-attributes').EmHTMLAttributes :
-    K extends 'embed' ? import('./media-attributes').EmbedHTMLAttributes :
-    K extends 'fieldset' ? import('./form-attributes').FieldsetHTMLAttributes :
-    K extends 'figcaption' ? import('./structural-attributes').FigcaptionHTMLAttributes :
-    K extends 'figure' ? import('./structural-attributes').FigureHTMLAttributes :
-    K extends 'footer' ? import('./semantic-attributes').FooterHTMLAttributes :
-    K extends 'form' ? import('./form-attributes').FormHTMLAttributes :
-    K extends 'h1' ? import('./semantic-attributes').H1HTMLAttributes :
-    K extends 'h2' ? import('./semantic-attributes').H2HTMLAttributes :
-    K extends 'h3' ? import('./semantic-attributes').H3HTMLAttributes :
-    K extends 'h4' ? import('./semantic-attributes').H4HTMLAttributes :
-    K extends 'h5' ? import('./semantic-attributes').H5HTMLAttributes :
-    K extends 'h6' ? import('./semantic-attributes').H6HTMLAttributes :
-    K extends 'head' ? import('./semantic-attributes').HeadHTMLAttributes :
-    K extends 'header' ? import('./semantic-attributes').HeaderHTMLAttributes :
-    K extends 'hgroup' ? import('./semantic-attributes').HgroupHTMLAttributes :
-    K extends 'hr' ? import('./structural-attributes').HrHTMLAttributes :
-    K extends 'html' ? import('./semantic-attributes').HtmlHTMLAttributes :
-    K extends 'i' ? import('./structural-attributes').IHTMLAttributes :
-    K extends 'iframe' ? import('./media-attributes').IframeHTMLAttributes :
-    K extends 'img' ? import('./media-attributes').ImgHTMLAttributes :
-    K extends 'input' ? import('./form-attributes').InputHTMLAttributes :
-    K extends 'ins' ? import('./structural-attributes').InsHTMLAttributes :
-    K extends 'kbd' ? import('./structural-attributes').KbdHTMLAttributes :
-    K extends 'label' ? import('./form-attributes').LabelHTMLAttributes :
-    K extends 'legend' ? import('./form-attributes').LegendHTMLAttributes :
-    K extends 'li' ? import('./structural-attributes').LiHTMLAttributes :
-    K extends 'link' ? import('./semantic-attributes').LinkHTMLAttributes :
-    K extends 'main' ? import('./semantic-attributes').MainHTMLAttributes :
-    K extends 'map' ? import('./media-attributes').MapHTMLAttributes :
-    K extends 'mark' ? import('./structural-attributes').MarkHTMLAttributes :
-    K extends 'menu' ? import('./semantic-attributes').MenuHTMLAttributes :
-    K extends 'meta' ? import('./semantic-attributes').MetaHTMLAttributes :
-    K extends 'meter' ? import('./form-attributes').MeterHTMLAttributes :
-    K extends 'nav' ? import('./semantic-attributes').NavHTMLAttributes :
-    K extends 'noscript' ? import('./semantic-attributes').NoscriptHTMLAttributes :
-    K extends 'object' ? import('./media-attributes').ObjectHTMLAttributes :
-    K extends 'ol' ? import('./structural-attributes').OlHTMLAttributes :
-    K extends 'optgroup' ? import('./form-attributes').OptgroupHTMLAttributes :
-    K extends 'option' ? import('./form-attributes').OptionHTMLAttributes :
-    K extends 'output' ? import('./form-attributes').OutputHTMLAttributes :
-    K extends 'p' ? import('./structural-attributes').PHTMLAttributes :
+    K extends 'a' ? StructuralAttributes.AHTMLAttributes :
+    K extends 'abbr' ? StructuralAttributes.AbbrHTMLAttributes :
+    K extends 'address' ? StructuralAttributes.AddressHTMLAttributes :
+    K extends 'area' ? MediaAttributes.AreaHTMLAttributes :
+    K extends 'article' ? SemanticAttributes.ArticleHTMLAttributes :
+    K extends 'aside' ? SemanticAttributes.AsideHTMLAttributes :
+    K extends 'audio' ? MediaAttributes.AudioHTMLAttributes :
+    K extends 'b' ? StructuralAttributes.BHTMLAttributes :
+    K extends 'base' ? SemanticAttributes.BaseHTMLAttributes :
+    K extends 'bdi' ? SemanticAttributes.BdiHTMLAttributes :
+    K extends 'bdo' ? SemanticAttributes.BdoHTMLAttributes :
+    K extends 'blockquote' ? StructuralAttributes.BlockquoteHTMLAttributes :
+    K extends 'body' ? SemanticAttributes.BodyHTMLAttributes :
+    K extends 'br' ? StructuralAttributes.BrHTMLAttributes :
+    K extends 'button' ? FormAttributes.ButtonHTMLAttributes :
+    K extends 'canvas' ? SemanticAttributes.CanvasHTMLAttributes :
+    K extends 'caption' ? StructuralAttributes.CaptionHTMLAttributes :
+    K extends 'cite' ? StructuralAttributes.CiteHTMLAttributes :
+    K extends 'code' ? StructuralAttributes.CodeHTMLAttributes :
+    K extends 'col' ? StructuralAttributes.ColHTMLAttributes :
+    K extends 'colgroup' ? StructuralAttributes.ColgroupHTMLAttributes :
+    K extends 'data' ? SemanticAttributes.DataHTMLAttributes :
+    K extends 'datalist' ? FormAttributes.DatalistHTMLAttributes :
+    K extends 'dd' ? StructuralAttributes.DdHTMLAttributes :
+    K extends 'del' ? StructuralAttributes.DelHTMLAttributes :
+    K extends 'details' ? StructuralAttributes.DetailsHTMLAttributes :
+    K extends 'dfn' ? StructuralAttributes.DfnHTMLAttributes :
+    K extends 'dialog' ? StructuralAttributes.DialogHTMLAttributes :
+    K extends 'div' ? StructuralAttributes.DivHTMLAttributes :
+    K extends 'dl' ? StructuralAttributes.DlHTMLAttributes :
+    K extends 'dt' ? StructuralAttributes.DtHTMLAttributes :
+    K extends 'em' ? StructuralAttributes.EmHTMLAttributes :
+    K extends 'embed' ? MediaAttributes.EmbedHTMLAttributes :
+    K extends 'fieldset' ? FormAttributes.FieldsetHTMLAttributes :
+    K extends 'figcaption' ? StructuralAttributes.FigcaptionHTMLAttributes :
+    K extends 'figure' ? StructuralAttributes.FigureHTMLAttributes :
+    K extends 'footer' ? SemanticAttributes.FooterHTMLAttributes :
+    K extends 'form' ? FormAttributes.FormHTMLAttributes :
+    K extends 'h1' ? SemanticAttributes.H1HTMLAttributes :
+    K extends 'h2' ? SemanticAttributes.H2HTMLAttributes :
+    K extends 'h3' ? SemanticAttributes.H3HTMLAttributes :
+    K extends 'h4' ? SemanticAttributes.H4HTMLAttributes :
+    K extends 'h5' ? SemanticAttributes.H5HTMLAttributes :
+    K extends 'h6' ? SemanticAttributes.H6HTMLAttributes :
+    K extends 'head' ? SemanticAttributes.HeadHTMLAttributes :
+    K extends 'header' ? SemanticAttributes.HeaderHTMLAttributes :
+    K extends 'hgroup' ? SemanticAttributes.HgroupHTMLAttributes :
+    K extends 'hr' ? StructuralAttributes.HrHTMLAttributes :
+    K extends 'html' ? SemanticAttributes.HtmlHTMLAttributes :
+    K extends 'i' ? StructuralAttributes.IHTMLAttributes :
+    K extends 'iframe' ? MediaAttributes.IframeHTMLAttributes :
+    K extends 'img' ? MediaAttributes.ImgHTMLAttributes :
+    K extends 'input' ? FormAttributes.InputHTMLAttributes :
+    K extends 'ins' ? StructuralAttributes.InsHTMLAttributes :
+    K extends 'kbd' ? StructuralAttributes.KbdHTMLAttributes :
+    K extends 'label' ? FormAttributes.LabelHTMLAttributes :
+    K extends 'legend' ? FormAttributes.LegendHTMLAttributes :
+    K extends 'li' ? StructuralAttributes.LiHTMLAttributes :
+    K extends 'link' ? SemanticAttributes.LinkHTMLAttributes :
+    K extends 'main' ? SemanticAttributes.MainHTMLAttributes :
+    K extends 'map' ? MediaAttributes.MapHTMLAttributes :
+    K extends 'mark' ? StructuralAttributes.MarkHTMLAttributes :
+    K extends 'menu' ? SemanticAttributes.MenuHTMLAttributes :
+    K extends 'meta' ? SemanticAttributes.MetaHTMLAttributes :
+    K extends 'meter' ? FormAttributes.MeterHTMLAttributes :
+    K extends 'nav' ? SemanticAttributes.NavHTMLAttributes :
+    K extends 'noscript' ? SemanticAttributes.NoscriptHTMLAttributes :
+    K extends 'object' ? MediaAttributes.ObjectHTMLAttributes :
+    K extends 'ol' ? StructuralAttributes.OlHTMLAttributes :
+    K extends 'optgroup' ? FormAttributes.OptgroupHTMLAttributes :
+    K extends 'option' ? FormAttributes.OptionHTMLAttributes :
+    K extends 'output' ? FormAttributes.OutputHTMLAttributes :
+    K extends 'p' ? StructuralAttributes.PHTMLAttributes :
     K extends 'picture' ? DefaultHTMLAttributes :
-    K extends 'portal' ? import('./semantic-attributes').PortalHTMLAttributes :
-    K extends 'pre' ? import('./structural-attributes').PreHTMLAttributes :
-    K extends 'progress' ? import('./form-attributes').ProgressHTMLAttributes :
-    K extends 'q' ? import('./structural-attributes').QHTMLAttributes :
-    K extends 'rp' ? import('./semantic-attributes').RpHTMLAttributes :
-    K extends 'rt' ? import('./semantic-attributes').RtHTMLAttributes :
-    K extends 'ruby' ? import('./semantic-attributes').RubyHTMLAttributes :
-    K extends 's' ? import('./structural-attributes').SHTMLAttributes :
-    K extends 'samp' ? import('./structural-attributes').SampHTMLAttributes :
-    K extends 'script' ? import('./semantic-attributes').ScriptHTMLAttributes :
-    K extends 'section' ? import('./semantic-attributes').SectionHTMLAttributes :
-    K extends 'select' ? import('./form-attributes').SelectHTMLAttributes :
-    K extends 'slot' ? import('./semantic-attributes').SlotHTMLAttributes :
-    K extends 'small' ? import('./structural-attributes').SmallHTMLAttributes :
-    K extends 'source' ? import('./media-attributes').SourceHTMLAttributes :
-    K extends 'span' ? import('./structural-attributes').SpanHTMLAttributes :
-    K extends 'strong' ? import('./structural-attributes').StrongHTMLAttributes :
-    K extends 'style' ? import('./semantic-attributes').StyleHTMLAttributes :
-    K extends 'sub' ? import('./structural-attributes').SubHTMLAttributes :
-    K extends 'summary' ? import('./structural-attributes').SummaryHTMLAttributes :
-    K extends 'sup' ? import('./structural-attributes').SupHTMLAttributes :
-    K extends 'table' ? import('./structural-attributes').TableHTMLAttributes :
-    K extends 'tbody' ? import('./structural-attributes').TbodyHTMLAttributes :
-    K extends 'td' ? import('./structural-attributes').TdHTMLAttributes :
-    K extends 'template' ? import('./semantic-attributes').TemplateHTMLAttributes :
-    K extends 'textarea' ? import('./form-attributes').TextareaHTMLAttributes :
-    K extends 'tfoot' ? import('./structural-attributes').TfootHTMLAttributes :
-    K extends 'th' ? import('./structural-attributes').ThHTMLAttributes :
-    K extends 'thead' ? import('./structural-attributes').TheadHTMLAttributes :
-    K extends 'time' ? import('./structural-attributes').TimeHTMLAttributes :
-    K extends 'title' ? import('./semantic-attributes').TitleHTMLAttributes :
-    K extends 'tr' ? import('./structural-attributes').TrHTMLAttributes :
-    K extends 'track' ? import('./media-attributes').TrackHTMLAttributes :
-    K extends 'u' ? import('./structural-attributes').UHTMLAttributes :
-    K extends 'ul' ? import('./structural-attributes').UlHTMLAttributes :
-    K extends 'var' ? import('./structural-attributes').VarHTMLAttributes :
-    K extends 'video' ? import('./media-attributes').VideoHTMLAttributes :
-    K extends 'wbr' ? import('./semantic-attributes').WbrHTMLAttributes :
+    K extends 'portal' ? SemanticAttributes.PortalHTMLAttributes :
+    K extends 'pre' ? StructuralAttributes.PreHTMLAttributes :
+    K extends 'progress' ? FormAttributes.ProgressHTMLAttributes :
+    K extends 'q' ? StructuralAttributes.QHTMLAttributes :
+    K extends 'rp' ? SemanticAttributes.RpHTMLAttributes :
+    K extends 'rt' ? SemanticAttributes.RtHTMLAttributes :
+    K extends 'ruby' ? SemanticAttributes.RubyHTMLAttributes :
+    K extends 's' ? StructuralAttributes.SHTMLAttributes :
+    K extends 'samp' ? StructuralAttributes.SampHTMLAttributes :
+    K extends 'script' ? SemanticAttributes.ScriptHTMLAttributes :
+    K extends 'section' ? SemanticAttributes.SectionHTMLAttributes :
+    K extends 'select' ? FormAttributes.SelectHTMLAttributes :
+    K extends 'slot' ? SemanticAttributes.SlotHTMLAttributes :
+    K extends 'small' ? StructuralAttributes.SmallHTMLAttributes :
+    K extends 'source' ? MediaAttributes.SourceHTMLAttributes :
+    K extends 'span' ? StructuralAttributes.SpanHTMLAttributes :
+    K extends 'strong' ? StructuralAttributes.StrongHTMLAttributes :
+    K extends 'style' ? SemanticAttributes.StyleHTMLAttributes :
+    K extends 'sub' ? StructuralAttributes.SubHTMLAttributes :
+    K extends 'summary' ? StructuralAttributes.SummaryHTMLAttributes :
+    K extends 'sup' ? StructuralAttributes.SupHTMLAttributes :
+    K extends 'table' ? StructuralAttributes.TableHTMLAttributes :
+    K extends 'tbody' ? StructuralAttributes.TbodyHTMLAttributes :
+    K extends 'td' ? StructuralAttributes.TdHTMLAttributes :
+    K extends 'template' ? SemanticAttributes.TemplateHTMLAttributes :
+    K extends 'textarea' ? FormAttributes.TextareaHTMLAttributes :
+    K extends 'tfoot' ? StructuralAttributes.TfootHTMLAttributes :
+    K extends 'th' ? StructuralAttributes.ThHTMLAttributes :
+    K extends 'thead' ? StructuralAttributes.TheadHTMLAttributes :
+    K extends 'time' ? StructuralAttributes.TimeHTMLAttributes :
+    K extends 'title' ? SemanticAttributes.TitleHTMLAttributes :
+    K extends 'tr' ? StructuralAttributes.TrHTMLAttributes :
+    K extends 'track' ? MediaAttributes.TrackHTMLAttributes :
+    K extends 'u' ? StructuralAttributes.UHTMLAttributes :
+    K extends 'ul' ? StructuralAttributes.UlHTMLAttributes :
+    K extends 'var' ? StructuralAttributes.VarHTMLAttributes :
+    K extends 'video' ? MediaAttributes.VideoHTMLAttributes :
+    K extends 'wbr' ? SemanticAttributes.WbrHTMLAttributes :
     DefaultHTMLAttributes
   ) & { children?: JSXChildren }
 };
@@ -373,10 +165,12 @@ export type IntrinsicElements = {
 // JSX NAMESPACE EXPORT
 // ========================================
 
+type _IntrinsicElements = IntrinsicElements;
+
 export namespace JSX {
-  export type Element = import('../jsx-runtime').JSXElement;
+  export type Element = JSXElement;
   export interface ElementChildrenAttribute {
     children: JSXChildren;
   }
-  export type IntrinsicElements = import('./index').IntrinsicElements;
+  export type IntrinsicElements = _IntrinsicElements;
 }

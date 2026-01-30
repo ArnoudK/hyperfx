@@ -44,7 +44,7 @@ export class ClassComponent {
     componentDidMount() {
         // Override in subclasses
     }
-    componentDidUpdate(newProps, prevProps) {
+    componentDidUpdate(_newProps, _prevProps) {
         // Override in subclasses
     }
     componentWillUnmount() {
@@ -86,11 +86,13 @@ export function mountComponent(component, props, container, anchor = null) {
         component.mount(element, props);
     }
     // Insert into DOM
+    // Note: mount functions only run on client, so element is always a DOM Node
+    const domElement = element;
     if (anchor) {
-        container.insertBefore(element, anchor);
+        container.insertBefore(domElement, anchor);
     }
     else {
-        container.appendChild(element);
+        container.appendChild(domElement);
     }
     return element;
 }
@@ -108,8 +110,10 @@ export function unmountComponent(component, element, container) {
         component.unmount();
     }
     // Remove from DOM
-    if (element.parentNode === container) {
-        container.removeChild(element);
+    // Note: unmount functions only run on client, so element is always a DOM Node
+    const domElement = element;
+    if (domElement && domElement.parentNode === container) {
+        container.removeChild(domElement);
     }
 }
 /**

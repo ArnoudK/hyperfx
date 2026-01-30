@@ -1,5 +1,6 @@
 import { ReactiveSignal } from "../reactive/state";
 import type { JSXElement, FunctionComponent, JSXChildren } from "../jsx/jsx-runtime";
+import { type UniversalFragment, type UniversalComment } from './router-helpers';
 /**
  * Router Component - Root routing context provider
  */
@@ -18,7 +19,7 @@ interface RouteProps {
     exact?: boolean;
     [key: string]: any;
 }
-export declare function Route(props: RouteProps): DocumentFragment;
+export declare function Route(props: RouteProps): UniversalFragment;
 /**
  * Link Component - Navigation link
  */
@@ -66,7 +67,7 @@ export declare function Switch(props: {
 export declare function Redirect(props: {
     to: string;
     replace?: boolean;
-}): JSXElement;
+}): UniversalComment;
 /**
  * Get query parameter value from current URL as a reactive signal
  */

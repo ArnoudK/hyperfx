@@ -1,2 +1,2 @@
-export { jsx, jsxs, Fragment, createElement } from './jsx-runtime';
-export { jsx as jsxDEV } from './jsx-runtime';
+export { jsx, jsxs, Fragment, createElement } from './runtime';
+export { jsx as jsxDEV } from './runtime';
