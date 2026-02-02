@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { hyperfxVite } from 'unplugin-hyperfx/vite';
+import { hyperfxVite } from 'hyperfx/vite';
 
 export default defineConfig({
   plugins: [

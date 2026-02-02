@@ -2,15 +2,23 @@ import { createUnplugin } from 'unplugin';
 import type { HyperFXPluginOptions } from './core/types.js';
 import { HyperFXTransformer } from './core/transform.js';
 
-
+/**
+ * Vite-specific transform options
+ * @see https://vite.dev/guide/api-plugin.html#universal-hooks
+ */
+interface ViteTransformOptions {
+  ssr?: boolean;
+}
 
 export const unplugin = createUnplugin<HyperFXPluginOptions>((options) => {
   const transformer = new HyperFXTransformer(options);
 
   return {
     name: 'unplugin-hyperfx',
+    enforce: 'pre', // Run before other plugins
 
-    // Transform hook - runs on every file
+    // Base transform hook for non-Vite bundlers
+    // Defaults to client mode
     transform(code, id) {
       // Only process .tsx, .jsx, .ts, .js files
       if (!/\.[jt]sx?$/.test(id)) {
@@ -22,16 +30,35 @@ export const unplugin = createUnplugin<HyperFXPluginOptions>((options) => {
         return null;
       }
 
-      return transformer.transform(code, id);
+      // Default to client mode for non-Vite bundlers
+      return transformer.transform(code, id, false);
     },
 
     // Vite-specific hooks
     vite: {
-      // Ensure JSX is handled
+      // Override transform to use Vite's SSR detection
+      transform(code: string, id: string, options?: ViteTransformOptions) {
+        // Only process .tsx, .jsx, .ts, .js files
+        if (!/\.[jt]sx?$/.test(id)) {
+          return null;
+        }
+
+        // Skip node_modules
+        if (id.includes('node_modules')) {
+          return null;
+        }
+
+        // Use Vite's SSR flag from options
+        // Vite automatically sets this based on the environment (client vs ssr)
+        const isSSR = options?.ssr ?? false;
+        return transformer.transform(code, id, isSSR);
+      },
+
+      // Ensure JSX is preserved for our plugin to handle
       config() {
         return {
           esbuild: {
-            jsx: 'preserve', // Prevent Vite from transforming JSX
+            jsx: 'preserve', // Don't let esbuild transform JSX - we'll do it
           },
         };
       },

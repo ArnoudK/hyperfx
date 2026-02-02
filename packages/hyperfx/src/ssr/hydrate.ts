@@ -92,9 +92,10 @@ function walkAndValidate(clientNode: Node, serverNode: Node, path: string = 'roo
  * @param factory - A function that returns the root component (JSXElement)
  */
 export function hydrate(container: Element, factory: () => JSXElement): void {
-  // Find the server-rendered root element
-  const serverRoot = container.firstElementChild;
-  if (!serverRoot) {
+  // Get all server-rendered children (could be multiple elements)
+  const serverChildren = Array.from(container.children);
+  
+  if (serverChildren.length === 0) {
     console.warn('[HyperFX] No server-rendered content found. Performing client-side mount.');
     const root = factory();
     if (root instanceof Node) {
@@ -113,20 +114,46 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
     // Execute the component logic - creates a fresh client tree with handlers
     const clientRoot = factory();
 
-    if (!(clientRoot instanceof Element)) {
-      throw new Error('Factory must return an Element for hydration');
+    // Handle different return types from factory
+    let clientElements: Element[];
+    
+    if (clientRoot instanceof DocumentFragment) {
+      // Factory returned a fragment - extract all element children
+      clientElements = Array.from(clientRoot.children);
+    } else if (clientRoot instanceof Element) {
+      // Factory returned a single element
+      clientElements = [clientRoot];
+    } else {
+      throw new Error('Factory must return an Element or DocumentFragment for hydration');
     }
 
-    // Validate that client and server trees match structurally
-    const structureMatches = walkAndValidate(clientRoot, serverRoot);
+    // Validate client and server have same number of root elements
+    if (clientElements.length !== serverChildren.length) {
+      console.warn(`[HyperFX] Root element count mismatch: client=${clientElements.length}, server=${serverChildren.length}`);
+      throw new Error('Structure mismatch: different number of root elements');
+    }
 
-    if (!structureMatches) {
+    // Validate that each client/server pair matches structurally
+    let allMatch = true;
+    for (let i = 0; i < clientElements.length; i++) {
+      const clientEl = clientElements[i];
+      const serverEl = serverChildren[i];
+      if (clientEl && serverEl) {
+        const matches = walkAndValidate(clientEl, serverEl, `root[${i}]`);
+        if (!matches) {
+          allMatch = false;
+          break;
+        }
+      }
+    }
+
+    if (!allMatch) {
       console.warn('[HyperFX] Structure mismatch detected. Falling back to full client-side render.');
     }
 
-    // Replace server DOM with client DOM
+    // Replace all server children with client children
     // Client DOM has all event handlers and reactive bindings attached
-    serverRoot.replaceWith(clientRoot);
+    container.replaceChildren(...clientElements);
 
     // Restore signal values after tree is mounted
     if (hydrationData?.state?.signals) {
@@ -167,6 +194,7 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
  * Check if the page has potential for hydration
  */
 export function isHydratable(container: Element): boolean {
-  // Simply check if there's any content in the container
-  return container.firstElementChild !== null;
+  // Check if there's any element children in the container
+  // (text nodes and comments don't count)
+  return container.children.length > 0;
 }

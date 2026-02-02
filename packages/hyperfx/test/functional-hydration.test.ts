@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { hydrate } from '../src/ssr/hydrate';
 import { renderToString, resetNodeCounter } from '../src/ssr/render';
-import { JSXElement, createElement, resetClientNodeCounter } from '../src/jsx/jsx-runtime';
+import { JSXElement, createElement, resetClientNodeCounter } from '../src/jsx/runtime/server-factory';
 import { signal } from '../src/reactive/signal';
 
 describe('Functional Hydration', () => {

@@ -1,5 +1,74 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
+const FRAGMENT_TAG = /* @__PURE__ */ Symbol("HyperFX.Fragment");
+const VIRTUAL_NODE_MARKER = /* @__PURE__ */ Symbol.for("hyperfx.virtual");
+function isVirtualNode(node) {
+  return node && typeof node === "object" && VIRTUAL_NODE_MARKER in node;
+}
+function getMutableChildren(node) {
+  return node.childNodes;
+}
+function createVirtualElement(tag, props, children) {
+  const tagUpper = tag.toUpperCase();
+  const element = {
+    [VIRTUAL_NODE_MARKER]: true,
+    nodeType: 1,
+    nodeName: tagUpper,
+    tagName: tagUpper,
+    childNodes: children,
+    _props: props || {},
+    get textContent() {
+      return this.childNodes.map((child) => {
+        if (!child)
+          return "";
+        if ("textContent" in child)
+          return child.textContent || "";
+        return "";
+      }).join("");
+    },
+    set textContent(_value) {
+    }
+  };
+  return element;
+}
+function createVirtualText(content) {
+  return {
+    [VIRTUAL_NODE_MARKER]: true,
+    nodeType: 3,
+    nodeName: "#text",
+    textContent: content,
+    data: content
+  };
+}
+function createVirtualFragment(children) {
+  const fragment = {
+    [VIRTUAL_NODE_MARKER]: true,
+    nodeType: 11,
+    nodeName: "#document-fragment",
+    childNodes: children,
+    get textContent() {
+      return this.childNodes.map((child) => {
+        if (!child)
+          return "";
+        if ("textContent" in child)
+          return child.textContent || "";
+        return "";
+      }).join("");
+    },
+    set textContent(_value) {
+    }
+  };
+  return fragment;
+}
+function createVirtualComment(content) {
+  return {
+    [VIRTUAL_NODE_MARKER]: true,
+    nodeType: 8,
+    nodeName: "#comment",
+    textContent: content,
+    data: content
+  };
+}
 let isTracking = false;
 const accessedSignals = /* @__PURE__ */ new Set();
 const globalSignalRegistry = /* @__PURE__ */ new Map();
@@ -203,97 +272,8 @@ function createEffect$1(effectFn) {
 function isSignal(value) {
   return typeof value === "function" && "subscribe" in value && "get" in value && "set" in value;
 }
-function renderChildrenFlattened(parent, children, appendedSet) {
-  const childArray = Array.isArray(children) ? children : [children];
-  for (const child of childArray) {
-    if (child == null || child === false || child === true)
-      continue;
-    if (isSignal(child)) {
-      const value = child();
-      if (value instanceof Node) {
-        parent.appendChild(value);
-      } else {
-        const textNode = createTextNode(child);
-        parent.appendChild(textNode);
-      }
-    } else if (typeof child === "function") {
-      try {
-        const result = child();
-        if (result instanceof Node) {
-          parent.appendChild(result);
-          appendedSet?.add(result);
-        } else if (Array.isArray(result)) {
-          renderChildrenFlattened(parent, result, appendedSet);
-        } else {
-          const textNode = document.createTextNode(String(result));
-          parent.appendChild(textNode);
-          appendedSet?.add(textNode);
-        }
-      } catch (error) {
-        console.warn("Error rendering function child:", error);
-      }
-    } else if (typeof child === "object" && child instanceof Node) {
-      parent.appendChild(child);
-    } else {
-      const textNode = document.createTextNode(String(child));
-      parent.appendChild(textNode);
-    }
-  }
-}
-function renderChildren(parent, children) {
-  if (!children)
-    return;
-  const appendedNodes = void 0;
-  renderChildrenFlattened(parent, children, appendedNodes);
-}
-const FRAGMENT_TAG = /* @__PURE__ */ Symbol("HyperFX.Fragment");
-function createTextNode(content) {
-  const textNode = document.createTextNode("");
-  const updateText = () => {
-    let text = "";
-    if (isSignal(content)) {
-      text = String(content());
-    } else {
-      text = String(content);
-    }
-    textNode.textContent = text;
-  };
-  updateText();
-  if (isSignal(content)) {
-    content.subscribe(updateText);
-  }
-  return textNode;
-}
 function Fragment(props) {
-  const fragment = document.createDocumentFragment();
-  renderChildren(fragment, props.children);
-  return fragment;
-}
-function createVirtualElement(tag, props, children) {
-  return {
-    type: "element",
-    tag,
-    props: props || {},
-    children
-  };
-}
-function createVirtualText(content) {
-  return {
-    type: "text",
-    content
-  };
-}
-function createVirtualFragment(children) {
-  return {
-    type: "fragment",
-    children
-  };
-}
-function createVirtualComment(content) {
-  return {
-    type: "comment",
-    content
-  };
+  return createVirtualFragment(renderChildrenToVirtual(props.children));
 }
 function renderChildrenToVirtual(children) {
   if (children == null || children === false || children === true) {
@@ -306,7 +286,7 @@ function renderChildrenToVirtual(children) {
     const value = children();
     return renderChildrenToVirtual(value);
   }
-  if (typeof children === "object" && children !== null && "type" in children && (children.type === "element" || children.type === "text" || children.type === "fragment" || children.type === "comment")) {
+  if (isVirtualNode(children)) {
     return [children];
   }
   if (typeof children === "string" || typeof children === "number") {
@@ -385,12 +365,16 @@ function createContext(defaultValue) {
       }
     }
     if (Array.isArray(children)) {
-      const fragment = document.createDocumentFragment();
-      children.forEach((child) => {
-        if (child instanceof Node)
-          fragment.appendChild(child);
-      });
-      return fragment;
+      if (typeof document === "undefined") {
+        return createVirtualFragment(children);
+      } else {
+        const fragment = document.createDocumentFragment();
+        children.forEach((child) => {
+          if (child instanceof Node)
+            fragment.appendChild(child);
+        });
+        return fragment;
+      }
     }
     return children;
   };
@@ -432,11 +416,10 @@ function removeChild(parent, child) {
   if (isSSR()) {
     const virtualParent = parent;
     const virtualChild = child;
-    if (virtualParent.children) {
-      const index = virtualParent.children.indexOf(virtualChild);
-      if (index !== -1) {
-        virtualParent.children.splice(index, 1);
-      }
+    const children = getMutableChildren(virtualParent);
+    const index = children.indexOf(virtualChild);
+    if (index !== -1) {
+      children.splice(index, 1);
     }
   } else {
     parent.removeChild(child);
@@ -583,7 +566,9 @@ function Route(props) {
   const endMarker = createRouterComment(`Route end: ${props.path}`);
   if (isSSR()) {
     const virtualFragment = fragment;
-    virtualFragment.children.push(startMarker, endMarker);
+    const children2 = getMutableChildren(virtualFragment);
+    children2.push(startMarker);
+    children2.push(endMarker);
   } else {
     fragment.appendChild(startMarker);
     fragment.appendChild(endMarker);
@@ -637,11 +622,12 @@ function Route(props) {
         nodesToAdd.forEach((node) => {
           if (isSSR()) {
             const virtualParent = currentParent;
-            const endIndex = virtualParent.children.indexOf(endMarker);
+            const children2 = getMutableChildren(virtualParent);
+            const endIndex = children2.indexOf(endMarker);
             if (endIndex !== -1) {
-              virtualParent.children.splice(endIndex, 0, node);
+              children2.splice(endIndex, 0, node);
             } else {
-              virtualParent.children.push(node);
+              children2.push(node);
             }
             renderedNodes.push(node);
           } else {
@@ -869,6 +855,10 @@ function Show(props) {
   }
   return fragment;
 }
+let nodeIdGenerator = null;
+function setNodeIdGenerator(generator) {
+  nodeIdGenerator = generator;
+}
 const VOID_ELEMENTS = /* @__PURE__ */ new Set([
   "area",
   "base",
@@ -952,30 +942,39 @@ function virtualNodeToHtml(node) {
   if (node == null) {
     return "";
   }
-  switch (node.type) {
-    case "text":
-      return escapeHtml$2(node.content);
-    case "comment":
-      return `<!--${escapeHtml$2(node.content)}-->`;
-    case "fragment":
-      return node.children.map(virtualNodeToHtml).join("");
-    case "element": {
-      const { tag, props, children } = node;
-      const tagLower = tag.toLowerCase();
-      let html = `<${tagLower}`;
-      html += renderAttributes(props);
-      if (VOID_ELEMENTS.has(tagLower)) {
+  switch (node.nodeType) {
+    case 3:
+      return escapeHtml$2(node.textContent || "");
+    case 8:
+      return `<!--${escapeHtml$2(node.textContent || "")}-->`;
+    case 11:
+      return node.childNodes.map(virtualNodeToHtml).join("");
+    case 1: {
+      const element = node;
+      const tag = element.tagName.toLowerCase();
+      let html = `<${tag}`;
+      if (nodeIdGenerator) {
+        const nodeId = nodeIdGenerator();
+        html += ` data-hfxh="${nodeId}"`;
+      }
+      html += renderAttributes(element._props);
+      if (VOID_ELEMENTS.has(tag)) {
         html += ">";
         return html;
       }
       html += ">";
-      html += children.map(virtualNodeToHtml).join("");
-      html += `</${tagLower}>`;
+      html += element.childNodes.map(virtualNodeToHtml).join("");
+      html += `</${tag}>`;
       return html;
     }
     default:
       return "";
   }
+}
+let nodeCounter = 0;
+function createNodeId() {
+  nodeCounter++;
+  return String(nodeCounter).padStart(6, "0");
 }
 function escapeHtml$1(text) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -994,16 +993,21 @@ function renderToString(element, options = {}) {
     }
   }
   let html;
-  if (element && typeof element === "object" && "type" in element) {
-    html = virtualNodeToHtml(element);
-  } else if (element && typeof element === "object" && ("tagName" in element || "innerHTML" in element)) {
-    if ("innerHTML" in element && element.innerHTML) {
-      html = element.innerHTML;
+  setNodeIdGenerator(createNodeId);
+  try {
+    if (element && typeof element === "object" && "nodeType" in element) {
+      html = virtualNodeToHtml(element);
+    } else if (element && typeof element === "object" && ("tagName" in element || "innerHTML" in element)) {
+      if ("innerHTML" in element && element.innerHTML) {
+        html = element.innerHTML;
+      } else {
+        html = mockElementToHtml(element);
+      }
     } else {
-      html = mockElementToHtml(element);
+      html = "";
     }
-  } else {
-    html = "";
+  } finally {
+    setNodeIdGenerator(null);
   }
   const state = {
     signals: {},
@@ -1660,6 +1664,16 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, (m) => map[m] || m);
 }
 const styles = "/assets/styles-D9lGc4u8.css";
+function App(props) {
+  return /* @__PURE__ */ jsx("div", { id: "app", children: /* @__PURE__ */ jsx(Router, { initialPath: props.pathname, children: () => /* @__PURE__ */ jsx(Fragment, { children: getAllRoutePaths().map((path) => /* @__PURE__ */ jsx(
+    Route,
+    {
+      path,
+      component: routes[path]?.component,
+      exact: path === "/"
+    }
+  )) }) }) });
+}
 let clientScriptPath = null;
 async function getClientScriptPath() {
   if (clientScriptPath) return clientScriptPath;
@@ -1672,6 +1686,7 @@ async function getClientScriptPath() {
       return clientScriptPath;
     }
   } catch (e) {
+    console.warn("Failed to locate client script in production build:", e);
   }
   return "/src/client.tsx";
 }
@@ -1683,15 +1698,7 @@ const server = {
       return void 0;
     }
     enableSSRMode();
-    const App = () => /* @__PURE__ */ jsx("div", { id: "app", children: /* @__PURE__ */ jsx(Router, { initialPath: pathname, children: () => /* @__PURE__ */ jsx(Fragment, { children: getAllRoutePaths().map((path) => /* @__PURE__ */ jsx(
-      Route,
-      {
-        path,
-        component: routes[path]?.component,
-        exact: path === "/"
-      }
-    )) }) }) });
-    const appElement = /* @__PURE__ */ jsx(App, {});
+    const appElement = /* @__PURE__ */ jsx(App, { pathname });
     const { html, hydrationData } = renderToString(appElement, {
       ssrHydration: true
     });

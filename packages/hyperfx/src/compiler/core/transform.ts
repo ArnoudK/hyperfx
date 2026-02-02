@@ -1,13 +1,19 @@
 import { parse } from '@babel/parser';
-import traverseModule from '@babel/traverse';
 import type { NodePath } from '@babel/traverse';
+import traverseFn from '@babel/traverse';
 import * as t from '@babel/types';
 import MagicString from 'magic-string';
 import type { HyperFXPluginOptions, TransformResult, DynamicPart } from './types.js';
+import { ComponentGenerator } from './component-generator.js';
+import { TemplateGenerator } from './template-generator.js';
+import { CodeGenerator } from './code-generator.js';
+import { SSRGenerator } from './ssr-generator.js';
 
 // @babel/traverse is CJS with poor ESM/TypeScript support
-// @ts-ignore - traverseModule.default exists at runtime
-const traverse = traverseModule.default ?? traverseModule;
+// @ts-expect-error - CJS/ESM interop
+const traverse = (traverseFn.default || traverseFn) as typeof traverseFn;
+
+
 
 const DEFAULT_OPTIONS: Required<HyperFXPluginOptions> = {
   optimize: {
@@ -31,13 +37,52 @@ const DEFAULT_OPTIONS: Required<HyperFXPluginOptions> = {
 
 export class HyperFXTransformer {
   private options: Required<HyperFXPluginOptions>;
-  private templateCounter = 0;
-  private templates: Map<string, string> = new Map();
-  private templatesByHTML: Map<string, string> = new Map(); // HTML -> templateId for deduplication
   private currentContext: 'reactive' | 'static' | 'effect' | 'event' = 'static';
+  
+  // Generator instances
+  private componentGen: ComponentGenerator;
+  private templateGen: TemplateGenerator;
+  private codeGen: CodeGenerator;
+  private ssrGen: SSRGenerator;
 
   constructor(options: HyperFXPluginOptions = {}) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
+    
+    // Initialize generators with dependency injection
+    // We use arrow functions to preserve 'this' context
+    // Note: Order matters due to circular dependencies
+    
+    // ComponentGenerator is independent
+    this.componentGen = new ComponentGenerator(
+      (children: any[]) => this.generateChildrenCode(children),
+      (node: any, context?: any) => this.codeFromNode(node, context)
+    );
+    
+    // TemplateGenerator depends on ComponentGenerator
+    this.templateGen = new TemplateGenerator(
+      (attr: t.JSXAttribute) => this.componentGen.getAttributeValue(attr)
+    );
+    
+    // CodeGenerator depends on generateElementCode and generateSSRJSXCode
+    this.codeGen = new CodeGenerator(
+      () => this.options.ssr,
+      (node: any) => this.generateElementCode(node),
+      (node: any) => this.generateSSRJSXCode(node),
+      (children: any[]) => this.generateChildrenCode(children)
+    );
+    
+    // SSRGenerator depends on CodeGenerator
+    this.ssrGen = new SSRGenerator(
+      (node: any, context?: any) => this.codeGen.codeFromNode(node, context)
+    );
+  }
+
+  public setSSR(ssr: boolean): void {
+    this.options.ssr = ssr;
+  }
+
+  public isSSR(): boolean {
+    return this.options.ssr;
   }
 
   /**
@@ -45,55 +90,42 @@ export class HyperFXTransformer {
    * If a template with the same HTML already exists, return its ID
    */
   private getOrCreateTemplate(html: string): string {
-    // Check if template already exists
-    const existing = this.templatesByHTML.get(html);
-    if (existing) {
-      return existing; // Reuse existing template
-    }
-    
-    // Create new template
-    const templateId = `_tmpl$${this.templateCounter++}`;
-    this.templates.set(templateId, html);
-    this.templatesByHTML.set(html, templateId);
-    return templateId;
+    return this.templateGen.getOrCreateTemplate(html);
   }
 
   /**
    * Check if an identifier is a known global that shouldn't be optimized
    */
   private isKnownGlobal(name: string): boolean {
-    const globals = new Set([
-      // Constructors
-      'Date', 'Array', 'Object', 'String', 'Number', 'Boolean', 'RegExp',
-      'Map', 'Set', 'WeakMap', 'WeakSet', 'Promise', 'Error',
-      
-      // Global functions
-      'parseInt', 'parseFloat', 'isNaN', 'isFinite',
-      'encodeURI', 'decodeURI', 'encodeURIComponent', 'decodeURIComponent',
-    ]);
-    
-    return globals.has(name);
+    return this.codeGen.isKnownGlobal(name);
   }
 
   /**
    * Check if a member expression is a known non-signal pattern
    */
   private isKnownNonSignal(memberCode: string): boolean {
-    const patterns = [
-      'Math.random', 'Math.floor', 'Math.ceil', 'Math.round',
-      'console.log', 'console.error', 'console.warn',
-      'crypto.randomUUID',
-      'performance.now',
-      'Date.now',
-    ];
-    
-    return patterns.some(pattern => memberCode.startsWith(pattern));
+    return this.codeGen.isKnownNonSignal(memberCode);
   }
 
   /**
    * Transform JSX code to optimized HyperFX runtime calls
    */
-  transform(code: string, id: string): TransformResult | null {
+  transform(code: string, id: string, ssr?: boolean): TransformResult | null {
+    // Override SSR mode for this specific transformation if provided
+    const originalSSR = this.options.ssr;
+    if (ssr !== undefined) {
+      this.options.ssr = ssr;
+    }
+    
+    try {
+      return this._transform(code, id);
+    } finally {
+      // Restore original SSR mode
+      this.options.ssr = originalSSR;
+    }
+  }
+
+  private _transform(code: string, id: string): TransformResult | null {
     // Skip if no JSX found
     if (!this.hasJSX(code)) {
       return null;
@@ -102,11 +134,9 @@ export class HyperFXTransformer {
     try {
       const ast = this.parseCode(code, id);
       const s = new MagicString(code);
-      
+
       // Reset state for this file
-      this.templateCounter = 0;
-      this.templates.clear();
-      this.templatesByHTML.clear();
+      this.templateGen.resetCounter();
 
       // Track if we need to add imports
       let needsRuntimeImports = false;
@@ -114,28 +144,45 @@ export class HyperFXTransformer {
       // Traverse and transform JSX
       traverse(ast, {
         JSXElement: (path: NodePath<t.JSXElement>) => {
-          // Skip if this element is inside another JSX element we're already processing
-          // Walk up the tree to check if any ancestor is a JSX element
+          // Only transform top-level JSX (nested JSX will be handled recursively)
           let parent: NodePath | null = path.parentPath;
           while (parent) {
-            if (parent.isJSXElement()) {
-              // This JSX element is nested inside another JSX element
-              // Skip it - it will be handled as part of the parent
+            if (parent.isJSXElement() || parent.isJSXFragment()) {
               return;
             }
             parent = parent.parentPath;
           }
-          
+
           needsRuntimeImports = true;
-          this.transformJSXElement(path, s);
+
+          if (this.options.ssr) {
+            this.transformJSXToRuntime(path, s);
+          } else {
+            this.transformJSXElement(path, s);
+          }
         },
         JSXFragment: (path: NodePath<t.JSXFragment>) => {
+          // Only transform top-level JSX (nested JSX will be handled recursively)
+          let parent: NodePath | null = path.parentPath;
+          while (parent) {
+            if (parent.isJSXElement() || parent.isJSXFragment()) {
+              return;
+            }
+            parent = parent.parentPath;
+          }
+
           needsRuntimeImports = true;
-          this.transformJSXFragment(path, s);
+
+          if (this.options.ssr) {
+            this.transformJSXToRuntime(path, s);
+          } else {
+            this.transformJSXFragment(path, s);
+          }
         },
       });
 
-      // Add runtime imports if needed
+
+      // Add runtime imports
       if (needsRuntimeImports) {
         this.addRuntimeImports(s);
       }
@@ -164,7 +211,7 @@ export class HyperFXTransformer {
    */
   private parseCode(code: string, id: string) {
     const isTypeScript = id.endsWith('.tsx') || id.endsWith('.ts');
-    
+
     return parse(code, {
       sourceType: 'module',
       plugins: [
@@ -182,7 +229,7 @@ export class HyperFXTransformer {
    */
   private transformJSXElement(path: any, s: MagicString): void {
     const node = path.node;
-    
+
     // Check if this is a simple static element
     if (this.isStaticElement(node)) {
       this.transformStaticElement(node, path, s);
@@ -203,13 +250,31 @@ export class HyperFXTransformer {
    * Check if a JSX element is completely static (no dynamic content at all)
    */
   private isStaticElement(node: t.JSXElement): boolean {
+    // Component elements (uppercase first letter) are NEVER static
+    // They must be called as functions, not converted to templates
+    const tagName = t.isJSXIdentifier(node.openingElement.name) 
+      ? node.openingElement.name.name 
+      : null;
+    
+    if (tagName && /^[A-Z]/.test(tagName)) {
+      // This is a component (starts with uppercase), not a static HTML element
+      return false;
+    }
+    
     // Check if element has any dynamic attributes or children
-    const hasDynamicAttrs = node.openingElement.attributes.some((attr) => {
+    let hasDynamicAttrs = false;
+    for (const attr of node.openingElement.attributes) {
       if (t.isJSXAttribute(attr)) {
-        return attr.value && t.isJSXExpressionContainer(attr.value);
+        if (attr.value && t.isJSXExpressionContainer(attr.value)) {
+          hasDynamicAttrs = true;
+          break;
+        }
+      } else {
+        // JSXSpreadAttribute is dynamic
+        hasDynamicAttrs = true;
+        break;
       }
-      return true; // JSXSpreadAttribute is dynamic
-    });
+    }
 
     if (hasDynamicAttrs) return false;
 
@@ -256,15 +321,7 @@ export class HyperFXTransformer {
    * Generate HTML string from JSX element
    */
   private generateTemplateHTML(node: t.JSXElement): string {
-    const tagName = this.getTagName(node.openingElement);
-    const attrs = this.getAttributesHTML(node.openingElement.attributes);
-    const children = this.getChildrenHTML(node.children);
-
-    if (node.openingElement.selfClosing) {
-      return `<${tagName}${attrs} />`;
-    }
-
-    return `<${tagName}${attrs}>${children}</${tagName}>`;
+    return this.templateGen.generateTemplateHTML(node);
   }
 
   /**
@@ -279,50 +336,12 @@ export class HyperFXTransformer {
   }
 
   /**
-   * Get HTML attributes string
-   */
-  private getAttributesHTML(attributes: Array<t.JSXAttribute | t.JSXSpreadAttribute>): string {
-    const attrs: string[] = [];
-
-    for (const attr of attributes) {
-      if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name)) {
-        const name = attr.name.name;
-        
-        if (!attr.value) {
-          attrs.push(name);
-        } else if (t.isStringLiteral(attr.value)) {
-          attrs.push(`${name}="${attr.value.value}"`);
-        }
-      }
-    }
-
-    return attrs.length > 0 ? ' ' + attrs.join(' ') : '';
-  }
-
-  /**
-   * Get HTML children string
-   */
-  private getChildrenHTML(children: Array<t.JSXText | t.JSXElement | t.JSXExpressionContainer | t.JSXFragment | t.JSXSpreadChild>): string {
-    return children
-      .map((child) => {
-        if (t.isJSXText(child)) {
-          return child.value.trim();
-        } else if (t.isJSXElement(child)) {
-          return this.generateTemplateHTML(child);
-        }
-        return '';
-      })
-      .filter(Boolean)
-      .join('');
-  }
-
-  /**
    * Transform a dynamic element with reactive content
    */
   private transformDynamicElement(node: t.JSXElement, path: any, s: MagicString): void {
     // Analyze the element to extract static template and dynamic parts
     const analysis = this.analyzeDynamicElement(node);
-    
+
     if (!analysis) {
       // Couldn't optimize, leave as-is
       return;
@@ -333,7 +352,7 @@ export class HyperFXTransformer {
 
     // Generate code for the dynamic element
     const code = this.generateDynamicCode(templateId, dynamics, node);
-    
+
     const start = node.start!;
     const end = node.end!;
     s.overwrite(start, end, code);
@@ -343,106 +362,7 @@ export class HyperFXTransformer {
    * Analyze a dynamic element to extract template and dynamic parts
    */
   private analyzeDynamicElement(node: t.JSXElement): { templateHTML: string; dynamics: DynamicPart[] } | null {
-    const dynamics: DynamicPart[] = [];
-    const markerCounter = { value: 0 };
-
-    // Build template HTML with markers for dynamic content
-    const templateHTML = this.buildTemplateWithMarkers(node, dynamics, markerCounter);
-
-    return { templateHTML, dynamics };
-  }
-
-  /**
-   * Build template HTML with comment markers for dynamic insertions
-   */
-  private buildTemplateWithMarkers(
-    node: t.JSXElement,
-    dynamics: DynamicPart[],
-    markerCounter: { value: number }
-  ): string {
-    const tagName = this.getTagName(node.openingElement);
-    
-    // Separate static and dynamic attributes
-    const { staticAttrs, dynamicAttrs } = this.separateAttributes(node.openingElement.attributes);
-    
-    // Add dynamic attributes to dynamics array
-    for (const dynAttr of dynamicAttrs) {
-      dynamics.push({
-        type: 'attribute',
-        markerId: -1, // Not using marker for attributes
-        expression: dynAttr.value,
-        path: [],
-        attributeName: dynAttr.name,
-      });
-    }
-    
-    // Process children
-    const childrenHTML = this.buildChildrenWithMarkers(node.children, dynamics, markerCounter);
-
-    if (node.openingElement.selfClosing) {
-      return `<${tagName}${staticAttrs} />`;
-    }
-
-    return `<${tagName}${staticAttrs}>${childrenHTML}</${tagName}>`;
-  }
-
-  /**
-   * Separate static and dynamic attributes
-   */
-  private separateAttributes(attributes: Array<t.JSXAttribute | t.JSXSpreadAttribute>): {
-    staticAttrs: string;
-    dynamicAttrs: Array<{ name: string; value: any }>;
-  } {
-    const staticAttrsList: string[] = [];
-    const dynamicAttrs: Array<{ name: string; value: any }> = [];
-
-    for (const attr of attributes) {
-      if (t.isJSXSpreadAttribute(attr)) {
-        // Spread attributes are always dynamic
-        dynamicAttrs.push({
-          name: '...spread',
-          value: attr.argument,
-        });
-      } else if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name)) {
-        const name = attr.name.name;
-        
-        // Skip the key attribute - it's only used for diffing, not rendered to DOM
-        if (name === 'key') {
-          continue;
-        }
-        
-        if (!attr.value) {
-          // Boolean attribute (e.g., disabled)
-          staticAttrsList.push(name);
-        } else if (t.isStringLiteral(attr.value)) {
-          // Static string value
-          staticAttrsList.push(`${name}="${attr.value.value}"`);
-        } else if (t.isJSXExpressionContainer(attr.value)) {
-          const expr = attr.value.expression;
-          
-          // Try to evaluate constant expressions
-          if (this.options.optimize.constants) {
-            const constantValue = this.tryEvaluateConstant(expr);
-            if (constantValue !== null) {
-              // Constant expression - make it static
-              // Escape quotes in the value for HTML
-              const escapedValue = constantValue.replace(/"/g, '&quot;');
-              staticAttrsList.push(`${name}="${escapedValue}"`);
-              continue;
-            }
-          }
-          
-          // Dynamic expression
-          dynamicAttrs.push({
-            name,
-            value: expr,
-          });
-        }
-      }
-    }
-
-    const staticAttrs = staticAttrsList.length > 0 ? ' ' + staticAttrsList.join(' ') : '';
-    return { staticAttrs, dynamicAttrs };
+    return this.templateGen.analyzeDynamicElement(node);
   }
 
   /**
@@ -455,27 +375,27 @@ export class HyperFXTransformer {
       if (t.isStringLiteral(node)) {
         return node.value;
       }
-      
+
       // Number literals
       if (t.isNumericLiteral(node)) {
         return String(node.value);
       }
-      
+
       // Boolean literals
       if (t.isBooleanLiteral(node)) {
         return node.value ? 'true' : 'false';
       }
-      
+
       // Null literal
       if (t.isNullLiteral(node)) {
         return 'null';
       }
-      
+
       // Undefined identifier
       if (t.isIdentifier(node) && node.name === 'undefined') {
         return 'undefined';
       }
-      
+
       // Unary expressions
       if (t.isUnaryExpression(node)) {
         const arg = this.tryEvaluateConstant(node.argument);
@@ -513,17 +433,17 @@ export class HyperFXTransformer {
           }
         }
       }
-      
+
       // Binary expressions with literals
       if (t.isBinaryExpression(node)) {
         const left = this.tryEvaluateConstant(node.left);
         const right = this.tryEvaluateConstant(node.right);
-        
+
         if (left !== null && right !== null) {
           // Both sides are constants
           const leftNum = parseFloat(left);
           const rightNum = parseFloat(right);
-          
+
           switch (node.operator) {
             case '+':
               // String concatenation or addition
@@ -588,14 +508,14 @@ export class HyperFXTransformer {
           }
         }
       }
-      
+
       // Logical expressions
       if (t.isLogicalExpression(node)) {
         const left = this.tryEvaluateConstant(node.left);
-        
+
         if (left !== null) {
           const leftTruthy = left !== 'false' && left !== '0' && left !== '' && left !== 'null' && left !== 'undefined';
-          
+
           switch (node.operator) {
             case '&&': {
               // Short-circuit: if left is falsy, return left; otherwise return right
@@ -624,7 +544,7 @@ export class HyperFXTransformer {
           }
         }
       }
-      
+
       // Array literals
       if (t.isArrayExpression(node)) {
         const elements: string[] = [];
@@ -640,15 +560,15 @@ export class HyperFXTransformer {
               return null; // Can't evaluate whole array
             }
             // Wrap strings in quotes for JSON
-            const wrappedValue = !isNaN(parseFloat(value)) || value === 'true' || value === 'false' || value === 'null' 
-              ? value 
+            const wrappedValue = !isNaN(parseFloat(value)) || value === 'true' || value === 'false' || value === 'null'
+              ? value
               : `"${value}"`;
             elements.push(wrappedValue);
           }
         }
         return `[${elements.join(',')}]`;
       }
-      
+
       // Object literals
       if (t.isObjectExpression(node)) {
         const props: string[] = [];
@@ -668,12 +588,12 @@ export class HyperFXTransformer {
               if (keyVal === null) return null;
               key = keyVal;
             }
-            
+
             const value = this.tryEvaluateConstant(prop.value);
             if (value === null) {
               return null; // Can't evaluate whole object
             }
-            
+
             // Wrap strings in quotes for JSON
             const wrappedValue = !isNaN(parseFloat(value)) || value === 'true' || value === 'false' || value === 'null'
               ? value
@@ -686,13 +606,13 @@ export class HyperFXTransformer {
         }
         return `{${props.join(',')}}`;
       }
-      
+
       // Template literals with no expressions
       if (t.isTemplateLiteral(node)) {
         if (node.expressions.length === 0) {
           return node.quasis[0]?.value.cooked || '';
         }
-        
+
         // Template with all constant expressions
         if (this.options.optimize.constants && node.expressions.every((expr: any) => {
           return this.tryEvaluateConstant(expr) !== null;
@@ -707,7 +627,7 @@ export class HyperFXTransformer {
           return result;
         }
       }
-      
+
       // Conditional with constant test
       if (t.isConditionalExpression(node)) {
         const test = this.tryEvaluateConstant(node.test);
@@ -717,79 +637,34 @@ export class HyperFXTransformer {
           return this.tryEvaluateConstant(testValue ? node.consequent : node.alternate);
         }
       }
-      
+
       return null;
     } catch {
       return null;
     }
   }
 
-  /**
-   * Build children HTML with markers for dynamic content
-   */
-  private buildChildrenWithMarkers(
-    children: Array<t.JSXText | t.JSXElement | t.JSXExpressionContainer | t.JSXFragment | t.JSXSpreadChild>,
-    dynamics: DynamicPart[],
-    markerCounter: { value: number }
-  ): string {
-    const parts: string[] = [];
-
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-
-      if (t.isJSXText(child)) {
-        const text = child.value.trim();
-        if (text) {
-          parts.push(text);
-        }
-      } else if (t.isJSXExpressionContainer(child)) {
-        // Dynamic content - insert marker
-        const markerId = markerCounter.value++;
-        const marker = `<!--#${markerId}-->`;
-        parts.push(marker);
-        
-        dynamics.push({
-          type: 'child',
-          markerId,
-          expression: child.expression,
-          path: [],
-        });
-      } else if (t.isJSXElement(child)) {
-        // Check if child element is static or dynamic
-        if (this.isStaticElement(child)) {
-          parts.push(this.generateTemplateHTML(child));
-        } else {
-          // Nested dynamic element - for now, use marker (will improve in later phases)
-          const markerId = markerCounter.value++;
-          const marker = `<!--#${markerId}-->`;
-          parts.push(marker);
-          
-          dynamics.push({
-            type: 'element',
-            markerId,
-            expression: child,
-            path: [],
-          });
-        }
-      }
-    }
-
-    return parts.join('');
-  }
 
   /**
    * Generate code for a dynamic element
    */
   private generateDynamicCode(templateId: string, dynamics: DynamicPart[], node: t.JSXElement): string {
     const lines: string[] = [];
-    
+
     // Clone the template
     lines.push(`(() => {`);
     lines.push(`  const _el$ = ${templateId}.cloneNode(true);`);
 
     // Handle dynamic attributes first
-    const attributeDynamics = dynamics.filter(d => d.type === 'attribute');
-    const childDynamics = dynamics.filter(d => d.type === 'child' || d.type === 'element');
+    const attributeDynamics: DynamicPart[] = [];
+    const childDynamics: DynamicPart[] = [];
+    for (const d of dynamics) {
+      if (d.type === 'attribute') {
+        attributeDynamics.push(d);
+      } else if (d.type === 'child' || d.type === 'element') {
+        childDynamics.push(d);
+      }
+    }
 
     // Generate code for dynamic attributes
     for (const dynamic of attributeDynamics) {
@@ -800,7 +675,7 @@ export class HyperFXTransformer {
       } else {
         // Regular dynamic attribute
         const attrName = dynamic.attributeName!;
-        
+
         // Check if it's an event handler
         if (attrName.startsWith('on')) {
           const eventName = attrName.slice(2).toLowerCase();
@@ -817,17 +692,17 @@ export class HyperFXTransformer {
     // Generate code for dynamic children
     if (childDynamics.length > 0) {
       for (let i = 0; i < childDynamics.length; i++) {
-        const dynamic = childDynamics[i];
-        
+        const dynamic = childDynamics[i]!;
+
         if (dynamic.type === 'child') {
           // Check if this is a .map() call that can be optimized
           const mapOptimization = this.tryOptimizeMapCall(dynamic.expression);
-          
+
           if (mapOptimization) {
             // Use optimized mapArray helper
             lines.push(`  const _marker${i}$ = Array.from(_el$.childNodes).find(n => n.nodeType === 8 && n.textContent === '#${dynamic.markerId}');`);
             lines.push(`  if (_marker${i}$) {`);
-            
+
             if (mapOptimization.keyFn) {
               // Use keyed version for efficient diffing
               lines.push(`    _$mapArrayKeyed(_el$, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, ${mapOptimization.keyFn}, _marker${i}$);`);
@@ -835,7 +710,7 @@ export class HyperFXTransformer {
               // Use non-keyed version
               lines.push(`    _$mapArray(_el$, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, _marker${i}$);`);
             }
-            
+
             lines.push(`    _marker${i}$.remove();`);
             lines.push(`  }`);
           } else {
@@ -868,15 +743,22 @@ export class HyperFXTransformer {
   /**
    * Generate element creation code without IIFE wrapper (for use in map functions)
    */
-  private generateElementCodeInline(templateId: string, dynamics: DynamicPart[], node: t.JSXElement): string {
+  private generateElementCodeInline(templateId: string, dynamics: DynamicPart[], _node: t.JSXElement): string {
     const lines: string[] = [];
-    
+
     // Clone the template
     lines.push(`const _el$ = ${templateId}.cloneNode(true);`);
 
     // Handle dynamic attributes first
-    const attributeDynamics = dynamics.filter(d => d.type === 'attribute');
-    const childDynamics = dynamics.filter(d => d.type === 'child' || d.type === 'element');
+    const attributeDynamics: DynamicPart[] = [];
+    const childDynamics: DynamicPart[] = [];
+    for (const d of dynamics) {
+      if (d.type === 'attribute') {
+        attributeDynamics.push(d);
+      } else if (d.type === 'child' || d.type === 'element') {
+        childDynamics.push(d);
+      }
+    }
 
     // Generate code for dynamic attributes
     for (const dynamic of attributeDynamics) {
@@ -886,7 +768,7 @@ export class HyperFXTransformer {
         lines.push(`_$spread(_el$, () => (${code}));`);
       } else {
         const attrName = dynamic.attributeName!;
-        
+
         // Check if this is an event handler (starts with 'on')
         if (attrName.startsWith('on')) {
           const eventName = attrName.slice(2).toLowerCase();
@@ -913,17 +795,17 @@ export class HyperFXTransformer {
     // Generate code for dynamic children
     if (childDynamics.length > 0) {
       for (let i = 0; i < childDynamics.length; i++) {
-        const dynamic = childDynamics[i];
-        
+        const dynamic = childDynamics[i]!;
+
         if (dynamic.type === 'child') {
           // Check if this is a .map() call that can be optimized
           const mapOptimization = this.tryOptimizeMapCall(dynamic.expression);
-          
+
           if (mapOptimization) {
             // Use optimized mapArray helper
             lines.push(`const _marker${i}$ = Array.from(_el$.childNodes).find(n => n.nodeType === 8 && n.textContent === '#${dynamic.markerId}');`);
             lines.push(`if (_marker${i}$) {`);
-            
+
             if (mapOptimization.keyFn) {
               // Use keyed version for efficient diffing
               lines.push(`  _$mapArrayKeyed(_el$, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, ${mapOptimization.keyFn}, _marker${i}$);`);
@@ -931,7 +813,7 @@ export class HyperFXTransformer {
               // Use non-keyed version
               lines.push(`  _$mapArray(_el$, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, _marker${i}$);`);
             }
-            
+
             lines.push(`  _marker${i}$.remove();`);
             lines.push(`}`);
           } else {
@@ -971,9 +853,9 @@ export class HyperFXTransformer {
     }
 
     // Check if it's a .map() call
-    if (!t.isMemberExpression(node.callee) || 
-        !t.isIdentifier(node.callee.property) ||
-        node.callee.property.name !== 'map') {
+    if (!t.isMemberExpression(node.callee) ||
+      !t.isIdentifier(node.callee.property) ||
+      node.callee.property.name !== 'map') {
       return null;
     }
 
@@ -986,21 +868,25 @@ export class HyperFXTransformer {
     }
 
     const mapFn = node.arguments[0];
-    
+
     // Convert the map function to code
     // We need to wrap JSX elements in the map function properly
     let mapFnCode: string;
     let keyFn: string | undefined;
-    
+
     if (t.isArrowFunctionExpression(mapFn) || t.isFunctionExpression(mapFn)) {
       // Generate the function, but handle JSX in the body specially
-      const params = mapFn.params.map((p: any) => this.codeFromNode(p)).join(', ');
-      
+      const params: string[] = [];
+      for (const p of mapFn.params) {
+        params.push(this.codeFromNode(p as any));
+      }
+      const paramsStr = params.join(', ');
+
       let body: string;
       if (t.isBlockStatement(mapFn.body)) {
         // Complex function body - leave as is for now
         body = '{ /* complex body */ }';
-        mapFnCode = `(${params}) => ${body}`;
+        mapFnCode = `(${paramsStr}) => ${body}`;
       } else {
         // Single expression body
         if (t.isJSXElement(mapFn.body)) {
@@ -1012,7 +898,7 @@ export class HyperFXTransformer {
             const indexParam = mapFn.params[1] ? this.codeFromNode(mapFn.params[1]) : 'i';
             keyFn = `(${paramName}, ${indexParam}) => ${keyProp}`;
           }
-          
+
           // Generate element code
           if (this.isStaticElement(mapFn.body)) {
             // Fully static element - just clone the template
@@ -1027,16 +913,16 @@ export class HyperFXTransformer {
               const templateId = this.getOrCreateTemplate(analysis.templateHTML);
               const inlineCode = this.generateElementCodeInline(templateId, analysis.dynamics, mapFn.body);
               // Wrap in block statement
-              mapFnCode = `(${params}) => {\n  ${inlineCode.split('\n').join('\n  ')}\n}`;
+              mapFnCode = `(${paramsStr}) => {\n  ${inlineCode.split('\n').join('\n  ')}\n}`;
             } else {
               body = 'null';
-              mapFnCode = `(${params}) => ${body}`;
+              mapFnCode = `(${paramsStr}) => ${body}`;
             }
           }
         } else {
           // Other expression
           body = this.codeFromNode(mapFn.body);
-          mapFnCode = `(${params}) => ${body}`;
+          mapFnCode = `(${paramsStr}) => ${body}`;
         }
       }
     } else {
@@ -1057,10 +943,10 @@ export class HyperFXTransformer {
    */
   private extractKeyProp(node: t.JSXElement): string | null {
     for (const attr of node.openingElement.attributes) {
-      if (t.isJSXAttribute(attr) && 
-          t.isJSXIdentifier(attr.name) && 
-          attr.name.name === 'key') {
-        
+      if (t.isJSXAttribute(attr) &&
+        t.isJSXIdentifier(attr.name) &&
+        attr.name.name === 'key') {
+
         if (t.isJSXExpressionContainer(attr.value)) {
           // Key is an expression: key={item.id}
           return this.codeFromNode(attr.value.expression);
@@ -1074,15 +960,71 @@ export class HyperFXTransformer {
   }
 
   /**
+   * Check if a JSX element is a component (vs HTML element)
+   * Components start with uppercase letter
+   */
+  private isComponentElement(node: t.JSXElement): boolean {
+    return this.componentGen.isComponentElement(node);
+  }
+
+  /**
+   * Generate code for children array
+   */
+  private generateChildrenCode(children: Array<t.JSXText | t.JSXExpressionContainer | t.JSXSpreadChild | t.JSXElement | t.JSXFragment>): string {
+    if (children.length === 0) return '[]';
+    
+    const childCodes: (string | null)[] = [];
+    for (const child of children) {
+      if (t.isJSXText(child)) {
+        const text = child.value.trim();
+        childCodes.push(text ? `"${text.replace(/"/g, '\\"')}"` : null);
+      } else if (t.isJSXExpressionContainer(child)) {
+        if (t.isJSXEmptyExpression(child.expression)) {
+          childCodes.push(null);
+        } else {
+          childCodes.push(this.codeFromNode(child.expression, 'reactive'));
+        }
+      } else if (t.isJSXElement(child)) {
+        childCodes.push(this.generateElementCode(child));
+      } else if (t.isJSXFragment(child)) {
+        childCodes.push(this.generateChildrenCode(child.children));
+      } else {
+        childCodes.push(null);
+      }
+    }
+    
+    const filtered: string[] = [];
+    for (const code of childCodes) {
+      if (code) {
+        filtered.push(code);
+      }
+    }
+    
+    return filtered.length === 1 ? filtered[0]! : `[${filtered.join(', ')}]`;
+  }
+
+  /**
+   * Generate code for a component call (not a template)
+   */
+  private generateComponentCall(node: t.JSXElement): string {
+    return this.componentGen.generateComponentCall(node);
+  }
+
+  /**
    * Generate code for a JSX element (recursive helper)
    */
   private generateElementCode(node: t.JSXElement): string {
+    // Components must be called as functions, never converted to templates
+    if (this.isComponentElement(node)) {
+      return this.generateComponentCall(node);
+    }
+    
     if (this.isStaticElement(node)) {
       const html = this.generateTemplateHTML(node);
       const templateId = this.getOrCreateTemplate(html);
       return `${templateId}.cloneNode(true)`;
     } else {
-      // Recursive dynamic element
+      // Recursive dynamic element (HTML only, not components)
       const analysis = this.analyzeDynamicElement(node);
       if (analysis) {
         const templateId = this.getOrCreateTemplate(analysis.templateHTML);
@@ -1098,224 +1040,9 @@ export class HyperFXTransformer {
   private codeFromNode(node: any, context?: 'reactive' | 'static' | 'effect' | 'event'): string {
     const prevContext = this.currentContext;
     if (context) this.currentContext = context;
-    
+
     try {
-      // For JSXEmptyExpression, return null
-      if (t.isJSXEmptyExpression(node)) {
-        return 'null';
-      }
-
-      // For simple cases, generate code directly
-      if (t.isIdentifier(node)) {
-        return node.name;
-      }
-    
-    if (t.isCallExpression(node)) {
-      // Check if this is a zero-argument call that could be a signal
-      if (node.arguments.length === 0 && this.currentContext === 'reactive') {
-        
-        // Handle simple identifier: count()
-        if (t.isIdentifier(node.callee)) {
-          const name = node.callee.name;
-          
-          // Don't optimize known global constructors/functions
-          if (this.isKnownGlobal(name)) {
-            return `${name}()`;
-          }
-          
-          // Optimize: count() → count
-          return name;
-        }
-        
-        // Handle member expression: props.count(), store.items(), user.name()
-        if (t.isMemberExpression(node.callee) && !node.callee.computed) {
-          // Only optimize non-computed member expressions
-          // props.count() → props.count ✓
-          // obj[key]() → obj[key]() ✗ (keep as call)
-          
-          const memberCode = this.codeFromNode(node.callee);
-          
-          // Don't optimize known non-signals
-          if (this.isKnownNonSignal(memberCode)) {
-            return `${memberCode}()`;
-          }
-          
-          // Optimize: props.count() → props.count
-          return memberCode;
-        }
-      }
-      
-      // Default: keep as call expression
-      const callee = this.codeFromNode(node.callee);
-      const args = node.arguments.map((arg: any) => this.codeFromNode(arg)).join(', ');
-      return `${callee}(${args})`;
-    }
-
-    if (t.isOptionalCallExpression(node)) {
-      // Check if this is a zero-argument call that could be a signal
-      if (node.arguments.length === 0 && this.currentContext === 'reactive') {
-        
-        // Handle simple identifier: count?.()
-        if (t.isIdentifier(node.callee)) {
-          const name = node.callee.name;
-          
-          // Don't optimize known global constructors/functions
-          if (this.isKnownGlobal(name)) {
-            return `${name}?.()`;
-          }
-          
-          // Optimize: count?.() → count
-          return name;
-        }
-        
-        // Handle optional member expression: props.user?.name()
-        if (t.isOptionalMemberExpression(node.callee)) {
-          const memberCode = this.codeFromNode(node.callee);
-          
-          // Don't optimize known non-signals
-          if (this.isKnownNonSignal(memberCode)) {
-            return `${memberCode}?.()`;
-          }
-          
-          // Optimize: props.user?.name() → props.user?.name
-          return memberCode;
-        }
-        
-        // Handle regular member expression with optional call: props.user?.name()
-        if (t.isMemberExpression(node.callee) && !node.callee.computed) {
-          const memberCode = this.codeFromNode(node.callee);
-          
-          // Don't optimize known non-signals
-          if (this.isKnownNonSignal(memberCode)) {
-            return `${memberCode}?.()`;
-          }
-          
-          // Optimize: props.user?.name() → props.user?.name
-          return memberCode;
-        }
-      }
-      
-      // Default: keep as optional call expression
-      const callee = this.codeFromNode(node.callee);
-      const args = node.arguments.map((arg: any) => this.codeFromNode(arg)).join(', ');
-      return `${callee}?.(${args})`;
-    }
-
-    if (t.isMemberExpression(node)) {
-      const object = this.codeFromNode(node.object);
-      const property = t.isIdentifier(node.property) ? node.property.name : this.codeFromNode(node.property);
-      return node.computed ? `${object}[${property}]` : `${object}.${property}`;
-    }
-
-    if (t.isOptionalMemberExpression(node)) {
-      const object = this.codeFromNode(node.object);
-      const property = t.isIdentifier(node.property) ? node.property.name : this.codeFromNode(node.property);
-      return node.computed ? `${object}?.[${property}]` : `${object}?.${property}`;
-    }
-
-    if (t.isStringLiteral(node)) {
-      return `"${node.value}"`;
-    }
-
-    if (t.isNumericLiteral(node)) {
-      return String(node.value);
-    }
-
-    if (t.isBooleanLiteral(node)) {
-      return String(node.value);
-    }
-
-    if (t.isNullLiteral(node)) {
-      return 'null';
-    }
-
-    if (t.isConditionalExpression(node)) {
-      const test = this.codeFromNode(node.test);
-      const consequent = this.codeFromNode(node.consequent);
-      const alternate = this.codeFromNode(node.alternate);
-      return `${test} ? ${consequent} : ${alternate}`;
-    }
-
-    if (t.isBinaryExpression(node)) {
-      const left = this.codeFromNode(node.left);
-      const right = this.codeFromNode(node.right);
-      return `${left} ${node.operator} ${right}`;
-    }
-
-    if (t.isArrowFunctionExpression(node)) {
-      const params = node.params.map((p) => this.codeFromNode(p)).join(', ');
-      const body = t.isBlockStatement(node.body) 
-        ? `{ /* complex body */ }` 
-        : this.codeFromNode(node.body);
-      return `(${params}) => ${body}`;
-    }
-
-    if (t.isLogicalExpression(node)) {
-      const left = this.codeFromNode(node.left);
-      const right = this.codeFromNode(node.right);
-      return `${left} ${node.operator} ${right}`;
-    }
-
-    if (t.isUnaryExpression(node)) {
-      const arg = this.codeFromNode(node.argument);
-      return `${node.operator}${arg}`;
-    }
-
-    // Array expressions
-    if (t.isArrayExpression(node)) {
-      const elements = node.elements.map((elem) => {
-        if (elem === null) return '';
-        if (t.isSpreadElement(elem)) {
-          return `...${this.codeFromNode(elem.argument)}`;
-        }
-        return this.codeFromNode(elem);
-      });
-      return `[${elements.join(', ')}]`;
-    }
-
-    // Object expressions
-    if (t.isObjectExpression(node)) {
-      const props = node.properties.map((prop) => {
-        if (t.isSpreadElement(prop)) {
-          return `...${this.codeFromNode(prop.argument)}`;
-        }
-        if (t.isObjectProperty(prop)) {
-          let key: string;
-          if (t.isIdentifier(prop.key) && !prop.computed) {
-            key = prop.key.name;
-          } else if (t.isStringLiteral(prop.key)) {
-            key = `"${prop.key.value}"`;
-          } else {
-            key = `[${this.codeFromNode(prop.key)}]`;
-          }
-          const value = this.codeFromNode(prop.value);
-          return prop.computed ? `[${key}]: ${value}` : `${key}: ${value}`;
-        }
-        return '/* object method */';
-      });
-      return `{${props.join(', ')}}`;
-    }
-
-    // Template literals
-    if (t.isTemplateLiteral(node)) {
-      const parts: string[] = [];
-      for (let i = 0; i < node.quasis.length; i++) {
-        parts.push(node.quasis[i]!.value.raw || '');
-        if (i < node.expressions.length) {
-          parts.push(`\${${this.codeFromNode(node.expressions[i]!)}}`);
-        }
-      }
-      return `\`${parts.join('')}\``;
-    }
-
-    // For JSX elements within expressions
-    if (t.isJSXElement(node)) {
-      return this.generateElementCode(node);
-    }
-
-    // For complex expressions, return a placeholder wrapped in function
-    // This ensures it's valid code but indicates it needs better handling
-    return '(() => { /* complex expression */ })()';
+      return this.codeGen.codeFromNode(node, context);
     } finally {
       this.currentContext = prevContext;
     }
@@ -1325,12 +1052,20 @@ export class HyperFXTransformer {
    * Add runtime imports to the code
    */
   private addRuntimeImports(s: MagicString): void {
+    // SSR Import Logic
+    if (this.options.ssr) {
+      s.prepend(`import { jsx as _$jsx, jsxs as _$jsxs, Fragment as _$Fragment } from 'hyperfx/jsx-runtime';\n`);
+      return;
+    }
+
+    // Client DOM Import Logic
     const imports: string[] = [];
     const helpers: string[] = [];
     const usedHelpers = new Set<string>();
 
     // Check if we have templates (means we need template helper)
-    if (this.templates.size > 0) {
+    const templates = this.templateGen.getTemplates();
+    if (templates.size > 0) {
       usedHelpers.add('template');
     }
 
@@ -1346,14 +1081,15 @@ export class HyperFXTransformer {
 
     // Add import statement first
     if (usedHelpers.size > 0) {
-      const helperNames = Array.from(usedHelpers).map(h => {
-        return `${h} as _$${h}`;
-      }).join(', ');
-      imports.push(`import { ${helperNames} } from 'hyperfx/runtime-dom';`);
+      const helperNames: string[] = [];
+      for (const h of Array.from(usedHelpers)) {
+        helperNames.push(`${h} as _$${h}`);
+      }
+      imports.push(`import { ${helperNames.join(', ')} } from 'hyperfx/runtime-dom';`);
     }
 
     // Add template declarations after imports
-    for (const [id, html] of this.templates) {
+    for (const [id, html] of templates) {
       helpers.push(`const ${id} = _$template(\`${html}\`);`);
     }
 
@@ -1361,5 +1097,42 @@ export class HyperFXTransformer {
       const importBlock = [...imports, ...helpers].join('\n') + '\n\n';
       s.prepend(importBlock);
     }
+  }
+
+  // --- SSR Transformation Methods ---
+
+  /**
+   * Top-level entry point for transforming a JSX element/fragment to runtime calls (SSR)
+   */
+  private transformJSXToRuntime(path: NodePath<t.JSXElement | t.JSXFragment>, s: MagicString): void {
+    const node = path.node;
+    const code = this.generateSSRJSXCode(node);
+
+    // Replace the entire JSX element with the generated function call
+    if (typeof node.start === 'number' && typeof node.end === 'number') {
+      s.overwrite(node.start, node.end, code);
+    }
+  }
+
+  /**
+   * Recursive generator for standard JSX calls
+   */
+  private generateSSRJSXCode(node: t.JSXElement | t.JSXFragment | t.JSXText | t.JSXExpressionContainer | t.JSXSpreadChild): string {
+    return this.ssrGen.generateSSRJSXCode(node);
+  }
+
+  private getTagNameOrExpr(opening: t.JSXOpeningElement): string {
+    return this.ssrGen.getTagNameOrExpr(opening);
+  }
+
+  private generatePropsObject(
+    attributes: (t.JSXAttribute | t.JSXSpreadAttribute)[],
+    children: (t.JSXElement | t.JSXFragment | t.JSXExpressionContainer | t.JSXText | t.JSXSpreadChild)[]
+  ): string {
+    return this.ssrGen.generatePropsObject(attributes, children);
+  }
+
+  private generateChildrenArray(children: any[]): string {
+    return this.ssrGen.generateChildrenArray(children);
   }
 }

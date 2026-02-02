@@ -1,4 +1,6 @@
-export interface HyperFXPluginOptions  {
+import type * as t from '@babel/types';
+
+export interface HyperFXPluginOptions {
   /**
    * Enable/disable specific optimizations
    */
@@ -51,7 +53,7 @@ export interface HyperFXPluginOptions  {
 
 export interface TransformResult {
   code: string;
-  map?: any;
+  map?: any; // SourceMap from magic-string
 }
 
 export interface TemplateInfo {
@@ -63,7 +65,30 @@ export interface TemplateInfo {
 export interface DynamicPart {
   type: 'child' | 'attribute' | 'element';
   markerId: number;
-  expression: any;
+  expression: t.Node;
   path: string[];
   attributeName?: string;
+}
+
+export interface DynamicElementAnalysis {
+  templateHTML: string;
+  dynamics: DynamicPart[];
+}
+
+export interface AttributeInfo {
+  name: string;
+  value: t.Node;
+}
+
+export interface SeparatedAttributes {
+  staticAttrs: string;
+  dynamicAttrs: AttributeInfo[];
+}
+
+export type CodeContext = 'reactive' | 'static' | 'effect' | 'event';
+
+export interface TemplateManager {
+  getOrCreateTemplate(html: string): string;
+  getTemplates(): Map<string, string>;
+  resetCounter(): void;
 }

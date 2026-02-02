@@ -20,31 +20,33 @@ function initializeClient(): void {
             return;
         }
 
+        // Pre-compute route paths to avoid issues in minified code
+        const routePaths = getAllRoutePaths();
+
         // Create the app component tree (must match server exactly)
+        // Note: Server renders <div id="app">...</div>, so we hydrate inside it
         const ClientApp = () => {
             return (
-                <div id="app">
-                    <Router initialPath={window.location.pathname}>
-                        {() => (
-                            <>
-                                {getAllRoutePaths().map(path => {
-                                    const route = routes[path];
-                                    return <Route path={path} component={route.component} exact={path === '/'} />;
-                                })}
-                            </>
-                        )}
-                    </Router>
-                </div>
+                <Router initialPath={window.location.pathname}>
+                    {() => (
+                        <>
+                            {routePaths.map(path => {
+                                const route = routes[path];
+                                return <Route path={path} component={route.component} exact={path === '/'} />;
+                            })}
+                        </>
+                    )}
+                </Router>
             );
         };
 
         // Check if we have SSR content to hydrate
-        if (isHydratable(document.body)) {
-            // Hydrate server-rendered content
-            hydrate(document.body, ClientApp);
+        if (isHydratable(appElement)) {
+            // Hydrate server-rendered content inside #app
+            hydrate(appElement, ClientApp);
         } else {
             // No SSR content, perform client-side mount
-            appElement.appendChild(<ClientApp />);
+            appElement.appendChild(ClientApp());
         }
 
     } catch (error: unknown) {
