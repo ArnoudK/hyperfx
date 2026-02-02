@@ -6,10 +6,35 @@
   "private": "false",
   "type": "module",
   "sideEffects": false,
+  "description": "Reactive JSX framework with signals, SSR, and optimizing compiler",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./compiler": {
+      "types": "./dist/compiler/index.d.ts",
+      "default": "./dist/compiler/index.js"
+    },
+    "./vite": {
+      "types": "./dist/compiler/vite.d.ts",
+      "default": "./dist/compiler/vite.js"
+    },
+    "./webpack": {
+      "types": "./dist/compiler/webpack.d.ts",
+      "default": "./dist/compiler/webpack.js"
+    },
+    "./rollup": {
+      "types": "./dist/compiler/rollup.d.ts",
+      "default": "./dist/compiler/rollup.js"
+    },
+    "./esbuild": {
+      "types": "./dist/compiler/esbuild.d.ts",
+      "default": "./dist/compiler/esbuild.js"
+    },
+    "./rspack": {
+      "types": "./dist/compiler/rspack.d.ts",
+      "default": "./dist/compiler/rspack.js"
     },
     "./jsx": {
       "types": "./dist/jsx/jsx-runtime.d.ts",
@@ -35,6 +60,7 @@
     },
     "./jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
+      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-dev-runtime.js"
     },
     "./jsx-server-runtime": {
@@ -48,10 +74,12 @@
     },
     "./jsx/jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
+      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-dev-runtime.js"
     },
     "./jsx-runtime/jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
+      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-dev-runtime.js"
     },
     "./runtime-dom": {
@@ -65,9 +93,16 @@
   "keywords": [
     "framework",
     "web components",
-    "dom"
+    "dom",
+    "jsx",
+    "reactive",
+    "signals",
+    "ssr",
+    "compiler",
+    "vite",
+    "unplugin"
   ],
-  "version": "0.0.2",
+  "version": "0.1.0",
   "scripts": {
     "lint": "oxlint --fix src",
     "build": "tsc -b",
@@ -83,6 +118,8 @@
     "@changesets/cli": "^2.29.4",
     "@effect/platform": "^0.94.2",
     "@eslint/js": "^9.28.0",
+    "@types/babel__core": "^7.20.0",
+    "@types/babel__traverse": "^7.20.0",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.15.31",
     "@vitest/ui": "^4.0.16",
@@ -99,6 +136,11 @@
     "dist/"
   ],
   "dependencies": {
+    "@babel/parser": "^7.24.0",
+    "@babel/traverse": "^7.24.0",
+    "@babel/types": "^7.24.0",
+    "magic-string": "^0.30.0",
+    "unplugin": "^3.0.0"
   },
   "peerDependencies": {
     "effect": "^3.11.0",

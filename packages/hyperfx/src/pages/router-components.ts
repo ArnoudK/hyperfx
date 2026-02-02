@@ -12,6 +12,8 @@ import {
   type UniversalNode,
   type UniversalContainer,
 } from './router-helpers';
+import { getMutableChildren } from '../jsx/runtime/virtual-node';
+import type { VirtualFragment, VirtualComment, VirtualElement, VirtualNode } from '../jsx/runtime/virtual-node';
 
 /**
  * SSR-safe element creation
@@ -32,7 +34,6 @@ function createSafeElement(tag: string): any {
   // For now, create a minimal mock that has the properties we use
   const mock: any = {
     tagName: tag.toUpperCase(),
-    children: [] as any[],
     childNodes: [] as any[],
     className: '',
     href: '',
@@ -48,21 +49,16 @@ function createSafeElement(tag: string): any {
     addEventListener: () => {},
     removeEventListener: () => {},
     appendChild: function(child: any) {
-      this.children.push(child);
       this.childNodes.push(child);
       return child;
     },
     removeChild: function(child: any) {
-      const idx = this.children.indexOf(child);
-      if (idx > -1) this.children.splice(idx, 1);
-      const idx2 = this.childNodes.indexOf(child);
-      if (idx2 > -1) this.childNodes.splice(idx2, 1);
+      const idx = this.childNodes.indexOf(child);
+      if (idx > -1) this.childNodes.splice(idx, 1);
     },
     replaceChild: function(newChild: any, oldChild: any) {
-      const idx = this.children.indexOf(oldChild);
-      if (idx > -1) this.children[idx] = newChild;
-      const idx2 = this.childNodes.indexOf(oldChild);
-      if (idx2 > -1) this.childNodes[idx2] = newChild;
+      const idx = this.childNodes.indexOf(oldChild);
+      if (idx > -1) this.childNodes[idx] = newChild;
     },
   };
   
@@ -221,9 +217,11 @@ export function Route(props: RouteProps): UniversalFragment {
 
   // Append markers to fragment
   if (isSSR()) {
-    // Server: manually add to virtual fragment's children array
-    const virtualFragment = fragment as any;
-    virtualFragment.children.push(startMarker, endMarker);
+    // Server: manually add to virtual fragment's childNodes array
+    const virtualFragment = fragment as unknown as VirtualFragment;
+    const children = getMutableChildren(virtualFragment);
+    children.push(startMarker as unknown as VirtualComment);
+    children.push(endMarker as unknown as VirtualComment);
   } else {
     // Client: use DOM API
     (fragment as DocumentFragment).appendChild(startMarker as Comment);
@@ -303,13 +301,14 @@ export function Route(props: RouteProps): UniversalFragment {
         const nodesToAdd = Array.isArray(content) ? content : [content];
         nodesToAdd.forEach(node => {
           if (isSSR()) {
-            // Server: insert before endMarker in virtual children array
-            const virtualParent = currentParent as any;
-            const endIndex = virtualParent.children.indexOf(endMarker);
+            // Server: insert before endMarker in virtual childNodes array
+            const virtualParent = currentParent as unknown as VirtualFragment | VirtualElement;
+            const children = getMutableChildren(virtualParent);
+            const endIndex = children.indexOf(endMarker as unknown as VirtualNode);
             if (endIndex !== -1) {
-              virtualParent.children.splice(endIndex, 0, node);
+              children.splice(endIndex, 0, node as unknown as VirtualNode);
             } else {
-              virtualParent.children.push(node);
+              children.push(node as unknown as VirtualNode);
             }
             renderedNodes.push(node);
           } else {

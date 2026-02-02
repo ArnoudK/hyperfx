@@ -1,5 +1,6 @@
 
 import type { JSXElement, JSXChildren } from "../jsx/jsx-runtime";
+import { createVirtualFragment } from "../jsx/runtime/virtual-node";
 
 /**
  * Context API for HyperFX
@@ -66,11 +67,18 @@ export function createContext<T>(defaultValue: T): Context<T> {
         // However, JSX expects JSXElement.
         // If multiple children, fragment.
         if (Array.isArray(children)) {
-            const fragment = document.createDocumentFragment();
-            children.forEach(child => {
-                if (child instanceof Node) fragment.appendChild(child);
-            });
-            return fragment;
+            // SSR-safe fragment creation
+            if (typeof document === 'undefined') {
+                // Server-side: use virtual fragment
+                return createVirtualFragment(children) as unknown as JSXElement;
+            } else {
+                // Client-side: use DOM fragment
+                const fragment = document.createDocumentFragment();
+                children.forEach(child => {
+                    if (child instanceof Node) fragment.appendChild(child);
+                });
+                return fragment;
+            }
         }
 
         return children as JSXElement;

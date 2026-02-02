@@ -1,3 +1,4 @@
+import { createVirtualFragment } from "../jsx/runtime/virtual-node";
 // Global context stack
 // Map of Context ID -> Stack of values
 const contextStacks = new Map();
@@ -46,12 +47,20 @@ export function createContext(defaultValue) {
         // However, JSX expects JSXElement.
         // If multiple children, fragment.
         if (Array.isArray(children)) {
-            const fragment = document.createDocumentFragment();
-            children.forEach(child => {
-                if (child instanceof Node)
-                    fragment.appendChild(child);
-            });
-            return fragment;
+            // SSR-safe fragment creation
+            if (typeof document === 'undefined') {
+                // Server-side: use virtual fragment
+                return createVirtualFragment(children);
+            }
+            else {
+                // Client-side: use DOM fragment
+                const fragment = document.createDocumentFragment();
+                children.forEach(child => {
+                    if (child instanceof Node)
+                        fragment.appendChild(child);
+                });
+                return fragment;
+            }
         }
         return children;
     };

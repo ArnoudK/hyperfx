@@ -9,7 +9,7 @@
 		"esModuleInterop": true,
 		
 		// JSX Configuration
-		"jsx": "react-jsx",
+		"jsx": "preserve",
 		"jsxImportSource": "./src/jsx",
 		
 		// Bundler Stuff

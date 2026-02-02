@@ -1,18 +1,26 @@
 /**
  * Server-side JSX factory for HyperFX
- * Creates virtual nodes instead of real DOM elements
+ * Creates virtual nodes that implement DOM-compatible interfaces
  * Completely avoids the need for happy-dom or any DOM APIs
  */
 
-import { Fragment, FRAGMENT_TAG } from "./elements";
-import type { FunctionComponent, JSXChildren } from "./types";
+import { FRAGMENT_TAG } from "./constants";
+import type { FunctionComponent, JSXChildren, JSXElement } from "./types";
 import type { VirtualNode } from "./virtual-node";
 import {
   createVirtualElement,
   createVirtualText,
   createVirtualFragment,
+  isVirtualNode,
 } from "./virtual-node";
 import { isSignal } from "../../reactive/signal";
+
+/**
+ * Server-side Fragment component
+ */
+export function Fragment(props: { children?: JSXChildren }): DocumentFragment {
+  return createVirtualFragment(renderChildrenToVirtual(props.children)) as unknown as DocumentFragment;
+}
 
 /**
  * Render children to virtual nodes
@@ -33,16 +41,8 @@ function renderChildrenToVirtual(children: JSXChildren): VirtualNode[] {
   }
 
   // Handle virtual nodes (already processed)
-  if (
-    typeof children === 'object' &&
-    children !== null &&
-    'type' in children &&
-    (children.type === 'element' ||
-      children.type === 'text' ||
-      children.type === 'fragment' ||
-      children.type === 'comment')
-  ) {
-    return [children as VirtualNode];
+  if (isVirtualNode(children)) {
+    return [children];
   }
 
   // Handle primitives - convert to text nodes
@@ -61,17 +61,18 @@ function renderChildrenToVirtual(children: JSXChildren): VirtualNode[] {
 /**
  * Server-side JSX factory function
  * This is called by the TypeScript compiler for every JSX element
+ * Returns DOM-compatible virtual nodes
  */
 export function jsx(
   type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
   props: Record<string, any> | null,
   _key?: string | number | null
-): VirtualNode {
+): JSXElement {
   // Handle fragments (<>...</>)
   if (type === FRAGMENT_TAG || type === Fragment) {
     const allChildren = props?.children;
     const children = renderChildrenToVirtual(allChildren);
-    return createVirtualFragment(children);
+    return createVirtualFragment(children) as unknown as DocumentFragment;
   }
 
   // Handle function components
@@ -86,23 +87,20 @@ export function jsx(
         return value;
       }
     });
-    
+
     // Call component function - it will return virtual nodes
     const result = type(proxyProps);
-    
-    // Ensure we return a virtual node (handle null/undefined/boolean)
+
+    // Ensure we return a valid JSXElement (handle null/undefined/boolean)
     if (result == null || typeof result === 'boolean') {
       return null;
     }
-    
-    // The result should already be a VirtualNode from the server runtime
-    // We use 'unknown' here because the type signature says JSXElement
-    // but at runtime on the server it will be VirtualNode
-    return result as unknown as VirtualNode;
+
+    return result;
   }
 
   // Handle regular HTML elements (div, span, etc.)
-  const children = props?.children 
+  const children = props?.children
     ? renderChildrenToVirtual(props.children)
     : [];
 
@@ -122,7 +120,7 @@ export function jsx(
     }
   }
 
-  return createVirtualElement(type as string, unwrappedProps, children);
+  return createVirtualElement(type as string, unwrappedProps, children) as unknown as HTMLElement;
 }
 
 /**
@@ -138,10 +136,10 @@ export function createJSXElement(
   type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
   props: Record<string, any> | null,
   ...children: JSXChildren[]
-): VirtualNode {
-  const allProps = { 
-    ...props, 
-    children: children.length > 0 ? children.flat() : props?.children 
+): JSXElement {
+  const allProps = {
+    ...props,
+    children: children.length > 0 ? children.flat() : props?.children
   };
   return jsx(type, allProps);
 }
@@ -150,3 +148,8 @@ export function createJSXElement(
  * Export createElement as alias for compatibility
  */
 export { createJSXElement as createElement };
+
+/**
+ * Re-export hydration utilities for testing
+ */
+export { resetClientNodeCounter } from './hydration';

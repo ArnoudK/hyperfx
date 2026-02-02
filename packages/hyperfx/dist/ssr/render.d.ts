@@ -1,5 +1,14 @@
 import type { VirtualNode } from "../jsx/runtime/virtual-node";
 /**
+ * Create a unique node ID for hydration
+ * Format: 6-digit zero-padded number (e.g., "000001", "000002")
+ */
+export declare function createNodeId(): string;
+/**
+ * Reset the node counter (used for testing and server-side rendering cleanup)
+ */
+export declare function resetNodeCounter(): void;
+/**
  * SSR Options for renderToString
  */
 export interface SSROptions {

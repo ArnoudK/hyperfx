@@ -1,5 +1,21 @@
-import { virtualNodeToHtml } from "./virtual-to-html";
+import { virtualNodeToHtml, setNodeIdGenerator } from "./virtual-to-html";
 import { getRegisteredSignals } from "../reactive/signal";
+// Node counter for generating unique hydration IDs
+let nodeCounter = 0;
+/**
+ * Create a unique node ID for hydration
+ * Format: 6-digit zero-padded number (e.g., "000001", "000002")
+ */
+export function createNodeId() {
+    nodeCounter++;
+    return String(nodeCounter).padStart(6, '0');
+}
+/**
+ * Reset the node counter (used for testing and server-side rendering cleanup)
+ */
+export function resetNodeCounter() {
+    nodeCounter = 0;
+}
 // HTML void elements that should not have closing tags
 const VOID_ELEMENTS = new Set([
     'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
@@ -53,24 +69,33 @@ options = {}) {
         // TODO: Restore resources and contexts when implemented
     }
     let html;
-    // Check if this is a VirtualNode or a legacy mock element
-    if (element && typeof element === 'object' && 'type' in element) {
-        // New VirtualNode format
-        html = virtualNodeToHtml(element);
-    }
-    else if (element && typeof element === 'object' && ('tagName' in element || 'innerHTML' in element)) {
-        // Legacy mock HTMLElement format (from createSafeElement or template())
-        if ('innerHTML' in element && element.innerHTML) {
-            // Mock from template() - just use the innerHTML directly
-            html = element.innerHTML;
+    // Always enable node ID generation for hydration attributes (backward compatibility)
+    // Hydration IDs are needed for proper client-side hydration
+    setNodeIdGenerator(createNodeId);
+    try {
+        // Check if this is a VirtualNode (has nodeType property) or a legacy mock element
+        if (element && typeof element === 'object' && 'nodeType' in element) {
+            // New VirtualNode format (DOM-compatible)
+            html = virtualNodeToHtml(element);
+        }
+        else if (element && typeof element === 'object' && ('tagName' in element || 'innerHTML' in element)) {
+            // Legacy mock HTMLElement format (from createSafeElement or template())
+            if ('innerHTML' in element && element.innerHTML) {
+                // Mock from template() - just use the innerHTML directly
+                html = element.innerHTML;
+            }
+            else {
+                // Mock from createSafeElement
+                html = mockElementToHtml(element);
+            }
         }
         else {
-            // Mock from createSafeElement
-            html = mockElementToHtml(element);
+            html = '';
         }
     }
-    else {
-        html = '';
+    finally {
+        // Disable node ID generation after rendering
+        setNodeIdGenerator(null);
     }
     // Collect serialized state only if hydration is enabled
     const state = {
@@ -133,9 +158,9 @@ function mockElementToHtml(element) {
         html += escapeHtml(element.textContent);
     }
     // Add children
-    if (element.children && Array.isArray(element.children)) {
-        for (const child of element.children) {
-            if (typeof child === 'object' && 'type' in child) {
+    if (element.childNodes && Array.isArray(element.childNodes)) {
+        for (const child of element.childNodes) {
+            if (typeof child === 'object' && 'nodeType' in child) {
                 // VirtualNode child
                 html += virtualNodeToHtml(child);
             }

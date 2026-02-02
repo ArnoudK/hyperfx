@@ -1,7 +1,7 @@
 // Test SSR data-hfxh improvements
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderToString, createNodeId, resetNodeCounter } from '../src/ssr/render';
-import { r } from '../src/jsx/jsx-runtime';
+import { createElement } from '../src/jsx/runtime/server-factory';
 
 describe('SSR data-hfxh improvements', () => {
   beforeEach(() => {
@@ -22,18 +22,11 @@ describe('SSR data-hfxh improvements', () => {
   });
 
   it('should add data-hfxh attributes to all elements during SSR', () => {
-    const count = r(() => 0);
-    // Create elements using document.createElement since JSX components aren't exported
-    const container = document.createElement('div');
-    container.setAttribute('class', 'test-container');
-
-    const text = document.createTextNode('Hello World');
-    container.appendChild(text);
-
-    const button = document.createElement('button');
-    button.setAttribute('class', 'increment-btn');
-    button.textContent = 'Increment';
-    container.appendChild(button);
+    // Create elements using createElement (returns VirtualNodes)
+    const container = createElement('div', { class: 'test-container' },
+      'Hello World',
+      createElement('button', { class: 'increment-btn' }, 'Increment')
+    );
 
     const { html } = renderToString(container);
 
@@ -47,53 +40,26 @@ describe('SSR data-hfxh improvements', () => {
   });
 
   it('should handle complex nested structures', () => {
-    // Create nested structure using DOM API
-    const element = document.createElement('div');
-    element.setAttribute('id', 'app');
-
-    // Header
-    const header = document.createElement('div');
-    header.setAttribute('class', 'header');
-    header.textContent = 'Header';
-    element.appendChild(header);
-
-    // Content
-    const content = document.createElement('div');
-    content.setAttribute('class', 'content');
-
-    // Sidebar
-    const sidebar = document.createElement('div');
-    sidebar.setAttribute('class', 'sidebar');
-    sidebar.textContent = 'Sidebar';
-    content.appendChild(sidebar);
-
-    // Main
-    const main = document.createElement('div');
-    main.setAttribute('class', 'main');
-    main.textContent = 'Main content';
-    content.appendChild(main);
-
-    // Action button
-    const actionBtn = document.createElement('button');
-    actionBtn.setAttribute('class', 'action-btn');
-    actionBtn.textContent = 'Action';
-    main.appendChild(actionBtn);
-
-    element.appendChild(content);
-
-    // Footer
-    const footer = document.createElement('div');
-    footer.setAttribute('class', 'footer');
-    footer.textContent = 'Footer';
-    element.appendChild(footer);
+    // Create nested structure using createElement (returns VirtualNodes)
+    const element = createElement('div', { id: 'app' },
+      createElement('div', { class: 'header' }, 'Header'),
+      createElement('div', { class: 'content' },
+        createElement('div', { class: 'sidebar' }, 'Sidebar'),
+        createElement('div', { class: 'main' },
+          'Main content',
+          createElement('button', { class: 'action-btn' }, 'Action')
+        )
+      ),
+      createElement('div', { class: 'footer' }, 'Footer')
+    );
 
     const { html } = renderToString(element);
 
     // Count all data-hfxh attributes
     const nodeIds = html.match(/data-hfxh="[^"]+"/g) || [];
 
-    // Should have 6 elements: app, header, content, sidebar, main, button, footer
-    expect(nodeIds.length).toBeGreaterThanOrEqual(6);
+    // Should have 7 elements: app, header, content, sidebar, main, button, footer
+    expect(nodeIds.length).toBeGreaterThanOrEqual(7);
 
     // Verify unique IDs
     const ids = nodeIds.map(match => match.match(/data-hfxh="([^"]+)"/)![1]);

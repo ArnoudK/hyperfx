@@ -1,3 +1,4 @@
+import { createVirtualFragment, createVirtualElement } from "../jsx/runtime/virtual-node";
 import { renderToString } from "./render";
 /**
  * Enhanced SSR renderer with common patterns
@@ -53,10 +54,7 @@ export class SSRRenderer {
         let elementToRender;
         if (Array.isArray(element)) {
             // Create a virtual fragment for multiple elements
-            elementToRender = {
-                type: 'fragment',
-                children: element
-            };
+            elementToRender = createVirtualFragment(element);
         }
         else {
             elementToRender = element;
@@ -246,16 +244,11 @@ export const SSRUtils = {
      * Create placeholder for client-side hydration
      */
     createHydrationPlaceholder(id, tagName = 'div') {
-        return {
-            type: 'element',
-            tag: tagName,
-            props: {
-                id,
-                'data-hydration-placeholder': 'true',
-                style: 'display: none'
-            },
-            children: []
-        };
+        return createVirtualElement(tagName, {
+            id,
+            'data-hydration-placeholder': 'true',
+            style: 'display: none'
+        }, []);
     }
 };
 //# sourceMappingURL=utils.js.map

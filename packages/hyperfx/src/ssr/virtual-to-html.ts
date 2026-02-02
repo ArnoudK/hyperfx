@@ -4,6 +4,21 @@
  */
 
 import type { VirtualNode, VirtualElement } from "../jsx/runtime/virtual-node";
+import { isVirtualNode } from "../jsx/runtime/virtual-node";
+
+// Node ID generator function type
+type NodeIdGenerator = () => string;
+
+// Global node ID generator (set by render module)
+let nodeIdGenerator: NodeIdGenerator | null = null;
+
+/**
+ * Set the node ID generator function
+ * Used by render.ts to inject createNodeId
+ */
+export function setNodeIdGenerator(generator: NodeIdGenerator | null): void {
+  nodeIdGenerator = generator;
+}
 
 // HTML void elements that should not have closing tags
 const VOID_ELEMENTS = new Set([
@@ -104,34 +119,42 @@ function renderAttributes(props: Record<string, any>): string {
 
 /**
  * Render a virtual node to HTML string
+ * Works with DOM-compatible virtual nodes using nodeType
  */
 export function virtualNodeToHtml(node: VirtualNode): string {
   if (node == null) {
     return '';
   }
 
-  switch (node.type) {
-    case 'text':
-      return escapeHtml(node.content);
+  // Use nodeType to determine what kind of node this is (DOM-compatible)
+  switch (node.nodeType) {
+    case 3: // TEXT_NODE
+      return escapeHtml(node.textContent || '');
 
-    case 'comment':
-      return `<!--${escapeHtml(node.content)}-->`;
+    case 8: // COMMENT_NODE
+      return `<!--${escapeHtml(node.textContent || '')}-->`;
 
-    case 'fragment':
-      return node.children.map(virtualNodeToHtml).join('');
+    case 11: // DOCUMENT_FRAGMENT_NODE
+      return node.childNodes.map(virtualNodeToHtml).join('');
 
-    case 'element': {
-      const { tag, props, children } = node;
-      const tagLower = tag.toLowerCase();
+    case 1: { // ELEMENT_NODE
+      const element = node as VirtualElement;
+      const tag = element.tagName.toLowerCase();
 
       // Start tag
-      let html = `<${tagLower}`;
+      let html = `<${tag}`;
+
+      // Add hydration ID attribute if generator is set
+      if (nodeIdGenerator) {
+        const nodeId = nodeIdGenerator();
+        html += ` data-hfxh="${nodeId}"`;
+      }
 
       // Attributes
-      html += renderAttributes(props);
+      html += renderAttributes(element._props);
 
       // Self-closing/void elements
-      if (VOID_ELEMENTS.has(tagLower)) {
+      if (VOID_ELEMENTS.has(tag)) {
         html += '>';
         return html;
       }
@@ -139,10 +162,10 @@ export function virtualNodeToHtml(node: VirtualNode): string {
       html += '>';
 
       // Children
-      html += children.map(virtualNodeToHtml).join('');
+      html += element.childNodes.map(virtualNodeToHtml).join('');
 
       // Close tag
-      html += `</${tagLower}>`;
+      html += `</${tag}>`;
 
       return html;
     }

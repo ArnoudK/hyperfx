@@ -1,13 +1,11 @@
-/** @jsxImportSource hyperfx/jsx-server */
-import { renderToString, renderHydrationData, Router, Route, JSX, enableSSRMode, disableSSRMode } from "hyperfx";
+import { renderToString, renderHydrationData, Router, Route,  enableSSRMode, disableSSRMode } from "hyperfx";
 import { routes, getAllRoutePaths } from "./routes/config";
 import { createDocument } from "./lib/document";
-import NotFoundPage from "./components/not-found";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-// @ts-expect-error css url module misses typings
 import styles from './styles.css?url';
+import { App } from "./app";
 
 // Cache the client script path
 let clientScriptPath: string | null = null;
@@ -25,6 +23,7 @@ async function getClientScriptPath(): Promise<string> {
       return clientScriptPath;
     }
   } catch (e) {
+    console.warn('Failed to locate client script in production build:', e);
     // Fallback for dev mode
   }
   
@@ -48,25 +47,8 @@ export default {
 
     enableSSRMode();
 
-    const App = () => (
-      <div id="app">
-        <Router initialPath={pathname}>
-          {() => (
-            <>
-              {getAllRoutePaths().map(path => (
-                <Route
-                  path={path}
-                  component={routes[path]?.component}
-                  exact={path === '/'}
-                />
-              ))}
-            </>
-          )}
-        </Router>
-      </div>
-    );
-
-    const appElement = <App />;
+   
+    const appElement = <App pathname={pathname}  />;
     
     const { html, hydrationData } = renderToString(appElement, { 
       ssrHydration: true

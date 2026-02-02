@@ -2,7 +2,6 @@ import { Signal } from "../../reactive/signal";
 import { ComputedSignal } from "../../reactive/state";
 import { Prettify } from "../../tools/type_utils";
 import { IntrinsicElements as BaseIntrinsicElements } from "../types/index";
-import type { VirtualNode } from "./virtual-node";
 export declare namespace JSX {
     type Element = JSXElement;
     interface ElementChildrenAttribute {
@@ -20,7 +19,7 @@ export type ReactiveValue<T> = T | Signal<T> | (() => T);
 export type ReactiveString = ReactiveValue<string>;
 export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
-export type JSXElement = HTMLElement | DocumentFragment | Text | Comment | VirtualNode;
+export type JSXElement = HTMLElement | DocumentFragment | Text | Comment | null;
 export type JSXChildPrimitive = string | number | boolean | null | undefined;
 export type JSXChild = Prettify<JSXElement | JSXChildPrimitive | Signal<JSXElement | JSXChildPrimitive> | (() => JSXElement) | (() => JSXElement[]) | ComputedSignal<JSXElement | JSXChildPrimitive>>;
 export type JSXChildren = JSXChild | JSXChild[];

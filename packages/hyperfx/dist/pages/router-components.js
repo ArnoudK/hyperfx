@@ -1,5 +1,6 @@
 import { createSignal, createEffect, createComputed } from "../reactive/state";
 import { isSSR, createRouterFragment, createRouterComment, createRouterText, removeChild, } from './router-helpers';
+import { getMutableChildren } from '../jsx/runtime/virtual-node';
 /**
  * SSR-safe element creation
  * On client: uses document.createElement
@@ -17,7 +18,6 @@ function createSafeElement(tag) {
     // For now, create a minimal mock that has the properties we use
     const mock = {
         tagName: tag.toUpperCase(),
-        children: [],
         childNodes: [],
         className: '',
         href: '',
@@ -33,25 +33,18 @@ function createSafeElement(tag) {
         addEventListener: () => { },
         removeEventListener: () => { },
         appendChild: function (child) {
-            this.children.push(child);
             this.childNodes.push(child);
             return child;
         },
         removeChild: function (child) {
-            const idx = this.children.indexOf(child);
+            const idx = this.childNodes.indexOf(child);
             if (idx > -1)
-                this.children.splice(idx, 1);
-            const idx2 = this.childNodes.indexOf(child);
-            if (idx2 > -1)
-                this.childNodes.splice(idx2, 1);
+                this.childNodes.splice(idx, 1);
         },
         replaceChild: function (newChild, oldChild) {
-            const idx = this.children.indexOf(oldChild);
+            const idx = this.childNodes.indexOf(oldChild);
             if (idx > -1)
-                this.children[idx] = newChild;
-            const idx2 = this.childNodes.indexOf(oldChild);
-            if (idx2 > -1)
-                this.childNodes[idx2] = newChild;
+                this.childNodes[idx] = newChild;
         },
     };
     return mock;
@@ -161,9 +154,11 @@ export function Route(props) {
     const endMarker = createRouterComment(`Route end: ${props.path}`);
     // Append markers to fragment
     if (isSSR()) {
-        // Server: manually add to virtual fragment's children array
+        // Server: manually add to virtual fragment's childNodes array
         const virtualFragment = fragment;
-        virtualFragment.children.push(startMarker, endMarker);
+        const children = getMutableChildren(virtualFragment);
+        children.push(startMarker);
+        children.push(endMarker);
     }
     else {
         // Client: use DOM API
@@ -238,14 +233,15 @@ export function Route(props) {
                 const nodesToAdd = Array.isArray(content) ? content : [content];
                 nodesToAdd.forEach(node => {
                     if (isSSR()) {
-                        // Server: insert before endMarker in virtual children array
+                        // Server: insert before endMarker in virtual childNodes array
                         const virtualParent = currentParent;
-                        const endIndex = virtualParent.children.indexOf(endMarker);
+                        const children = getMutableChildren(virtualParent);
+                        const endIndex = children.indexOf(endMarker);
                         if (endIndex !== -1) {
-                            virtualParent.children.splice(endIndex, 0, node);
+                            children.splice(endIndex, 0, node);
                         }
                         else {
-                            virtualParent.children.push(node);
+                            children.push(node);
                         }
                         renderedNodes.push(node);
                     }

@@ -1,7 +1,7 @@
 import { isSignal } from "../../reactive/signal";
 import { renderChildren } from "./children";
-// Fragment symbol
-export const FRAGMENT_TAG = Symbol("HyperFX.Fragment");
+import { FRAGMENT_TAG } from "./constants";
+export { FRAGMENT_TAG };
 // Create a text node with optional reactive content
 function createTextNode(content) {
     const textNode = document.createTextNode('');

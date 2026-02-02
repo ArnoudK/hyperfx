@@ -11,8 +11,7 @@
  * the "node" condition in package.json exports.
  */
 
-export { jsx, jsxs, createElement } from './runtime/server-factory';
-export { Fragment } from './runtime/elements';
+export { jsx, jsxs, createElement, Fragment } from './runtime/server-factory';
 export type { VirtualNode, VirtualElement, VirtualText, VirtualFragment, VirtualComment } from './runtime/virtual-node';
 
 // jsxDEV is the same as jsx for server runtime (no dev-specific behavior needed)

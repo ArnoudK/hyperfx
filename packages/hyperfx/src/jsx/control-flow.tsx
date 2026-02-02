@@ -6,8 +6,9 @@ import {
   isSSR, 
   createRouterFragment, 
   createRouterComment,
-  type UniversalFragment 
 } from "../pages/router-helpers";
+import { getMutableChildren } from "./runtime/virtual-node";
+import type { VirtualFragment, VirtualElement, VirtualNode, VirtualComment } from "./runtime/virtual-node";
 
 interface ForProps<T> {
   each: ReactiveValue<T[]>;
@@ -22,8 +23,10 @@ export function For<T>(props: ForProps<T>): JSXElement {
 
   // Append markers to fragment
   if (isSSR()) {
-    const virtualFragment = fragment as any;
-    virtualFragment.children.push(startMarker, endMarker);
+    const virtualFragment = fragment as unknown as VirtualFragment;
+    const children = getMutableChildren(virtualFragment);
+    children.push(startMarker as unknown as VirtualComment);
+    children.push(endMarker as unknown as VirtualComment);
   } else {
     (fragment as DocumentFragment).appendChild(startMarker as Comment);
     (fragment as DocumentFragment).appendChild(endMarker as Comment);
@@ -108,21 +111,22 @@ export function For<T>(props: ForProps<T>): JSXElement {
     // 3. DOM Sync Phase: Adjust positions
     if (isSSR()) {
       // Server: Just add all nodes to virtual fragment before endMarker
-      const virtualParent = parent as any;
-      const endIndex = virtualParent.children.indexOf(endMarker);
+      const virtualParent = parent as unknown as VirtualFragment | VirtualElement;
+      const children = getMutableChildren(virtualParent);
+      const endIndex = children.indexOf(endMarker as unknown as VirtualNode);
       
       // Clear existing items between markers
       if (endIndex > 0) {
-        const startIndex = virtualParent.children.indexOf(startMarker);
+        const startIndex = children.indexOf(startMarker as unknown as VirtualNode);
         if (startIndex >= 0 && startIndex < endIndex) {
-          virtualParent.children.splice(startIndex + 1, endIndex - startIndex - 1);
+          children.splice(startIndex + 1, endIndex - startIndex - 1);
         }
       }
       
       // Insert all nodes
-      const insertIndex = virtualParent.children.indexOf(endMarker);
+      const insertIndex = children.indexOf(endMarker as unknown as VirtualNode);
       const allNodes = nextInstances.flatMap(inst => inst.nodes);
-      virtualParent.children.splice(insertIndex, 0, ...allNodes);
+      children.splice(insertIndex, 0, ...(allNodes as unknown as VirtualNode[]));
     } else {
       // Client: adjust DOM positions
       let cursor: Node = endMarker as Comment;
@@ -173,8 +177,10 @@ export function Index<T>(props: {
   const endMarker = createRouterComment('Index end');
   
   if (isSSR()) {
-    const virtualFragment = fragment as any;
-    virtualFragment.children.push(startMarker, endMarker);
+    const virtualFragment = fragment as unknown as VirtualFragment;
+    const children = getMutableChildren(virtualFragment);
+    children.push(startMarker as unknown as VirtualComment);
+    children.push(endMarker as unknown as VirtualComment);
   } else {
     (fragment as DocumentFragment).appendChild(startMarker as Comment);
     (fragment as DocumentFragment).appendChild(endMarker as Comment);
@@ -199,9 +205,10 @@ export function Index<T>(props: {
       if (isSSR()) {
         const nodes = [element as any];
         renderedNodes.push(nodes);
-        const virtualParent = parent as any;
-        const insertIndex = virtualParent.children.indexOf(endMarker);
-        virtualParent.children.splice(insertIndex, 0, ...nodes);
+        const virtualParent = parent as unknown as VirtualFragment | VirtualElement;
+        const children = getMutableChildren(virtualParent);
+        const insertIndex = children.indexOf(endMarker as unknown as VirtualNode);
+        children.splice(insertIndex, 0, ...(nodes as unknown as VirtualNode[]));
       } else {
         const nodes = element instanceof DocumentFragment ? Array.from(element.childNodes) : [element as Node];
         renderedNodes.push(nodes);
@@ -247,8 +254,10 @@ export function Show<T>(props: {
   const endMarker = createRouterComment('Show end');
   
   if (isSSR()) {
-    const virtualFragment = fragment as any;
-    virtualFragment.children.push(startMarker, endMarker);
+    const virtualFragment = fragment as unknown as VirtualFragment;
+    const children = getMutableChildren(virtualFragment);
+    children.push(startMarker as unknown as VirtualComment);
+    children.push(endMarker as unknown as VirtualComment);
   } else {
     (fragment as DocumentFragment).appendChild(startMarker as Comment);
     (fragment as DocumentFragment).appendChild(endMarker as Comment);
@@ -277,9 +286,10 @@ export function Show<T>(props: {
       
       if (isSSR()) {
         const nodes = [result as any];
-        const virtualParent = parent as any;
-        const insertIndex = virtualParent.children.indexOf(endMarker);
-        virtualParent.children.splice(insertIndex, 0, ...nodes);
+        const virtualParent = parent as unknown as VirtualFragment | VirtualElement;
+        const children = getMutableChildren(virtualParent);
+        const insertIndex = children.indexOf(endMarker as unknown as VirtualNode);
+        children.splice(insertIndex, 0, ...(nodes as unknown as VirtualNode[]));
         currentNodes = nodes;
       } else {
         const nodes = result instanceof DocumentFragment ? Array.from(result.childNodes) : [result as Node];
@@ -324,8 +334,9 @@ export function ErrorBoundary(props: {
   const marker = createRouterComment('ErrorBoundary');
   
   if (isSSR()) {
-    const virtualFragment = fragment as any;
-    virtualFragment.children.push(marker);
+    const virtualFragment = fragment as unknown as VirtualFragment;
+    const children = getMutableChildren(virtualFragment);
+    children.push(marker as unknown as VirtualComment);
   } else {
     (fragment as DocumentFragment).appendChild(marker as Comment);
   }
@@ -333,8 +344,9 @@ export function ErrorBoundary(props: {
   // Try to render children
   try {
     if (isSSR()) {
-      const virtualFragment = fragment as any;
-      virtualFragment.children.push(props.children);
+      const virtualFragment = fragment as unknown as VirtualFragment;
+      const children = getMutableChildren(virtualFragment);
+      children.push(props.children as unknown as VirtualNode);
     } else if (props.children instanceof Node) {
       (fragment as DocumentFragment).appendChild(props.children);
     }

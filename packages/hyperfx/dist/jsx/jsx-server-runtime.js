@@ -10,8 +10,7 @@
  * This file is automatically used when running in Node.js thanks to
  * the "node" condition in package.json exports.
  */
-export { jsx, jsxs, createElement } from './runtime/server-factory';
-export { Fragment } from './runtime/elements';
+export { jsx, jsxs, createElement, Fragment } from './runtime/server-factory';
 // jsxDEV is the same as jsx for server runtime (no dev-specific behavior needed)
 export { jsx as jsxDEV } from './runtime/server-factory';
 //# sourceMappingURL=jsx-server-runtime.js.map

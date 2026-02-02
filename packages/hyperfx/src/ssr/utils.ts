@@ -1,5 +1,6 @@
 // SSR utilities and common patterns - Virtual Node Implementation
 import type { VirtualNode } from "../jsx/runtime/virtual-node";
+import { createVirtualFragment, createVirtualElement } from "../jsx/runtime/virtual-node";
 import { renderToString } from "./render";
 
 /**
@@ -133,10 +134,7 @@ export class SSRRenderer {
     let elementToRender: VirtualNode;
     if (Array.isArray(element)) {
       // Create a virtual fragment for multiple elements
-      elementToRender = {
-        type: 'fragment',
-        children: element
-      };
+      elementToRender = createVirtualFragment(element);
     } else {
       elementToRender = element;
     }
@@ -340,15 +338,10 @@ export const SSRUtils = {
    * Create placeholder for client-side hydration
    */
   createHydrationPlaceholder(id: string, tagName: string = 'div'): VirtualNode {
-    return {
-      type: 'element',
-      tag: tagName,
-      props: {
-        id,
-        'data-hydration-placeholder': 'true',
-        style: 'display: none'
-      },
-      children: []
-    };
+    return createVirtualElement(tagName, {
+      id,
+      'data-hydration-placeholder': 'true',
+      style: 'display: none'
+    }, []);
   }
 };

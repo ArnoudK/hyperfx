@@ -4,24 +4,22 @@
  * This module provides abstractions over DOM operations that work in both
  * server (virtual nodes) and client (real DOM) environments.
  */
-import type { VirtualNode, VirtualFragment, VirtualComment, VirtualText, VirtualElement } from '../jsx/runtime/virtual-node';
+import type { VirtualFragment, VirtualElement } from '../jsx/runtime/virtual-node';
+import { isVirtualNode } from '../jsx/runtime/virtual-node';
 /**
  * Detect if we're in SSR mode (no document API available)
  */
 export declare function isSSR(): boolean;
 /**
  * Universal types that work on both client and server
+ * Since VirtualNodes implement DOM interfaces, these can be simplified
  */
-export type UniversalFragment = DocumentFragment | VirtualFragment;
-export type UniversalComment = Comment | VirtualComment;
-export type UniversalText = Text | VirtualText;
-export type UniversalElement = HTMLElement | VirtualElement;
-export type UniversalNode = Node | VirtualNode;
-export type UniversalContainer = (Node & ParentNode) | VirtualFragment | VirtualElement;
-/**
- * Type guard to check if a node is a virtual node
- */
-export declare function isVirtualNode(node: any): node is VirtualNode;
+export type UniversalFragment = DocumentFragment;
+export type UniversalComment = Comment;
+export type UniversalText = Text;
+export type UniversalElement = HTMLElement;
+export type UniversalNode = Node | null;
+export type UniversalContainer = (Node & ParentNode);
 /**
  * Type guard to check if a node is a virtual fragment
  */
@@ -33,19 +31,19 @@ export declare function isVirtualElement(node: any): node is VirtualElement;
 /**
  * Create a fragment
  * - Client: DocumentFragment
- * - Server: VirtualFragment
+ * - Server: VirtualFragment (DOM-compatible)
  */
 export declare function createRouterFragment(): UniversalFragment;
 /**
  * Create a comment node
  * - Client: Comment
- * - Server: VirtualComment
+ * - Server: VirtualComment (DOM-compatible)
  */
 export declare function createRouterComment(text: string): UniversalComment;
 /**
  * Create a text node
  * - Client: Text
- * - Server: VirtualText
+ * - Server: VirtualText (DOM-compatible)
  */
 export declare function createRouterText(text: string): UniversalText;
 /**
@@ -96,3 +94,4 @@ export declare function hasParent(node: UniversalNode): boolean;
  * @returns Index of node, or -1 if not found
  */
 export declare function indexOfChild(parent: UniversalContainer, node: UniversalNode): number;
+export { isVirtualNode };

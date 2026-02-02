@@ -10,7 +10,6 @@
  * This file is automatically used when running in Node.js thanks to
  * the "node" condition in package.json exports.
  */
-export { jsx, jsxs, createElement } from './runtime/server-factory';
-export { Fragment } from './runtime/elements';
+export { jsx, jsxs, createElement, Fragment } from './runtime/server-factory';
 export type { VirtualNode, VirtualElement, VirtualText, VirtualFragment, VirtualComment } from './runtime/virtual-node';
 export { jsx as jsxDEV } from './runtime/server-factory';

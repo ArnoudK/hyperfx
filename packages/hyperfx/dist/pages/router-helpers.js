@@ -4,7 +4,7 @@
  * This module provides abstractions over DOM operations that work in both
  * server (virtual nodes) and client (real DOM) environments.
  */
-import { createVirtualFragment, createVirtualComment, createVirtualText } from '../jsx/runtime/virtual-node';
+import { createVirtualFragment, createVirtualComment, createVirtualText, isVirtualNode, getMutableChildren } from '../jsx/runtime/virtual-node';
 /**
  * Detect if we're in SSR mode (no document API available)
  */
@@ -12,28 +12,21 @@ export function isSSR() {
     return typeof document === 'undefined';
 }
 /**
- * Type guard to check if a node is a virtual node
- */
-export function isVirtualNode(node) {
-    return node && typeof node === 'object' && 'type' in node &&
-        (node.type === 'element' || node.type === 'text' || node.type === 'fragment' || node.type === 'comment');
-}
-/**
  * Type guard to check if a node is a virtual fragment
  */
 export function isVirtualFragment(node) {
-    return node && typeof node === 'object' && node.type === 'fragment';
+    return node && typeof node === 'object' && node.nodeType === 11;
 }
 /**
  * Type guard to check if a node is a virtual element
  */
 export function isVirtualElement(node) {
-    return node && typeof node === 'object' && node.type === 'element';
+    return node && typeof node === 'object' && node.nodeType === 1;
 }
 /**
  * Create a fragment
  * - Client: DocumentFragment
- * - Server: VirtualFragment
+ * - Server: VirtualFragment (DOM-compatible)
  */
 export function createRouterFragment() {
     if (isSSR()) {
@@ -44,7 +37,7 @@ export function createRouterFragment() {
 /**
  * Create a comment node
  * - Client: Comment
- * - Server: VirtualComment
+ * - Server: VirtualComment (DOM-compatible)
  */
 export function createRouterComment(text) {
     if (isSSR()) {
@@ -55,7 +48,7 @@ export function createRouterComment(text) {
 /**
  * Create a text node
  * - Client: Text
- * - Server: VirtualText
+ * - Server: VirtualText (DOM-compatible)
  */
 export function createRouterText(text) {
     if (isSSR()) {
@@ -74,17 +67,21 @@ export function appendChild(parent, child, dissolveFragments = false) {
     if (isSSR()) {
         const virtualParent = parent;
         const virtualChild = child;
-        if (!virtualParent.children) {
-            virtualParent.children = [];
-        }
+        const parentChildren = getMutableChildren(virtualParent);
         // Context-dependent fragment handling
         if (dissolveFragments && virtualChild && isVirtualFragment(virtualChild)) {
             // Dissolve: add fragment's children directly to parent
-            virtualParent.children.push(...virtualChild.children);
+            const fragmentChildren = getMutableChildren(virtualChild);
+            for (let i = 0; i < fragmentChildren.length; i++) {
+                const child = fragmentChildren[i];
+                if (child !== undefined) {
+                    parentChildren.push(child);
+                }
+            }
         }
         else {
             // Keep as container or it's not a fragment
-            virtualParent.children.push(virtualChild);
+            parentChildren.push(virtualChild);
         }
     }
     else {
@@ -104,17 +101,15 @@ export function insertBefore(parent, node, reference) {
         const virtualParent = parent;
         const virtualNode = node;
         const virtualRef = reference;
-        if (!virtualParent.children) {
-            virtualParent.children = [];
-        }
-        const refIndex = virtualParent.children.indexOf(virtualRef);
+        const children = getMutableChildren(virtualParent);
+        const refIndex = children.indexOf(virtualRef);
         if (refIndex === -1) {
             // Reference not found, append to end
-            virtualParent.children.push(virtualNode);
+            children.push(virtualNode);
         }
         else {
             // Insert before reference
-            virtualParent.children.splice(refIndex, 0, virtualNode);
+            children.splice(refIndex, 0, virtualNode);
         }
     }
     else {
@@ -132,11 +127,10 @@ export function removeChild(parent, child) {
     if (isSSR()) {
         const virtualParent = parent;
         const virtualChild = child;
-        if (virtualParent.children) {
-            const index = virtualParent.children.indexOf(virtualChild);
-            if (index !== -1) {
-                virtualParent.children.splice(index, 1);
-            }
+        const children = getMutableChildren(virtualParent);
+        const index = children.indexOf(virtualChild);
+        if (index !== -1) {
+            children.splice(index, 1);
         }
     }
     else {
@@ -185,10 +179,8 @@ export function indexOfChild(parent, node) {
     if (isSSR()) {
         const virtualParent = parent;
         const virtualNode = node;
-        if (!virtualParent.children) {
-            return -1;
-        }
-        return virtualParent.children.indexOf(virtualNode);
+        const children = getMutableChildren(virtualParent);
+        return children.indexOf(virtualNode);
     }
     else {
         // Client: use DOM API
@@ -197,4 +189,6 @@ export function indexOfChild(parent, node) {
         return Array.from(domParent.childNodes).indexOf(domNode);
     }
 }
+// Re-export isVirtualNode from virtual-node for convenience
+export { isVirtualNode };
 //# sourceMappingURL=router-helpers.js.map

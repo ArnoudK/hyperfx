@@ -2,6 +2,15 @@
  * Convert virtual nodes to HTML strings for SSR
  * Pure string operations - no DOM manipulation
  */
+// Global node ID generator (set by render module)
+let nodeIdGenerator = null;
+/**
+ * Set the node ID generator function
+ * Used by render.ts to inject createNodeId
+ */
+export function setNodeIdGenerator(generator) {
+    nodeIdGenerator = generator;
+}
 // HTML void elements that should not have closing tags
 const VOID_ELEMENTS = new Set([
     'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
@@ -87,35 +96,42 @@ function renderAttributes(props) {
 }
 /**
  * Render a virtual node to HTML string
+ * Works with DOM-compatible virtual nodes using nodeType
  */
 export function virtualNodeToHtml(node) {
     if (node == null) {
         return '';
     }
-    switch (node.type) {
-        case 'text':
-            return escapeHtml(node.content);
-        case 'comment':
-            return `<!--${escapeHtml(node.content)}-->`;
-        case 'fragment':
-            return node.children.map(virtualNodeToHtml).join('');
-        case 'element': {
-            const { tag, props, children } = node;
-            const tagLower = tag.toLowerCase();
+    // Use nodeType to determine what kind of node this is (DOM-compatible)
+    switch (node.nodeType) {
+        case 3: // TEXT_NODE
+            return escapeHtml(node.textContent || '');
+        case 8: // COMMENT_NODE
+            return `<!--${escapeHtml(node.textContent || '')}-->`;
+        case 11: // DOCUMENT_FRAGMENT_NODE
+            return node.childNodes.map(virtualNodeToHtml).join('');
+        case 1: { // ELEMENT_NODE
+            const element = node;
+            const tag = element.tagName.toLowerCase();
             // Start tag
-            let html = `<${tagLower}`;
+            let html = `<${tag}`;
+            // Add hydration ID attribute if generator is set
+            if (nodeIdGenerator) {
+                const nodeId = nodeIdGenerator();
+                html += ` data-hfxh="${nodeId}"`;
+            }
             // Attributes
-            html += renderAttributes(props);
+            html += renderAttributes(element._props);
             // Self-closing/void elements
-            if (VOID_ELEMENTS.has(tagLower)) {
+            if (VOID_ELEMENTS.has(tag)) {
                 html += '>';
                 return html;
             }
             html += '>';
             // Children
-            html += children.map(virtualNodeToHtml).join('');
+            html += element.childNodes.map(virtualNodeToHtml).join('');
             // Close tag
-            html += `</${tagLower}>`;
+            html += `</${tag}>`;
             return html;
         }
         default:

@@ -1,5 +1,6 @@
 import { isSignal, createComputed as signal_createComputed } from "../../reactive/signal";
-import { Fragment, FRAGMENT_TAG } from "./elements";
+import { Fragment } from "./elements";
+import { FRAGMENT_TAG } from "./constants";
 import { renderChildren } from "./children";
 import { attributeManager } from "./attributes";
 // Create a DOM element with reactive attributes

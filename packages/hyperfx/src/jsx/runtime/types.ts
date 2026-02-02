@@ -2,7 +2,6 @@ import { Signal } from "../../reactive/signal";
 import { ComputedSignal } from "../../reactive/state";
 import { Prettify } from "../../tools/type_utils";
 import { IntrinsicElements as BaseIntrinsicElements } from "../types/index";
-import type { VirtualNode } from "./virtual-node";
 
 // JSX namespace for TypeScript
 export namespace JSX {
@@ -28,13 +27,15 @@ export type ReactiveString = ReactiveValue<string>;
 export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
 
-// JSX Element types (actual DOM elements OR virtual nodes for SSR)
+// JSX Element types
+// Note: Virtual nodes (used in SSR) implement the same interfaces as real DOM nodes
+// so they're type-compatible and don't need to be listed separately
 export type JSXElement =
   | HTMLElement
   | DocumentFragment
   | Text
   | Comment
-  | VirtualNode;
+  | null;
 
 export type JSXChildPrimitive = string | number | boolean | null | undefined;
 

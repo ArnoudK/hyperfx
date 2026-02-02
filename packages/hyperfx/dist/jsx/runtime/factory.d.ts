@@ -1,5 +1,5 @@
 import { Signal } from "../../reactive/signal";
-import { FRAGMENT_TAG } from "./elements";
+import { FRAGMENT_TAG } from "./constants";
 import type { JSXElement, FunctionComponent, JSXChildren } from "./types";
 export declare function jsx(type: string | FunctionComponent<any> | typeof FRAGMENT_TAG, props: Record<string, any> | null, _key?: string | number | null): JSXElement;
 export declare const jsxs: typeof jsx;

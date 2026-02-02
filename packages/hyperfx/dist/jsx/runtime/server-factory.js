@@ -1,11 +1,17 @@
 /**
  * Server-side JSX factory for HyperFX
- * Creates virtual nodes instead of real DOM elements
+ * Creates virtual nodes that implement DOM-compatible interfaces
  * Completely avoids the need for happy-dom or any DOM APIs
  */
-import { Fragment, FRAGMENT_TAG } from "./elements";
-import { createVirtualElement, createVirtualText, createVirtualFragment, } from "./virtual-node";
+import { FRAGMENT_TAG } from "./constants";
+import { createVirtualElement, createVirtualText, createVirtualFragment, isVirtualNode, } from "./virtual-node";
 import { isSignal } from "../../reactive/signal";
+/**
+ * Server-side Fragment component
+ */
+export function Fragment(props) {
+    return createVirtualFragment(renderChildrenToVirtual(props.children));
+}
 /**
  * Render children to virtual nodes
  */
@@ -22,13 +28,7 @@ function renderChildrenToVirtual(children) {
         return renderChildrenToVirtual(value);
     }
     // Handle virtual nodes (already processed)
-    if (typeof children === 'object' &&
-        children !== null &&
-        'type' in children &&
-        (children.type === 'element' ||
-            children.type === 'text' ||
-            children.type === 'fragment' ||
-            children.type === 'comment')) {
+    if (isVirtualNode(children)) {
         return [children];
     }
     // Handle primitives - convert to text nodes
@@ -44,6 +44,7 @@ function renderChildrenToVirtual(children) {
 /**
  * Server-side JSX factory function
  * This is called by the TypeScript compiler for every JSX element
+ * Returns DOM-compatible virtual nodes
  */
 export function jsx(type, props, _key) {
     // Handle fragments (<>...</>)
@@ -66,13 +67,10 @@ export function jsx(type, props, _key) {
         });
         // Call component function - it will return virtual nodes
         const result = type(proxyProps);
-        // Ensure we return a virtual node (handle null/undefined/boolean)
+        // Ensure we return a valid JSXElement (handle null/undefined/boolean)
         if (result == null || typeof result === 'boolean') {
             return null;
         }
-        // The result should already be a VirtualNode from the server runtime
-        // We use 'unknown' here because the type signature says JSXElement
-        // but at runtime on the server it will be VirtualNode
         return result;
     }
     // Handle regular HTML elements (div, span, etc.)
@@ -116,4 +114,8 @@ export function createJSXElement(type, props, ...children) {
  * Export createElement as alias for compatibility
  */
 export { createJSXElement as createElement };
+/**
+ * Re-export hydration utilities for testing
+ */
+export { resetClientNodeCounter } from './hydration';
 //# sourceMappingURL=server-factory.js.map

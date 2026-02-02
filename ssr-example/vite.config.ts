@@ -1,8 +1,7 @@
 import { defineConfig } from "vite";
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from "nitro/vite";
-// Temporarily disable hyperfx compiler for SSR testing
-// import {hyperfxVite} from "unplugin-hyperfx/vite";
+import { hyperfxVite } from "hyperfx/vite";
 
 export default defineConfig({
 
@@ -12,19 +11,10 @@ export default defineConfig({
     },
 
     clearScreen: false,
-    
+
     plugins: [
         tailwindcss(),
-        // Disable compiler optimizations for now - they conflict with SSR
-        // hyperfxVite({
-        //     ssr: true,
-        //     optimize: {
-        //         templates: false,
-        //         events: true,
-        //         constants: true,
-        //         ssr: true,
-        //     }
-        // }),
+        // hyperfxVite will be applied per-environment below
         nitro({
             builder: 'vite',
             publicAssets: [
@@ -49,16 +39,21 @@ export default defineConfig({
 
     environments: {
         ssr: {
-            build: { 
+            build: {
                 rollupOptions: { input: "./src/server.tsx" },
             },
             // Use server JSX runtime for SSR environment
             resolve: {
                 conditions: ['node']
-            }
+            },
+            // Apply HyperFX compiler ONLY to SSR environment
+            plugins: [
+                hyperfxVite({})
+            ]
         },
         client: {
             build: { rollupOptions: { input: "./src/client.tsx" } },
+            // Client uses standard JSX runtime (no HyperFX compiler)
         },
     },
 

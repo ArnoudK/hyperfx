@@ -5,8 +5,9 @@ import type { JSXChildren } from "./types";
 
 
 
-// Fragment symbol
-export const FRAGMENT_TAG = Symbol("HyperFX.Fragment");
+import { FRAGMENT_TAG } from "./constants";
+
+export { FRAGMENT_TAG };
 
 
 

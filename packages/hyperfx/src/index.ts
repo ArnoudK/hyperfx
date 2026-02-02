@@ -6,34 +6,34 @@
 //export * from "./elem/img";
 
 // Direct DOM Component System
-export * from "./reactive/component-dom";
-export * from "./reactive/reactive-dom";
-export * from "./reactive/state";
-export * from "./reactive/context";
-export * from "./reactive/reactive-dom";
+export * from "./reactive/component-dom.js";
+export * from "./reactive/reactive-dom.js";
+export * from "./reactive/state.js";
+export * from "./reactive/context.js";
+export * from "./reactive/reactive-dom.js";
 
 // Effect Integration
-export * from "./reactive/resource";
-export * from "./reactive/resource-state";
-export * from "./reactive/async-component";
-export * from "./runtime";
+export * from "./reactive/resource.js";
+export * from "./reactive/resource-state.js";
+export * from "./reactive/async-component.js";
+export * from "./runtime/index.js";
 
 // Direct DOM Routing System
-export * from "./pages/router-components";
-export * from "./pages/router-helpers";
+export * from "./pages/router-components.js";
+export * from "./pages/router-helpers.js";
 
 // JSX Runtime for Direct DOM
-export * from "./jsx/jsx-runtime";
+export * from "./jsx/jsx-runtime.js";
 
 
 // Control Flow Components
-export * from "./jsx/control-flow";
+export * from "./jsx/control-flow.jsx";
 
 
 
 // Additional features
-export * from "./json_representation/hfx_object";
-export * from "./ssr";
+export * from "./json_representation/hfx_object.js";
+export * from "./ssr/index.js";
 
 /* Extension methods */
 
