@@ -1,13 +1,13 @@
-import { ReactiveSignal, createSignal } from "./signal";
+import { createSignal, isSignal, unwrapSignal, Signal, ReactiveSignal } from "./signal.js";
 /**
  * State management utilities using custom Signal implementation
  */
+/** Re-export types */
+export type { Signal, ReactiveSignal };
+/** Re-export utilities */
+export { createSignal, isSignal, unwrapSignal };
 /** Type for a computed signal */
 export type ComputedSignal<T> = ReactiveSignal<T>;
-/** Re-export ReactiveSignal */
-export type { ReactiveSignal };
-/** Re-export createSignal */
-export { createSignal };
 /** Type for signal_createEffect cleanup function */
 export type EffectCleanup = () => void;
 /**
@@ -94,7 +94,7 @@ export declare function createStore(): StateStore;
 /**
  * Reactive state hook for components
  */
-export declare function useState<T>(initialValue: T): [() => T, (value: T | ((prev: T) => T)) => void];
+export declare function useState<T>(initialValue: T): Signal<T>;
 /**
  * Reactive signal_createComputed hook for components
  */

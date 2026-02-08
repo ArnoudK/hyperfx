@@ -31,7 +31,7 @@ export class CodeGenerator {
     private readonly generateElementCode: (node: t.JSXElement) => string,
     private readonly generateSSRJSXCode: (node: t.JSXElement | t.JSXFragment) => string,
     private readonly generateChildrenCode: (children: Array<t.JSXText | t.JSXExpressionContainer | t.JSXSpreadChild | t.JSXElement | t.JSXFragment>) => string
-  ) {}
+  ) { }
 
   /**
    * Convert a Babel node to code string
@@ -120,6 +120,17 @@ export class CodeGenerator {
         return `${node.operator}${arg}`;
       }
 
+      if (t.isUpdateExpression(node)) {
+        const arg = this.codeFromNode(node.argument);
+        return node.prefix ? `${node.operator}${arg}` : `${arg}${node.operator}`;
+      }
+
+      if (t.isAssignmentExpression(node)) {
+        const left = this.codeFromNode(node.left);
+        const right = this.codeFromNode(node.right);
+        return `${left} ${node.operator} ${right}`;
+      }
+
       if (t.isArrayExpression(node)) {
         const elements: string[] = [];
         for (const elem of node.elements) {
@@ -161,8 +172,100 @@ export class CodeGenerator {
         return childrenCode.startsWith('[') ? childrenCode : `[${childrenCode}]`;
       }
 
-      // For complex expressions, return a placeholder
-      return '(() => { /* complex expression */ })()';
+      if (t.isJSXMemberExpression(node)) {
+        const object = this.codeFromNode(node.object);
+        const property = node.property.name;
+        return `${object}.${property}`;
+      }
+
+      if (t.isJSXIdentifier(node)) {
+        return node.name;
+      }
+
+      if (t.isJSXNamespacedName(node)) {
+        return `${node.namespace.name}:${node.name.name}`;
+      }
+
+      // Object destructuring pattern: { a, b, c }
+      if (t.isObjectPattern(node)) {
+        const props: string[] = [];
+        
+        for (const prop of node.properties) {
+          if (t.isObjectProperty(prop)) {
+            // Get the key
+            let key: string;
+            if (t.isIdentifier(prop.key) && !prop.computed) {
+              key = prop.key.name;
+            } else if (t.isStringLiteral(prop.key)) {
+              key = `"${prop.key.value}"`;
+            } else {
+              key = `[${this.codeFromNode(prop.key)}]`;
+            }
+            
+            // Get the value (the binding pattern)
+            const value = this.codeFromNode(prop.value);
+            
+            // Handle shorthand: { value } instead of { value: value }
+            if (prop.shorthand) {
+              props.push(value);
+            } else {
+              props.push(`${key}: ${value}`);
+            }
+          } else if (t.isRestElement(prop)) {
+            props.push(`...${this.codeFromNode(prop.argument)}`);
+          }
+        }
+        
+        return `{ ${props.join(', ')} }`;
+      }
+
+      // Array destructuring pattern: [a, b, c]
+      if (t.isArrayPattern(node)) {
+        const elements: string[] = [];
+        for (const elem of node.elements) {
+          if (elem === null) {
+            elements.push('');
+          } else if (t.isRestElement(elem)) {
+            elements.push(`...${this.codeFromNode(elem.argument)}`);
+          } else {
+            elements.push(this.codeFromNode(elem));
+          }
+        }
+        return `[${elements.join(', ')}]`;
+      }
+
+      // Assignment pattern (default values): a = 1
+      if (t.isAssignmentPattern(node)) {
+        const left = this.codeFromNode(node.left);
+        const right = this.codeFromNode(node.right);
+        return `${left} = ${right}`;
+      }
+
+      // Rest element: ...rest
+      if (t.isRestElement(node)) {
+        return `...${this.codeFromNode(node.argument)}`;
+      }
+
+      // TypeScript type assertion: value as Type
+      if (t.isTSAsExpression(node)) {
+        // Strip the type annotation and just return the expression
+        return this.codeFromNode(node.expression);
+      }
+
+      // TypeScript non-null assertion: value!
+      if (t.isTSNonNullExpression(node)) {
+        // Strip the non-null assertion and just return the expression
+        return `${this.codeFromNode(node.expression)}!`;
+      }
+
+      // TypeScript type assertion: <Type>value
+      if (t.isTSTypeAssertion(node)) {
+        // Strip the type annotation and just return the expression
+        return this.codeFromNode(node.expression);
+      }
+
+      // Unhandled node type - throw error instead of generating invalid code
+      throw new Error(`[HyperFX Compiler] Unhandled node type in codeFromNode: ${node.type}`);
     } finally {
       this.currentContext = prevContext;
     }
@@ -177,17 +280,17 @@ export class CodeGenerator {
       params.push(this.codeFromNode(p));
     }
     const paramsStr = params.join(', ');
-    
+
     if (t.isBlockStatement(node.body)) {
       // Generate the full block statement body
       const statements: string[] = [];
       for (const stmt of node.body.body) {
         if (t.isReturnStatement(stmt) && stmt.argument) {
-          const returnValue = this.codeFromNode(stmt.argument);
+          const returnValue = this.codeFromNode(stmt.argument, 'function');
           statements.push(`return ${returnValue};`);
           continue;
         }
-        
+
         if (t.isVariableDeclaration(stmt)) {
           const declarations: string[] = [];
           for (const decl of stmt.declarations) {
@@ -198,18 +301,18 @@ export class CodeGenerator {
           statements.push(`${stmt.kind} ${declarations.join(', ')};`);
           continue;
         }
-        
+
         if (t.isExpressionStatement(stmt)) {
           statements.push(`${this.codeFromNode(stmt.expression)};`);
           continue;
         }
-        
+
         statements.push('/* statement */');
       }
       return `(${paramsStr}) => { ${statements.join(' ')} }`;
     }
-    
-    const body = this.codeFromNode(node.body);
+
+    const body = this.codeFromNode(node.body, 'function');
     return `(${paramsStr}) => ${body}`;
   }
 
@@ -218,6 +321,7 @@ export class CodeGenerator {
    */
   private generateCallExpression(node: t.CallExpression): string {
     // Check if this is a zero-argument call that could be a signal
+    // Only optimize in reactive context, not in function context
     if (node.arguments.length === 0 && this.currentContext === 'reactive') {
       if (t.isIdentifier(node.callee)) {
         const name = node.callee.name;
@@ -234,7 +338,7 @@ export class CodeGenerator {
       }
     }
 
-    const callee = this.codeFromNode(node.callee);
+    const callee = this.codeFromNode(node.callee, this.currentContext === 'function' ? 'function' : undefined);
     const args: string[] = [];
     for (const arg of node.arguments) {
       if (t.isSpreadElement(arg)) {
@@ -243,7 +347,7 @@ export class CodeGenerator {
         args.push(this.codeFromNode(arg));
       }
     }
-    
+
     return `${callee}(${args.join(', ')})`;
   }
 
@@ -251,6 +355,8 @@ export class CodeGenerator {
    * Generate optional call expression code
    */
   private generateOptionalCallExpression(node: t.OptionalCallExpression): string {
+    // Check if this is a zero-argument call that could be a signal
+    // Only optimize in reactive context, not in function context
     if (node.arguments.length === 0 && this.currentContext === 'reactive') {
       if (t.isIdentifier(node.callee)) {
         const name = node.callee.name;
@@ -259,8 +365,8 @@ export class CodeGenerator {
         }
       }
 
-      if (t.isOptionalMemberExpression(node.callee) || 
-          (t.isMemberExpression(node.callee) && !node.callee.computed)) {
+      if (t.isOptionalMemberExpression(node.callee) ||
+        (t.isMemberExpression(node.callee) && !node.callee.computed)) {
         const memberCode = this.codeFromNode(node.callee);
         if (!this.isKnownNonSignal(memberCode)) {
           return memberCode;
@@ -268,7 +374,7 @@ export class CodeGenerator {
       }
     }
 
-    const callee = this.codeFromNode(node.callee);
+    const callee = this.codeFromNode(node.callee, this.currentContext === 'function' ? 'function' : undefined);
     const args: string[] = [];
     for (const arg of node.arguments) {
       if (t.isSpreadElement(arg)) {
@@ -277,7 +383,7 @@ export class CodeGenerator {
         args.push(this.codeFromNode(arg));
       }
     }
-    
+
     return `${callee}?.(${args.join(', ')})`;
   }
 
@@ -297,9 +403,9 @@ export class CodeGenerator {
           ? prop.key.name
           : `[${this.codeFromNode(prop.key)}]`;
         const value = this.codeFromNode(prop.value);
-        
+
         const quotedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `"${key}"`;
-        
+
         props.push(prop.shorthand ? key : `${quotedKey}: ${value}`);
         continue;
       }

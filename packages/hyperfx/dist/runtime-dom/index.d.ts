@@ -67,3 +67,8 @@ export declare function mapArrayKeyed<T, U>(parent: Node, accessor: () => readon
 export declare function forLoop<T, U>(parent: Node, accessor: () => readonly T[], mapFn: (item: T, index: () => number) => U, options?: {
     fallback?: () => any;
 }, marker?: Node | null): void;
+/**
+ * Find a marker node by its ID (comment content)
+ * Uses TreeWalker to traverse deep structures
+ */
+export declare function findMarker(root: Node, markerId: string): Node | null;

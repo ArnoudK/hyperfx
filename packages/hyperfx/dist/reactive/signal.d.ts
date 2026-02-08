@@ -34,6 +34,7 @@ export type Signal<T = any> = {
     update(updater: (current: T) => T): T;
     subscriberCount: number;
     key?: string;
+    [Symbol.iterator](): Iterator<any>;
 };
 /**
  * Extended signal interface for computed signals

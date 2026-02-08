@@ -1,3 +1,3 @@
-// Re-export everything from the new runtime structure
-export * from './runtime';
+// Re-export client-side JSX runtime
+export * from './runtime/index.js';
 //# sourceMappingURL=jsx-runtime.js.map

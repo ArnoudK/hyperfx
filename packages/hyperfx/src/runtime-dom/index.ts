@@ -6,6 +6,7 @@
  */
 
 import { createEffect } from '../reactive/signal';
+import { addElementSubscription } from '../jsx/runtime/reactive';
 
 // Cache for parsed templates
 const templateCache = new Map<string, Node>();
@@ -17,37 +18,25 @@ const templateCache = new Map<string, Node>();
  * Note: On server, this creates a mock node structure
  */
 export function template(html: string): Node {
-  // Server-side: create a minimal mock that works with SSR
+  // Server-side: return a simple mock that works with the string-based SSR
   if (typeof document === 'undefined') {
-    // Return a mock node that has the HTML as innerHTML
-    const mock: any = {
-      nodeType: 1,
-      nodeName: 'TEMPLATE',
-      innerHTML: html,
-      textContent: '',
-      childNodes: [],
-      children: [],
-      cloneNode: function() {
-        // On server, we don't actually clone - just return a similar mock
-        return {
-          ...this,
-          innerHTML: html
-        };
-      }
-    };
-    return mock as Node;
+    return {
+      t: html,
+      __ssr: true,
+      cloneNode: function () { return { ...this }; }
+    } as any;
   }
-  
+
   // Client-side: use real template caching
   let node = templateCache.get(html);
-  
+
   if (!node) {
     const template = document.createElement('template');
     template.innerHTML = html;
     node = template.content.firstChild!;
     templateCache.set(html, node);
   }
-  
+
   return node.cloneNode(true);
 }
 
@@ -68,10 +57,14 @@ export function insert(
 
   // For reactive values, create an effect that updates on change
   let current = init;
-  createEffect(() => {
+  const stop = createEffect(() => {
     current = insertExpression(parent, accessor(), current, marker);
   });
-  
+
+  if (parent instanceof Element) {
+    addElementSubscription(parent, stop);
+  }
+
   return current;
 }
 
@@ -107,30 +100,80 @@ function insertExpression(
       if (current != null) {
         cleanChildren(parent, current, marker);
       }
-      parent.insertBefore(value, marker || null);
+      // Check if marker is still in the DOM, otherwise append at the end
+      const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+      parent.insertBefore(value, insertBeforeNode);
     }
     return value;
   }
 
+  // Handle signals - create reactive effect for signal values
+  if (isSignal(value)) {
+    // For signals, we need to create an effect that updates the text node
+    const textNode = document.createTextNode(String(value()));
+    const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+    parent.insertBefore(textNode, insertBeforeNode);
+    
+    // Create effect to update when signal changes
+    const stop = createEffect(() => {
+      textNode.data = String(value());
+    });
+    
+    if (parent instanceof Element) {
+      addElementSubscription(parent, stop);
+    }
+    
+    return { _node: textNode, toString: () => textNode.data, _cleanup: stop };
+  }
+
   // Handle primitives (string, number, boolean)
   const stringValue = String(value);
-  
+
   if (current !== null && typeof current !== 'object') {
     // Update existing text node
-    const node = marker ? marker.previousSibling : parent.lastChild;
-    if (node instanceof Text) {
+    // We need to be careful NOT to update a static sibling
+    // The previous implementation used marker.previousSibling which is dangerous
+    const node = marker ? ((current && typeof current === 'object' && current._node) || marker.previousSibling) : parent.lastChild;
+
+    if (node instanceof Text && ((current && current._node === node) || !marker)) {
       node.data = stringValue;
+      return { _node: node, toString: () => stringValue };
     } else {
+      // During hydration, we might find a text node even if current is null
+      const existing = marker ? marker.previousSibling : parent.lastChild;
+      if (existing instanceof Text && existing.data === stringValue) {
+        return { _node: existing, toString: () => stringValue };
+      }
       const textNode = document.createTextNode(stringValue);
-      parent.insertBefore(textNode, marker || null);
+      // Check if marker is still in the DOM, otherwise append at the end
+      const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+      parent.insertBefore(textNode, insertBeforeNode);
+      return { _node: textNode, toString: () => stringValue };
     }
   } else {
-    // Create new text node
+    // Optimization: Reuse existing text node for updates
+    if (current && current._node instanceof Text) {
+      current._node.data = stringValue;
+      return current;
+    }
+
+    // Create new text node - but check for existing one during hydration first
+    const existing = marker ? marker.previousSibling : parent.lastChild;
+    if (existing instanceof Text) {
+      if (current === undefined || existing.data === stringValue) {
+        existing.data = stringValue;
+        return { _node: existing, toString: () => stringValue };
+      }
+    }
+
     const textNode = document.createTextNode(stringValue);
     if (current != null) {
       cleanChildren(parent, current, marker);
     }
-    parent.insertBefore(textNode, marker || null);
+    // Check if marker is still in the DOM, otherwise append at the end
+    const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+    parent.insertBefore(textNode, insertBeforeNode);
+    return { _node: textNode, toString: () => stringValue };
   }
 
   return stringValue;
@@ -142,16 +185,16 @@ function insertExpression(
 function insertArray(
   parent: Node,
   array: any[],
-  current: any,
+  _current: any,
   marker?: Node | null
 ): any[] {
   const normalized: any[] = [];
-  
+
   for (let i = 0; i < array.length; i++) {
     const value = array[i];
     normalized.push(insertExpression(parent, value, null, marker, false));
   }
-  
+
   return normalized;
 }
 
@@ -184,15 +227,15 @@ export function spread<T extends Element>(
   skipChildren?: boolean
 ): void {
   const props = accessor();
-  
+
   for (const prop in props) {
     const value = props[prop];
-    
+
     // Skip children if requested
     if (skipChildren && prop === 'children') {
       continue;
     }
-    
+
     // Handle special props
     if (prop === 'style') {
       if (typeof value === 'object' && element instanceof HTMLElement) {
@@ -246,28 +289,28 @@ const NON_DELEGATED_EVENTS = new Set([
  */
 function setupDelegation(eventName: string): void {
   if (delegatedEvents.has(eventName)) return;
-  
+
   const elements = new Set<Element>();
   delegatedEvents.set(eventName, elements);
 
   // Add document-level listener
   document.addEventListener(eventName, (event: Event) => {
     let target = event.target as Element | null;
-    
+
     // Bubble up to find element with handler
     while (target && target !== document.documentElement) {
       if (elements.has(target)) {
         const handlers = elementHandlers.get(target);
         const handler = handlers?.get(eventName);
-        
+
         if (handler) {
           handler.call(target, event);
-          
+
           // Stop if handler called stopPropagation
           if (event.cancelBubble) break;
         }
       }
-      
+
       target = target.parentElement;
     }
   }, { capture: false });
@@ -355,6 +398,15 @@ export function assign<T extends Element>(
 }
 
 /**
+ * Check if a value is a signal (has signal-specific properties)
+ */
+function isSignal(value: any): boolean {
+  return typeof value === 'function' && 
+         typeof value.get === 'function' && 
+         typeof value.subscribe === 'function';
+}
+
+/**
  * Set a property on an element with special handling for common attributes
  */
 export function setProp<T extends Element>(
@@ -362,8 +414,11 @@ export function setProp<T extends Element>(
   prop: string,
   value: any
 ): void {
+  // If value is a signal accessor, call it to get the actual value
+  const actualValue = isSignal(value) ? value() : value;
+  
   // Handle null/undefined - remove attribute
-  if (value == null) {
+  if (actualValue == null) {
     if (prop in element && !(element instanceof SVGElement)) {
       (element as any)[prop] = null;
     } else {
@@ -375,33 +430,33 @@ export function setProp<T extends Element>(
   // Special handling for common attributes
   if (prop === 'class' || prop === 'className') {
     if (element instanceof HTMLElement || element instanceof SVGElement) {
-      element.setAttribute('class', String(value));
+      element.setAttribute('class', String(actualValue));
     }
   } else if (prop === 'style') {
-    if (typeof value === 'object' && element instanceof HTMLElement) {
+    if (typeof actualValue === 'object' && element instanceof HTMLElement) {
       // Style object
-      Object.assign(element.style, value);
+      Object.assign(element.style, actualValue);
     } else {
-      element.setAttribute('style', String(value));
+      element.setAttribute('style', String(actualValue));
     }
   } else if (prop === 'value' && element instanceof HTMLInputElement) {
     // Special handling for input value
-    element.value = value;
+    element.value = actualValue;
   } else if (prop === 'checked' && element instanceof HTMLInputElement) {
-    element.checked = Boolean(value);
+    element.checked = Boolean(actualValue);
   } else if (prop in element && !(element instanceof SVGElement)) {
     // Set as property for HTML elements
-    (element as any)[prop] = value;
+    (element as any)[prop] = actualValue;
   } else {
     // Set as attribute
-    if (typeof value === 'boolean') {
-      if (value) {
+    if (typeof actualValue === 'boolean') {
+      if (actualValue) {
         element.setAttribute(prop, '');
       } else {
         element.removeAttribute(prop);
       }
     } else {
-      element.setAttribute(prop, String(value));
+      element.setAttribute(prop, String(actualValue));
     }
   }
 }
@@ -427,7 +482,7 @@ export function show<T, U>(
   let current: any = undefined;
   let currentBranch: 'true' | 'false' | null = null;
 
-  createEffect(() => {
+  const stop = createEffect(() => {
     const value = condition();
     const nextBranch = value ? 'true' : 'false';
 
@@ -438,6 +493,10 @@ export function show<T, U>(
       current = insertExpression(parent, result, current, marker);
     }
   });
+
+  if (parent instanceof Element) {
+    addElementSubscription(parent, stop);
+  }
 }
 
 /**
@@ -450,13 +509,11 @@ export function mapArray<T, U>(
   mapFn: (item: T, index: () => number) => U,
   marker?: Node | null
 ): void {
-  let items: readonly T[] = [];
-  let mapped: any[] = [];
   let nodes: Node[] = [];
 
-  createEffect(() => {
+  const stop = createEffect(() => {
     const newItems = accessor();
-    
+
     // Full rebuild for now - can be optimized with diffing later
     const newMapped: any[] = [];
     const newNodes: Node[] = [];
@@ -487,10 +544,13 @@ export function mapArray<T, U>(
       parent.insertBefore(node, insertBefore);
     }
 
-    items = newItems;
-    mapped = newMapped;
+
     nodes = newNodes;
   });
+
+  if (parent instanceof Element) {
+    addElementSubscription(parent, stop);
+  }
 }
 
 /**
@@ -510,7 +570,7 @@ export function mapArrayKeyed<T, U>(
   let keyToIndex = new Map<string | number, () => number>();
   let keys: (string | number)[] = [];
 
-  createEffect(() => {
+  const stop = createEffect(() => {
     const newItems = accessor();
     const newKeys: (string | number)[] = [];
     const newKeyToNode = new Map<string | number, Node>();
@@ -565,7 +625,6 @@ export function mapArrayKeyed<T, U>(
     // Create nodes for new items
     for (const key of toAdd) {
       const item = newKeyToItem.get(key)!;
-      const index = newKeys.indexOf(key);
       const indexGetter = () => newKeys.indexOf(key);
       const result = mapFn(item, indexGetter);
 
@@ -616,6 +675,10 @@ export function mapArrayKeyed<T, U>(
     keyToItem = newKeyToItem;
     keyToIndex = newKeyToIndex;
   });
+
+  if (parent instanceof Element) {
+    addElementSubscription(parent, stop);
+  }
 }
 
 /**
@@ -631,11 +694,10 @@ export function forLoop<T, U>(
   },
   marker?: Node | null
 ): void {
-  let items: readonly T[] = [];
-  let mapped: any[] = [];
+
   let nodes: Node[] = [];
 
-  createEffect(() => {
+  const stop = createEffect(() => {
     const newItems = accessor();
 
     // Handle empty array
@@ -644,15 +706,13 @@ export function forLoop<T, U>(
       for (const node of nodes) {
         node.parentNode?.removeChild(node);
       }
-      
+
       const fallbackResult = options.fallback();
       if (fallbackResult instanceof Node) {
         parent.insertBefore(fallbackResult, marker || null);
         nodes = [fallbackResult];
       }
-      
-      items = [];
-      mapped = [];
+
       return;
     }
 
@@ -660,4 +720,38 @@ export function forLoop<T, U>(
     // For now, simple rebuild
     mapArray(parent, accessor, mapFn, marker);
   });
+
+  if (parent instanceof Element) {
+    addElementSubscription(parent, stop);
+  }
+}
+
+/**
+ * Find a marker node by its ID (comment content)
+ * Uses TreeWalker to traverse deep structures
+ */
+export function findMarker(
+  root: Node,
+  markerId: string
+): Node | null {
+  // If root itself is the marker
+  if (root.nodeType === 8 && root.textContent === markerId) {
+    return root;
+  }
+
+  // Use TreeWalker to find the comment node
+  // 128 is NodeFilter.SHOW_COMMENT
+  const walker = document.createTreeWalker(
+    root,
+    128,
+    null
+  );
+
+  while (walker.nextNode()) {
+    if (walker.currentNode.textContent === markerId) {
+      return walker.currentNode;
+    }
+  }
+
+  return null;
 }

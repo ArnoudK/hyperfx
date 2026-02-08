@@ -1,0 +1,27 @@
+{
+    "name": "hyperfx-test",
+    "license": "BSD-2-Clause",
+    "private": true,
+    "type": "module",
+    "description": "Test",
+    "author": {
+        "name": "Arnoud Kerkhof"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "@types/node": "^22.15.31",
+        "happy-dom": "^20.0.11",
+        "typescript": "^5.8.3",
+        "vitest": "^4.0.16"
+    },
+    "peerDependencies": {
+        "hyperfx": "workspace:*"
+    },
+    "dependencies": {
+        "effect": "^3.19.15",
+        "hyperfx": "workspace:*"
+    }
+}

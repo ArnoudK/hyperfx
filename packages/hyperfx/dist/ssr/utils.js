@@ -1,4 +1,3 @@
-import { createVirtualFragment, createVirtualElement } from "../jsx/runtime/virtual-node";
 import { renderToString } from "./render";
 /**
  * Enhanced SSR renderer with common patterns
@@ -15,51 +14,10 @@ export class SSRRenderer {
         return this.renderDocument(element, options);
     }
     /**
-     * Render with streaming support (for large pages)
-     */
-    async *renderStream(element, options = {}) {
-        yield '<!DOCTYPE html>';
-        yield `<html lang="${options.lang || 'en'}">`;
-        yield '<head>';
-        const metaTags = this.generateMetaTags(options);
-        yield metaTags;
-        yield '</head>';
-        yield '<body>';
-        // Render element in chunks
-        yield this.renderPage(element);
-        yield '</body>';
-        yield '</html>';
-    }
-    /**
-     * Render with hydration support
-     */
-    renderWithHydration(element) {
-        const { html: elementHtml, hydrationData } = renderToString(element);
-        // Helper function to create the hydration script
-        function createHydrationScript(data) {
-            return `<script type="application/json" id="__HYPERFX_HYDRATION_DATA__">${JSON.stringify(data)}</script>`;
-        }
-        const hydrationScript = createHydrationScript(hydrationData);
-        const fullDocument = this.renderPage(element);
-        return {
-            html: elementHtml,
-            hydrationScript,
-            fullDocument
-        };
-    }
-    /**
-     * Render a full HTML document
+     * Render as string
      */
     renderDocument(element, options) {
-        let elementToRender;
-        if (Array.isArray(element)) {
-            // Create a virtual fragment for multiple elements
-            elementToRender = createVirtualFragment(element);
-        }
-        else {
-            elementToRender = element;
-        }
-        const { html: elementHtml } = renderToString(elementToRender);
+        const { html: elementHtml } = renderToString(element);
         const metaTags = this.generateMetaTags(options);
         return `<!DOCTYPE html>
 <html lang="${options.lang || 'en'}">
@@ -119,31 +77,12 @@ ${options.inlineScripts ? `<script>\n${options.inlineScripts}\n</script>` : ''}
         return tags.join('\n  ');
     }
     /**
-     * Generate critical CSS for above-the-fold content
-     */
-    generateCriticalCSS() {
-        // Basic critical CSS - can be extended
-        return `
-      /* Critical CSS for HyperFX SSR */
-      body { margin: 0; font-family: system-ui, sans-serif; }
-      [data-hfx-hydration] { /* Hydration markers */ }
-    `;
-    }
-    /**
      * Check if request is from a bot/crawler
      */
     static isBot(userAgent) {
         const botPatterns = [
-            /googlebot/i,
-            /bingbot/i,
-            /slurp/i,
-            /duckduckbot/i,
-            /baiduspider/i,
-            /yandexbot/i,
-            /twitterbot/i,
-            /facebookexternalhit/i,
-            /linkedinbot/i,
-            /whatsapp/i
+            /googlebot/i, /bingbot/i, /slurp/i, /duckduckbot/i, /baiduspider/i,
+            /yandexbot/i, /twitterbot/i, /facebookexternalhit/i, /linkedinbot/i, /whatsapp/i
         ];
         return botPatterns.some(pattern => pattern.test(userAgent));
     }
@@ -180,46 +119,31 @@ export class StaticGenerator {
         }
         return pages;
     }
-    /**
-     * Generate sitemap.xml
-     */
-    generateSitemap(baseUrl) {
-        const urls = Array.from(this.routes.keys())
-            .map(path => `  <url><loc>${baseUrl}${path}</loc></url>`)
-            .join('\n');
-        return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls}
-</urlset>`;
-    }
 }
 /**
  * Component-level SSR utilities
  */
 export const SSRUtils = {
     /**
-     * Create a server-safe component that handles client-only features
+     * Create a server-safe component
      */
     serverSafe(serverComponent, clientComponent, fallback) {
         return () => {
             if (typeof window === 'undefined') {
-                // Server-side
                 return serverComponent();
             }
             else {
-                // Client-side
                 try {
                     return clientComponent();
                 }
                 catch (error) {
-                    console.warn('Client component failed, using fallback:', error);
                     return fallback ? fallback() : serverComponent();
                 }
             }
         };
     },
     /**
-     * Conditional rendering based on environment
+     * Conditional rendering
      */
     clientOnly(component, fallback) {
         return () => {
@@ -239,16 +163,6 @@ export const SSRUtils = {
             }
             return null;
         };
-    },
-    /**
-     * Create placeholder for client-side hydration
-     */
-    createHydrationPlaceholder(id, tagName = 'div') {
-        return createVirtualElement(tagName, {
-            id,
-            'data-hydration-placeholder': 'true',
-            style: 'display: none'
-        }, []);
     }
 };
 //# sourceMappingURL=utils.js.map

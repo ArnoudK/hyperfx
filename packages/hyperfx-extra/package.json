@@ -1,0 +1,48 @@
+{
+  "name": "hyperfx-extra",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Typesafe router for HyperFX with full SSR support",
+  "keywords": [
+    "hyperfx",
+    "navigation",
+    "router",
+    "routing"
+  ],
+  "license": "BSD-2-Clause",
+  "author": {
+    "name": "Arnoud Kerkhof"
+  },
+  "files": [
+    "dist/"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "hyperfx": "workspace:*",
+    "oxfmt": "^0.28.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.31",
+    "happy-dom": "^20.0.11",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.16"
+  },
+  "peerDependencies": {
+    "hyperfx": "workspace:*"
+  }
+}

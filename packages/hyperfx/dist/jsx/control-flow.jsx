@@ -1,31 +1,18 @@
 import { createEffect } from "../reactive/state";
 import { isSignal, createSignal } from "../reactive/signal";
-import { isSSR, createRouterFragment, createRouterComment, } from "../pages/router-helpers";
-import { getMutableChildren } from "./runtime/virtual-node";
+import { isSSR, createUniversalFragment, createUniversalComment, } from "./runtime/universal-node";
 export function For(props) {
-    const fragment = createRouterFragment();
-    const startMarker = createRouterComment('For start');
-    const endMarker = createRouterComment('For end');
-    // Append markers to fragment
-    if (isSSR()) {
-        const virtualFragment = fragment;
-        const children = getMutableChildren(virtualFragment);
-        children.push(startMarker);
-        children.push(endMarker);
-    }
-    else {
-        fragment.appendChild(startMarker);
-        fragment.appendChild(endMarker);
-    }
+    const fragment = createUniversalFragment();
+    const startMarker = createUniversalComment('For start');
+    const endMarker = createUniversalComment('For end');
+    fragment.appendChild(startMarker);
+    fragment.appendChild(endMarker);
     const renderItem = Array.isArray(props.children) ? props.children[0] : props.children;
     if (typeof renderItem !== 'function') {
         throw new Error(`For component children must be a function.`);
     }
     const instanceMap = new Map();
-    // We keep track of the current order of instances to manage the DOM
-    let _currentInstances = [];
     const updateList = () => {
-        // Resolve the reactive value
         let newItems = [];
         if (isSignal(props.each)) {
             newItems = props.each();
@@ -38,20 +25,17 @@ export function For(props) {
         }
         if (!Array.isArray(newItems))
             newItems = [];
-        // Important: Use startMarker.parentNode. If null (not mounted yet), use the fragment.
         const parent = isSSR() ? fragment : (startMarker.parentNode || fragment);
         const nextInstances = [];
         const availableInstances = new Map();
-        // Collect existing instances for reuse
         instanceMap.forEach((instances, item) => {
             availableInstances.set(item, [...instances]);
         });
-        // 1. Reconciliation/Allocation Phase
         newItems.forEach((item, index) => {
             const stack = availableInstances.get(item);
             if (stack && stack.length > 0) {
                 const instance = stack.shift();
-                instance.indexSignal(index); // Update the index signal for the reused item
+                instance.indexSignal(index);
                 nextInstances.push(instance);
             }
             else {
@@ -59,11 +43,9 @@ export function For(props) {
                 const element = renderItem(item, indexSignal);
                 let nodes = [];
                 if (isSSR()) {
-                    // On server, treat elements as virtual nodes stored in array
                     nodes = [element];
                 }
                 else {
-                    // Client: handle DOM nodes
                     if (element instanceof DocumentFragment) {
                         nodes = Array.from(element.childNodes);
                     }
@@ -74,7 +56,6 @@ export function For(props) {
                 nextInstances.push({ nodes, indexSignal: indexSignal });
             }
         });
-        // 2. Cleanup Phase: Remove nodes that are no longer in the list
         availableInstances.forEach((stack) => {
             stack.forEach(instance => {
                 if (!isSSR()) {
@@ -82,28 +63,19 @@ export function For(props) {
                 }
             });
         });
-        // 3. DOM Sync Phase: Adjust positions
         if (isSSR()) {
-            // Server: Just add all nodes to virtual fragment before endMarker
-            const virtualParent = parent;
-            const children = getMutableChildren(virtualParent);
+            const children = parent.childNodes || [];
+            const startIndex = children.indexOf(startMarker);
             const endIndex = children.indexOf(endMarker);
-            // Clear existing items between markers
-            if (endIndex > 0) {
-                const startIndex = children.indexOf(startMarker);
-                if (startIndex >= 0 && startIndex < endIndex) {
-                    children.splice(startIndex + 1, endIndex - startIndex - 1);
-                }
+            if (startIndex >= 0 && endIndex > startIndex) {
+                const toRemove = children.slice(startIndex + 1, endIndex);
+                toRemove.forEach((n) => parent.removeChild(n));
             }
-            // Insert all nodes
-            const insertIndex = children.indexOf(endMarker);
             const allNodes = nextInstances.flatMap(inst => inst.nodes);
-            children.splice(insertIndex, 0, ...allNodes);
+            allNodes.forEach(node => parent.insertBefore(node, endMarker));
         }
         else {
-            // Client: adjust DOM positions
             let cursor = endMarker;
-            // We iterate backwards to use insertBefore(node, cursor) effectively
             for (let i = nextInstances.length - 1; i >= 0; i--) {
                 const instance = nextInstances[i];
                 if (!instance)
@@ -118,7 +90,6 @@ export function For(props) {
                 }
             }
         }
-        // Update instanceMap for the next run
         instanceMap.clear();
         nextInstances.forEach((instance, i) => {
             const item = newItems[i];
@@ -126,39 +97,26 @@ export function For(props) {
             stack.push(instance);
             instanceMap.set(item, stack);
         });
-        _currentInstances = nextInstances;
     };
-    // SSR: render once, synchronously
     if (isSSR()) {
         updateList();
     }
     else {
-        // Client: reactive rendering
         createEffect(updateList);
     }
     return fragment;
 }
 export function Index(props) {
-    const fragment = createRouterFragment();
-    const startMarker = createRouterComment('Index start');
-    const endMarker = createRouterComment('Index end');
-    if (isSSR()) {
-        const virtualFragment = fragment;
-        const children = getMutableChildren(virtualFragment);
-        children.push(startMarker);
-        children.push(endMarker);
-    }
-    else {
-        fragment.appendChild(startMarker);
-        fragment.appendChild(endMarker);
-    }
-    // We store signals for each index so we can update values without re-rendering the whole row
+    const fragment = createUniversalFragment();
+    const startMarker = createUniversalComment('Index start');
+    const endMarker = createUniversalComment('Index end');
+    fragment.appendChild(startMarker);
+    fragment.appendChild(endMarker);
     const itemSignals = [];
     const renderedNodes = [];
     const update = () => {
         const newItems = isSignal(props.each) ? props.each() : (typeof props.each === 'function' ? props.each() : props.each);
         const parent = isSSR() ? fragment : (startMarker.parentNode || fragment);
-        // Grow list
         while (itemSignals.length < newItems.length) {
             const index = itemSignals.length;
             const signal = createSignal(newItems[index]);
@@ -167,10 +125,7 @@ export function Index(props) {
             if (isSSR()) {
                 const nodes = [element];
                 renderedNodes.push(nodes);
-                const virtualParent = parent;
-                const children = getMutableChildren(virtualParent);
-                const insertIndex = children.indexOf(endMarker);
-                children.splice(insertIndex, 0, ...nodes);
+                nodes.forEach(n => parent.insertBefore(n, endMarker));
             }
             else {
                 const nodes = element instanceof DocumentFragment ? Array.from(element.childNodes) : [element];
@@ -178,7 +133,6 @@ export function Index(props) {
                 nodes.forEach(n => parent.insertBefore(n, endMarker));
             }
         }
-        // Shrink list
         while (itemSignals.length > newItems.length) {
             itemSignals.pop();
             const nodes = renderedNodes.pop();
@@ -186,45 +140,32 @@ export function Index(props) {
                 nodes?.forEach(n => n.parentElement?.removeChild(n));
             }
         }
-        // Update existing signals
         for (let i = 0; i < newItems.length; i++) {
             if (itemSignals[i]() !== newItems[i]) {
                 itemSignals[i](newItems[i]);
             }
         }
     };
-    // SSR: render once, synchronously
     if (isSSR()) {
         update();
     }
     else {
-        // Client: reactive rendering
         createEffect(update);
     }
     return fragment;
 }
 export function Show(props) {
-    const fragment = createRouterFragment();
-    const startMarker = createRouterComment('Show start');
-    const endMarker = createRouterComment('Show end');
-    if (isSSR()) {
-        const virtualFragment = fragment;
-        const children = getMutableChildren(virtualFragment);
-        children.push(startMarker);
-        children.push(endMarker);
-    }
-    else {
-        fragment.appendChild(startMarker);
-        fragment.appendChild(endMarker);
-    }
+    const fragment = createUniversalFragment();
+    const startMarker = createUniversalComment('Show start');
+    const endMarker = createUniversalComment('Show end');
+    fragment.appendChild(startMarker);
+    fragment.appendChild(endMarker);
     let currentNodes = [];
     const update = () => {
-        // Resolve the when prop
         const when = typeof props.when === 'function' ? props.when() : (isSignal(props.when) ? props.when() : props.when);
         const condition = !!when;
         const data = when;
         const parent = isSSR() ? fragment : (startMarker.parentNode || fragment);
-        // Cleanup old nodes
         if (!isSSR()) {
             currentNodes.forEach(n => n.parentElement?.removeChild(n));
         }
@@ -234,10 +175,7 @@ export function Show(props) {
             const result = typeof content === 'function' ? content(data) : content;
             if (isSSR()) {
                 const nodes = [result];
-                const virtualParent = parent;
-                const children = getMutableChildren(virtualParent);
-                const insertIndex = children.indexOf(endMarker);
-                children.splice(insertIndex, 0, ...nodes);
+                nodes.forEach(n => parent.insertBefore(n, endMarker));
                 currentNodes = nodes;
             }
             else {
@@ -247,48 +185,22 @@ export function Show(props) {
             }
         }
     };
-    // SSR: render once, synchronously
     if (isSSR()) {
         update();
     }
     else {
-        // Client: reactive rendering
         createEffect(update);
     }
     return fragment;
 }
-/**
- * ErrorBoundary component for catching and handling errors
- * Can run an Effect when an error occurs
- *
- * @example
- * ```tsx
- * <ErrorBoundary
- *   fallback={(error) => <div>Error: {error.message}</div>}
- *   onError={(error) => Effect.sync(() => console.error(error))}
- * >
- *   <MyComponent />
- * </ErrorBoundary>
- * ```
- */
 export function ErrorBoundary(props) {
-    const fragment = createRouterFragment();
+    const fragment = createUniversalFragment();
     const errorSignal = createSignal(null);
-    const marker = createRouterComment('ErrorBoundary');
-    if (isSSR()) {
-        const virtualFragment = fragment;
-        const children = getMutableChildren(virtualFragment);
-        children.push(marker);
-    }
-    else {
-        fragment.appendChild(marker);
-    }
-    // Try to render children
+    const marker = createUniversalComment('ErrorBoundary');
+    fragment.appendChild(marker);
     try {
         if (isSSR()) {
-            const virtualFragment = fragment;
-            const children = getMutableChildren(virtualFragment);
-            children.push(props.children);
+            fragment.appendChild(props.children);
         }
         else if (props.children instanceof Node) {
             fragment.appendChild(props.children);
@@ -300,18 +212,14 @@ export function ErrorBoundary(props) {
             props.onError(error);
         }
     }
-    // Create effect to handle error state changes (client only)
     if (!isSSR()) {
         createEffect(() => {
             const error = errorSignal();
             const parent = marker.parentNode || fragment;
-            // Remove all nodes after marker
             let node = marker.nextSibling;
             while (node) {
                 const next = node?.nextSibling || null;
-                if (node) {
-                    parent.removeChild(node);
-                }
+                parent.removeChild(node);
                 node = next;
             }
             if (error) {

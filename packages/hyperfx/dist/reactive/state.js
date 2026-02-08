@@ -1,6 +1,6 @@
-import { createSignal, createSignal as signal_createSignal, createComputed as signal_createComputed, createEffect as signal_createEffect, batch as signal_batch } from "./signal";
-/** Re-export createSignal */
-export { createSignal };
+import { createSignal, isSignal, unwrapSignal, createComputed as signal_createComputed, createEffect as signal_createEffect, batch as signal_batch } from "./signal.js";
+/** Re-export utilities */
+export { createSignal, isSignal, unwrapSignal };
 /**
  * Create a computed signal based on other signals
  * @param computation The computation function
@@ -43,7 +43,7 @@ export class StateStore {
         if (this.signals.has(key)) {
             throw new Error(`Signal with key "${key}" already exists`);
         }
-        const sig = signal_createSignal(initialValue);
+        const sig = createSignal(initialValue);
         this.signals.set(key, sig);
         return sig;
     }
@@ -138,7 +138,8 @@ export class StateStore {
                 current(obj);
             }
             if (!(key in obj) || typeof obj[key] !== 'function') {
-                obj[key] = this.defineSignal(path.slice(0, i + 1).join('.'), undefined);
+                const newSig = createSignal(undefined);
+                obj[key] = newSig;
                 current(obj);
             }
             current = obj[key];
@@ -151,7 +152,8 @@ export class StateStore {
         if (typeof obj !== 'object' || obj === null) {
             obj = {};
         }
-        obj[lastKey] = this.defineSignal(path.join('.'), value);
+        const finalSig = createSignal(value);
+        obj[lastKey] = finalSig;
         current(obj);
     }
 }
@@ -169,8 +171,7 @@ export function createStore() {
  * Reactive state hook for components
  */
 export function useState(initialValue) {
-    const sig = signal_createSignal(initialValue);
-    return [sig, sig];
+    return createSignal(initialValue);
 }
 /**
  * Reactive signal_createComputed hook for components
@@ -221,4 +222,6 @@ export function derive(signal_createSignal, transform) {
 export function combine(...signals) {
     return signal_createComputed(() => signals.map(sig => sig()));
 }
+// Re-export types from elsewhere if needed
+// export type { NormalizedValue } from "../jsx/runtime/types.js";
 //# sourceMappingURL=state.js.map

@@ -1,8 +1,9 @@
-export * from './types';
-export * from './batching';
-export * from './reactive';
-export * from './attributes';
-export * from './hydration';
-export * from './elements';
-export * from './children';
-export * from './factory';
+export * from './types.js';
+export * from './batching.js';
+export * from './reactive.js';
+export * from './attributes.js';
+export * from './hydration.js';
+export * from './elements.js';
+export * from './children.js';
+export * from './constants.js';
+export { jsx, jsxs, jsxDEV, createJSXElement, createElement } from './factory.js';

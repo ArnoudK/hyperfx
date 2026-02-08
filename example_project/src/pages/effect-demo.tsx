@@ -1,13 +1,11 @@
 import { Effect, Stream } from 'effect'
 import {
-  createResource,
-  createResourceFn,
   createAsyncComponent,
   type AsyncComponentInjectedProps,
-  ErrorBoundary,
   createSignal,
   For
 } from 'hyperfx'
+import { createRoute } from 'hyperfx-extra'
 
 /**
  * Effect Demo Page
@@ -270,7 +268,7 @@ const UserPostsList = createAsyncComponent(
                 </ul>
               </div>
             )),
-            Effect.catchAll(error => Effect.succeed(
+            Effect.catchAll(() => Effect.succeed(
               <div class="text-red-400">Failed to load posts</div>
             ))
           )
@@ -374,6 +372,12 @@ function ProgressiveLoadingExample(): JSX.Element {
     </div>
   )
 }
+
+
+export const EffectDemoRoute = createRoute('effect-demo', {
+  view: EffectDemoPage
+})
+
 
 /**
  * Main Demo Page Component

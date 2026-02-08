@@ -1,9 +1,12 @@
 import { isSignal, createComputed as signal_createComputed } from "../../reactive/signal";
 import { addToBatch } from "./batching";
 // Track signal subscriptions for each element for cleanup
-const elementSubscriptions = new WeakMap();
+// Use globalThis to avoid multiple instances in mono-repos
+const elementSubscriptions = globalThis.__HYPERFX_ELEMENT_SUBSCRIPTIONS__ ||
+    (globalThis.__HYPERFX_ELEMENT_SUBSCRIPTIONS__ = new WeakMap());
 // Track computed signals for each element so we can destroy them
-const elementComputedSignals = new WeakMap();
+const elementComputedSignals = globalThis.__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ ||
+    (globalThis.__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ = new WeakMap());
 // Helper to handle reactive values (signals or functions)
 export function handleReactiveValue(element, key, value, setter) {
     try {
@@ -112,7 +115,7 @@ export function cleanupElementSubscriptions(element) {
     // Clean up regular subscriptions
     const subscriptions = elementSubscriptions.get(element);
     if (subscriptions) {
-        subscriptions.forEach(unsubscribe => {
+        subscriptions.forEach((unsubscribe) => {
             try {
                 unsubscribe();
             }
@@ -126,7 +129,7 @@ export function cleanupElementSubscriptions(element) {
     // Clean up computed signals
     const computedSignals = elementComputedSignals.get(element);
     if (computedSignals) {
-        computedSignals.forEach(computed => {
+        computedSignals.forEach((computed) => {
             try {
                 computed.destroy();
             }

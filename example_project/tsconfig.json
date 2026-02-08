@@ -7,8 +7,8 @@
     "skipLibCheck": true,
 
     /* JSX Configuration */
-     "jsx": "react-jsx",
-    "jsxImportSource": "hyperfx",
+     "jsx": "preserve",
+    "jsxImportSource": "hyperfx/jsx",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -24,5 +24,4 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
-  "exclude": ["./*.config.ts"]
 }

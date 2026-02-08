@@ -94,7 +94,7 @@ export function hydrate(container, factory) {
     // Read hydration data for signal restoration
     const hydrationData = readHydrationData();
     // Enable hydration mode flag (for any components that need to know)
-    startHydration();
+    startHydration(container);
     try {
         // Execute the component logic - creates a fresh client tree with handlers
         const clientRoot = factory();

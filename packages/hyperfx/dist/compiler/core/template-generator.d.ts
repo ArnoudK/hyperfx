@@ -5,11 +5,10 @@
 import * as t from '@babel/types';
 import type { DynamicElementAnalysis } from './types.js';
 export declare class TemplateGenerator {
-    private readonly getAttributeValue;
     private templateCounter;
     private templates;
     private templatesByHTML;
-    constructor(getAttributeValue: (attr: t.JSXAttribute) => string | null);
+    constructor();
     /**
      * Get or create a template (with deduplication)
      */
@@ -38,6 +37,10 @@ export declare class TemplateGenerator {
      * Build children HTML with markers for dynamic content
      */
     private buildChildrenWithMarkers;
+    /**
+     * Check if a JSX element is a component (vs HTML element)
+     */
+    private isComponentElement;
     /**
      * Separate static and dynamic attributes
      */

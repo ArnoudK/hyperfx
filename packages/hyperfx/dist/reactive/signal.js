@@ -5,7 +5,6 @@
  *
  */
 // Global tracking context for automatic dependency detection
-let currentComputation = null;
 let isTracking = false;
 const accessedSignals = new Set();
 // Global signal registry for SSR serialization
@@ -122,7 +121,11 @@ export function createSignal(initialValue, options) {
         subscribe: (callback) => signal.subscribe(callback),
         peek: () => signal.peek(),
         update: (updater) => signal.update(updater),
-        key: options?.key
+        key: options?.key,
+        [Symbol.iterator]: function* () {
+            yield callableSignal;
+            yield callableSignal;
+        }
     });
     // Add subscriberCount getter dynamically
     Object.defineProperty(callableSignal, 'subscriberCount', {

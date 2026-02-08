@@ -1,10 +1,14 @@
-import { Signal } from "../../reactive/signal";
 import { FRAGMENT_TAG } from "./constants";
-import type { JSXElement, FunctionComponent, JSXChildren } from "./types";
+import type { FunctionComponent, JSXChildren, JSXElement, ComponentProps } from "./types";
+/**
+ * Client-side Fragment component
+ */
+export declare function Fragment(props: ComponentProps): DocumentFragment;
+/**
+ * Client-side JSX factory function
+ */
 export declare function jsx(type: string | FunctionComponent<any> | typeof FRAGMENT_TAG, props: Record<string, any> | null, _key?: string | number | null): JSXElement;
 export declare const jsxs: typeof jsx;
 export declare const jsxDEV: typeof jsx;
 export declare function createJSXElement(type: string | FunctionComponent<any> | typeof FRAGMENT_TAG, props: Record<string, any> | null, ...children: JSXChildren[]): JSXElement;
-export declare function template(strings: TemplateStringsArray, ...values: any[]): Signal<string>;
-export declare function r<T>(fn: () => T): Signal<T>;
 export { createJSXElement as createElement };

@@ -1,4 +1,4 @@
-import type { VirtualNode } from "../jsx/runtime/virtual-node";
+import { SSRNode } from "./render";
 /**
  * SSR context for passing server-side data
  */
@@ -56,31 +56,15 @@ export declare class SSRRenderer {
     /**
      * Render a page with full HTML document
      */
-    renderPage(element: VirtualNode | VirtualNode[], options?: HtmlDocumentOptions): string;
+    renderPage(element: SSRNode | string, options?: HtmlDocumentOptions): string;
     /**
-     * Render with streaming support (for large pages)
-     */
-    renderStream(element: VirtualNode | VirtualNode[], options?: HtmlDocumentOptions): AsyncIterableIterator<string>;
-    /**
-     * Render with hydration support
-     */
-    renderWithHydration(element: VirtualNode): {
-        html: string;
-        hydrationScript: string;
-        fullDocument?: string;
-    };
-    /**
-     * Render a full HTML document
+     * Render as string
      */
     private renderDocument;
     /**
      * Generate meta tags for SEO
      */
     private generateMetaTags;
-    /**
-     * Generate critical CSS for above-the-fold content
-     */
-    private generateCriticalCSS;
     /**
      * Check if request is from a bot/crawler
      */
@@ -94,34 +78,26 @@ export declare class StaticGenerator {
     /**
      * Add a route handler
      */
-    addRoute(path: string, component: () => VirtualNode | Promise<VirtualNode>): void;
+    addRoute(path: string, component: () => (SSRNode | string) | Promise<SSRNode | string>): void;
     /**
      * Generate static HTML for all routes
      */
     generateAll(_outputDir?: string): Promise<Map<string, string>>;
-    /**
-     * Generate sitemap.xml
-     */
-    generateSitemap(baseUrl: string): string;
 }
 /**
  * Component-level SSR utilities
  */
 export declare const SSRUtils: {
     /**
-     * Create a server-safe component that handles client-only features
+     * Create a server-safe component
      */
-    serverSafe<T>(serverComponent: () => VirtualNode, clientComponent: () => T, fallback?: () => VirtualNode): () => VirtualNode | T;
+    serverSafe<T>(serverComponent: () => (SSRNode | string), clientComponent: () => T, fallback?: () => (SSRNode | string)): () => (SSRNode | string) | T;
     /**
-     * Conditional rendering based on environment
+     * Conditional rendering
      */
-    clientOnly<T>(component: () => T, fallback?: () => VirtualNode): () => VirtualNode | T | null;
+    clientOnly<T>(component: () => T, fallback?: () => (SSRNode | string)): () => (SSRNode | string) | T | null;
     /**
      * Server-only rendering
      */
-    serverOnly(component: () => VirtualNode): () => VirtualNode | null;
-    /**
-     * Create placeholder for client-side hydration
-     */
-    createHydrationPlaceholder(id: string, tagName?: string): VirtualNode;
+    serverOnly(component: () => (SSRNode | string)): () => (SSRNode | string) | null;
 };

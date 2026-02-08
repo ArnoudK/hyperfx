@@ -1,4 +1,5 @@
 import { createSignal, createComputed } from "hyperfx";
+import { createRoute } from "hyperfx-extra";
 
 interface FormData {
   name: string;
@@ -9,6 +10,10 @@ interface FormData {
   newsletter: boolean;
   comments: string;
 }
+
+export const FormRoute = createRoute('form', {
+  view: FormPage
+})
 
 export function FormPage() {
   // Form state

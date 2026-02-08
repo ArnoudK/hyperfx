@@ -136,6 +136,6 @@ export declare function createLazyResource<A, E = unknown>(effect: Effect.Effect
  * )}
  * ```
  */
-export declare function combineResources<T extends Record<string, EffectSignal<any, any>>>(resources: T): Signal<ResourceState<{
-    [K in keyof T]: T[K] extends EffectSignal<infer A, any> ? A : never;
+export declare function combineResources<T extends Record<string, Signal<any>>>(resources: T): Signal<ResourceState<{
+    [K in keyof T]: T[K] extends Signal<ResourceState<infer A, any>> ? A : never;
 }, unknown>>;

@@ -19,7 +19,13 @@ export type ReactiveValue<T> = T | Signal<T> | (() => T);
 export type ReactiveString = ReactiveValue<string>;
 export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
-export type JSXElement = HTMLElement | DocumentFragment | Text | Comment | null;
+import type { SSRNode } from "../../ssr/render";
+type HTMLelementLike = HTMLElement | DocumentFragment | Text | Comment | SSRNode | null | undefined;
+interface RecursiveSignal extends Signal<JSXElement> {
+}
+interface RecursiveComputed extends ComputedSignal<JSXElement> {
+}
+export type JSXElement = HTMLelementLike | JSXElement[] | (() => JSXElement) | RecursiveSignal | RecursiveComputed;
 export type JSXChildPrimitive = string | number | boolean | null | undefined;
 export type JSXChild = Prettify<JSXElement | JSXChildPrimitive | Signal<JSXElement | JSXChildPrimitive> | (() => JSXElement) | (() => JSXElement[]) | ComputedSignal<JSXElement | JSXChildPrimitive>>;
 export type JSXChildren = JSXChild | JSXChild[];

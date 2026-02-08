@@ -1,4 +1,4 @@
-import { createVirtualFragment } from "../jsx/runtime/virtual-node";
+import { isSSR, createUniversalFragment } from "../jsx/runtime/universal-node";
 // Global context stack
 // Map of Context ID -> Stack of values
 const contextStacks = new Map();
@@ -46,21 +46,18 @@ export function createContext(defaultValue) {
         // Simplest way to return children without extra wrapper is just returning them.
         // However, JSX expects JSXElement.
         // If multiple children, fragment.
+        // If multiple children, fragment.
         if (Array.isArray(children)) {
-            // SSR-safe fragment creation
-            if (typeof document === 'undefined') {
-                // Server-side: use virtual fragment
-                return createVirtualFragment(children);
-            }
-            else {
-                // Client-side: use DOM fragment
-                const fragment = document.createDocumentFragment();
-                children.forEach(child => {
-                    if (child instanceof Node)
-                        fragment.appendChild(child);
-                });
-                return fragment;
-            }
+            const fragment = createUniversalFragment();
+            children.forEach(child => {
+                if (isSSR()) {
+                    fragment.appendChild(child);
+                }
+                else if (child instanceof Node) {
+                    fragment.appendChild(child);
+                }
+            });
+            return fragment;
         }
         return children;
     };

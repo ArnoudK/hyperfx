@@ -97,6 +97,15 @@ export class CodeGenerator {
                 const arg = this.codeFromNode(node.argument);
                 return `${node.operator}${arg}`;
             }
+            if (t.isUpdateExpression(node)) {
+                const arg = this.codeFromNode(node.argument);
+                return node.prefix ? `${node.operator}${arg}` : `${arg}${node.operator}`;
+            }
+            if (t.isAssignmentExpression(node)) {
+                const left = this.codeFromNode(node.left);
+                const right = this.codeFromNode(node.right);
+                return `${left} ${node.operator} ${right}`;
+            }
             if (t.isArrayExpression(node)) {
                 const elements = [];
                 for (const elem of node.elements) {
@@ -135,8 +144,92 @@ export class CodeGenerator {
                 // Ensure fragments always return arrays
                 return childrenCode.startsWith('[') ? childrenCode : `[${childrenCode}]`;
             }
-            // For complex expressions, return a placeholder
-            return '(() => { /* complex expression */ })()';
+            if (t.isJSXMemberExpression(node)) {
+                const object = this.codeFromNode(node.object);
+                const property = node.property.name;
+                return `${object}.${property}`;
+            }
+            if (t.isJSXIdentifier(node)) {
+                return node.name;
+            }
+            if (t.isJSXNamespacedName(node)) {
+                return `${node.namespace.name}:${node.name.name}`;
+            }
+            // Object destructuring pattern: { a, b, c }
+            if (t.isObjectPattern(node)) {
+                const props = [];
+                for (const prop of node.properties) {
+                    if (t.isObjectProperty(prop)) {
+                        // Get the key
+                        let key;
+                        if (t.isIdentifier(prop.key) && !prop.computed) {
+                            key = prop.key.name;
+                        }
+                        else if (t.isStringLiteral(prop.key)) {
+                            key = `"${prop.key.value}"`;
+                        }
+                        else {
+                            key = `[${this.codeFromNode(prop.key)}]`;
+                        }
+                        // Get the value (the binding pattern)
+                        const value = this.codeFromNode(prop.value);
+                        // Handle shorthand: { value } instead of { value: value }
+                        if (prop.shorthand) {
+                            props.push(value);
+                        }
+                        else {
+                            props.push(`${key}: ${value}`);
+                        }
+                    }
+                    else if (t.isRestElement(prop)) {
+                        props.push(`...${this.codeFromNode(prop.argument)}`);
+                    }
+                }
+                return `{ ${props.join(', ')} }`;
+            }
+            // Array destructuring pattern: [a, b, c]
+            if (t.isArrayPattern(node)) {
+                const elements = [];
+                for (const elem of node.elements) {
+                    if (elem === null) {
+                        elements.push('');
+                    }
+                    else if (t.isRestElement(elem)) {
+                        elements.push(`...${this.codeFromNode(elem.argument)}`);
+                    }
+                    else {
+                        elements.push(this.codeFromNode(elem));
+                    }
+                }
+                return `[${elements.join(', ')}]`;
+            }
+            // Assignment pattern (default values): a = 1
+            if (t.isAssignmentPattern(node)) {
+                const left = this.codeFromNode(node.left);
+                const right = this.codeFromNode(node.right);
+                return `${left} = ${right}`;
+            }
+            // Rest element: ...rest
+            if (t.isRestElement(node)) {
+                return `...${this.codeFromNode(node.argument)}`;
+            }
+            // TypeScript type assertion: value as Type
+            if (t.isTSAsExpression(node)) {
+                // Strip the type annotation and just return the expression
+                return this.codeFromNode(node.expression);
+            }
+            // TypeScript non-null assertion: value!
+            if (t.isTSNonNullExpression(node)) {
+                // Strip the non-null assertion and just return the expression
+                return `${this.codeFromNode(node.expression)}!`;
+            }
+            // TypeScript type assertion: <Type>value
+            if (t.isTSTypeAssertion(node)) {
+                // Strip the type annotation and just return the expression
+                return this.codeFromNode(node.expression);
+            }
+            // Unhandled node type - throw error instead of generating invalid code
+            throw new Error(`[HyperFX Compiler] Unhandled node type in codeFromNode: ${node.type}`);
         }
         finally {
             this.currentContext = prevContext;
@@ -156,7 +249,7 @@ export class CodeGenerator {
             const statements = [];
             for (const stmt of node.body.body) {
                 if (t.isReturnStatement(stmt) && stmt.argument) {
-                    const returnValue = this.codeFromNode(stmt.argument);
+                    const returnValue = this.codeFromNode(stmt.argument, 'function');
                     statements.push(`return ${returnValue};`);
                     continue;
                 }
@@ -178,7 +271,7 @@ export class CodeGenerator {
             }
             return `(${paramsStr}) => { ${statements.join(' ')} }`;
         }
-        const body = this.codeFromNode(node.body);
+        const body = this.codeFromNode(node.body, 'function');
         return `(${paramsStr}) => ${body}`;
     }
     /**
@@ -186,6 +279,7 @@ export class CodeGenerator {
      */
     generateCallExpression(node) {
         // Check if this is a zero-argument call that could be a signal
+        // Only optimize in reactive context, not in function context
         if (node.arguments.length === 0 && this.currentContext === 'reactive') {
             if (t.isIdentifier(node.callee)) {
                 const name = node.callee.name;
@@ -200,7 +294,7 @@ export class CodeGenerator {
                 }
             }
         }
-        const callee = this.codeFromNode(node.callee);
+        const callee = this.codeFromNode(node.callee, this.currentContext === 'function' ? 'function' : undefined);
         const args = [];
         for (const arg of node.arguments) {
             if (t.isSpreadElement(arg)) {
@@ -216,6 +310,8 @@ export class CodeGenerator {
      * Generate optional call expression code
      */
     generateOptionalCallExpression(node) {
+        // Check if this is a zero-argument call that could be a signal
+        // Only optimize in reactive context, not in function context
         if (node.arguments.length === 0 && this.currentContext === 'reactive') {
             if (t.isIdentifier(node.callee)) {
                 const name = node.callee.name;
@@ -231,7 +327,7 @@ export class CodeGenerator {
                 }
             }
         }
-        const callee = this.codeFromNode(node.callee);
+        const callee = this.codeFromNode(node.callee, this.currentContext === 'function' ? 'function' : undefined);
         const args = [];
         for (const arg of node.arguments) {
             if (t.isSpreadElement(arg)) {

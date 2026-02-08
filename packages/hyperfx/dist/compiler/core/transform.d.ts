@@ -15,14 +15,6 @@ export declare class HyperFXTransformer {
      */
     private getOrCreateTemplate;
     /**
-     * Check if an identifier is a known global that shouldn't be optimized
-     */
-    private isKnownGlobal;
-    /**
-     * Check if a member expression is a known non-signal pattern
-     */
-    private isKnownNonSignal;
-    /**
      * Transform JSX code to optimized HyperFX runtime calls
      */
     transform(code: string, id: string, ssr?: boolean): TransformResult | null;
@@ -60,10 +52,6 @@ export declare class HyperFXTransformer {
      */
     private generateTemplateHTML;
     /**
-     * Get tag name from JSX opening element
-     */
-    private getTagName;
-    /**
      * Transform a dynamic element with reactive content
      */
     private transformDynamicElement;
@@ -76,6 +64,17 @@ export declare class HyperFXTransformer {
      * Returns the string value if constant, null otherwise
      */
     private tryEvaluateConstant;
+    /**
+     * Check if an expression is reactive (function that returns content)
+     * Reactive expressions require the marker to remain for updates
+     */
+    private isReactiveExpression;
+    /**
+     * Generate code to access an element given its path
+     * Path format: ['div[0]', 'span[1]'] means root.children[0].children[1]
+     * Empty path means the root element itself
+     */
+    private generateElementAccess;
     /**
      * Generate code for a dynamic element
      */
@@ -127,7 +126,4 @@ export declare class HyperFXTransformer {
      * Recursive generator for standard JSX calls
      */
     private generateSSRJSXCode;
-    private getTagNameOrExpr;
-    private generatePropsObject;
-    private generateChildrenArray;
 }

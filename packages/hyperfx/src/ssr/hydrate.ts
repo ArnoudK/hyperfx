@@ -94,7 +94,7 @@ function walkAndValidate(clientNode: Node, serverNode: Node, path: string = 'roo
 export function hydrate(container: Element, factory: () => JSXElement): void {
   // Get all server-rendered children (could be multiple elements)
   const serverChildren = Array.from(container.children);
-  
+
   if (serverChildren.length === 0) {
     console.warn('[HyperFX] No server-rendered content found. Performing client-side mount.');
     const root = factory();
@@ -108,7 +108,7 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
   const hydrationData = readHydrationData();
 
   // Enable hydration mode flag (for any components that need to know)
-  startHydration();
+  startHydration(container);
 
   try {
     // Execute the component logic - creates a fresh client tree with handlers
@@ -116,7 +116,7 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
 
     // Handle different return types from factory
     let clientElements: Element[];
-    
+
     if (clientRoot instanceof DocumentFragment) {
       // Factory returned a fragment - extract all element children
       clientElements = Array.from(clientRoot.children);
@@ -158,7 +158,7 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
     // Restore signal values after tree is mounted
     if (hydrationData?.state?.signals) {
       const registeredSignals = getRegisteredSignals();
-      
+
       for (const [key, value] of Object.entries(hydrationData.state.signals)) {
         const signal = registeredSignals.get(key);
         if (signal) {
@@ -174,7 +174,7 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
   } catch (error) {
     console.error('[HyperFX] Hydration failed:', error);
     console.warn('[HyperFX] Falling back to client-side render');
-    
+
     try {
       endHydration();
       const fallbackRoot = factory();

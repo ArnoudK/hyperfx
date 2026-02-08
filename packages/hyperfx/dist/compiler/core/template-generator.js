@@ -15,8 +15,7 @@ const BOOLEAN_ATTRIBUTES = new Set([
     'readonly', 'required', 'reversed', 'selected'
 ]);
 export class TemplateGenerator {
-    constructor(getAttributeValue) {
-        this.getAttributeValue = getAttributeValue;
+    constructor() {
         this.templateCounter = 0;
         this.templates = new Map();
         this.templatesByHTML = new Map();
@@ -66,27 +65,27 @@ export class TemplateGenerator {
     analyzeDynamicElement(node) {
         const dynamics = [];
         const markerCounter = { value: 0 };
-        const templateHTML = this.buildTemplateWithMarkers(node, dynamics, markerCounter);
+        const templateHTML = this.buildTemplateWithMarkers(node, dynamics, markerCounter, []);
         return { templateHTML, dynamics };
     }
     /**
      * Build template HTML with comment markers for dynamic insertions
      */
-    buildTemplateWithMarkers(node, dynamics, markerCounter) {
+    buildTemplateWithMarkers(node, dynamics, markerCounter, currentPath) {
         const tagName = this.getTagName(node.openingElement);
         const { staticAttrs, dynamicAttrs } = this.separateAttributes(node.openingElement.attributes);
-        // Add dynamic attributes to dynamics array
+        // Add dynamic attributes to dynamics array with current path
         for (const dynAttr of dynamicAttrs) {
             dynamics.push({
                 type: 'attribute',
                 markerId: -1,
                 expression: dynAttr.value,
-                path: [],
+                path: [...currentPath],
                 attributeName: dynAttr.name,
             });
         }
         // Process children
-        const childrenHTML = this.buildChildrenWithMarkers(node.children, dynamics, markerCounter);
+        const childrenHTML = this.buildChildrenWithMarkers(node.children, dynamics, markerCounter, currentPath, tagName);
         if (node.openingElement.selfClosing) {
             return `<${tagName}${staticAttrs} />`;
         }
@@ -95,8 +94,9 @@ export class TemplateGenerator {
     /**
      * Build children HTML with markers for dynamic content
      */
-    buildChildrenWithMarkers(children, dynamics, markerCounter) {
+    buildChildrenWithMarkers(children, dynamics, markerCounter, parentPath, parentTag) {
         const parts = [];
+        let childIndex = 0;
         for (const child of children) {
             if (t.isJSXText(child)) {
                 parts.push(child.value);
@@ -112,22 +112,47 @@ export class TemplateGenerator {
                     type: 'child',
                     markerId,
                     expression: child.expression,
-                    path: [],
+                    path: [...parentPath],
                 });
                 parts.push(`<!--#${markerId}-->`);
                 continue;
             }
             if (t.isJSXElement(child)) {
-                parts.push(this.buildTemplateWithMarkers(child, dynamics, markerCounter));
+                if (this.isComponentElement(child)) {
+                    const markerId = markerCounter.value++;
+                    dynamics.push({
+                        type: 'element',
+                        markerId,
+                        expression: child,
+                        path: [...parentPath],
+                    });
+                    parts.push(`<!--#${markerId}-->`);
+                    continue;
+                }
+                // Build path for this child element
+                const childPath = [...parentPath, `${parentTag}[${childIndex}]`];
+                parts.push(this.buildTemplateWithMarkers(child, dynamics, markerCounter, childPath));
+                childIndex++;
                 continue;
             }
             if (t.isJSXFragment(child)) {
-                parts.push(this.buildChildrenWithMarkers(child.children, dynamics, markerCounter));
+                parts.push(this.buildChildrenWithMarkers(child.children, dynamics, markerCounter, parentPath, parentTag));
                 continue;
             }
             parts.push('');
         }
         return parts.join('');
+    }
+    /**
+     * Check if a JSX element is a component (vs HTML element)
+     */
+    isComponentElement(node) {
+        if (t.isJSXIdentifier(node.openingElement.name)) {
+            const tagName = node.openingElement.name.name;
+            return /^[A-Z]/.test(tagName);
+        }
+        // Member expressions (e.g., Foo.Bar) and namespaced names are also components
+        return true;
     }
     /**
      * Separate static and dynamic attributes
@@ -242,6 +267,9 @@ export class TemplateGenerator {
         for (const child of children) {
             if (t.isJSXText(child)) {
                 parts.push(child.value);
+            }
+            else if (t.isJSXElement(child)) {
+                parts.push(this.generateTemplateHTML(child));
             }
             else {
                 parts.push('');

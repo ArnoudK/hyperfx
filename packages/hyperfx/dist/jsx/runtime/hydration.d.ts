@@ -1,21 +1,13 @@
-/**
- * Start hydration mode
- */
-export declare function startHydration(): void;
-/**
- * End hydration mode
- */
+export declare function startHydration(container?: any): void;
 export declare function endHydration(): void;
-/**
- * Check if hydration is currently enabled
- */
 export declare function isHydrationEnabled(): boolean;
-/**
- * Create a unique client node ID for hydration matching
- * Format: 6-digit zero-padded number (e.g., "000001", "000002")
- */
-export declare function createClientNodeId(): string;
-/**
- * Reset the client node counter (used for testing and cleanup)
- */
-export declare function resetClientNodeCounter(): void;
+export declare function getHydrationContainer(): any;
+export declare function setSSRMode(enabled: boolean): void;
+export declare function isSSRMode(): boolean;
+export declare function getHydrationPointer(): Node | null;
+export declare function setHydrationPointer(node: Node | null): void;
+export declare function pushHydrationContext(nextPointer: Node | null): void;
+export declare function popHydrationContext(): void;
+export declare function clearSSRState(): void;
+export declare function claimHydrationElement(tag: string): HTMLElement | null;
+export declare function createNodeId(): string;

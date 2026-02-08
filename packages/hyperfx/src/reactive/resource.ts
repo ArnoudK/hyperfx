@@ -110,8 +110,8 @@ export function createResource<A, E = unknown>(
 
     // Get previous data for keepPrevious
     const currentState = state()
-    const previousData = keepPrevious && currentState._tag === "Success" 
-      ? currentState.data 
+    const previousData = keepPrevious && currentState._tag === "Success"
+      ? currentState.data
       : undefined
 
     // Set loading state
@@ -121,7 +121,7 @@ export function createResource<A, E = unknown>(
     try {
       // Run the effect
       const result = await runEffect(effect)
-      
+
       // Update to success state
       state(success(result))
       onSuccess?.(result)
@@ -229,10 +229,10 @@ export function createLazyResource<A, E = unknown>(
  * )}
  * ```
  */
-export function combineResources<T extends Record<string, EffectSignal<any, any>>>(
+export function combineResources<T extends Record<string, Signal<any>>>(
   resources: T
 ): Signal<ResourceState<
-  { [K in keyof T]: T[K] extends EffectSignal<infer A, any> ? A : never },
+  { [K in keyof T]: T[K] extends Signal<ResourceState<infer A, any>> ? A : never },
   unknown
 >> {
   const combined = createSignal<ResourceState<any, unknown>>(idle())
@@ -248,10 +248,10 @@ export function combineResources<T extends Record<string, EffectSignal<any, any>
     const anyLoading = states.some(({ state }) => state._tag === "Loading")
     if (anyLoading) {
       // Get previous data if all had data before
-      const allHadData = states.every(({ state }) => 
+      const allHadData = states.every(({ state }) =>
         state._tag === "Success" || (state._tag === "Loading" && state.previous)
       )
-      
+
       if (allHadData) {
         const previousData: any = {}
         for (const { key, state } of states) {

@@ -38,7 +38,7 @@ export class HyperFXTransformer {
         // ComponentGenerator is independent
         this.componentGen = new ComponentGenerator((children) => this.generateChildrenCode(children), (node, context) => this.codeFromNode(node, context));
         // TemplateGenerator depends on ComponentGenerator
-        this.templateGen = new TemplateGenerator((attr) => this.componentGen.getAttributeValue(attr));
+        this.templateGen = new TemplateGenerator();
         // CodeGenerator depends on generateElementCode and generateSSRJSXCode
         this.codeGen = new CodeGenerator(() => this.options.ssr, (node) => this.generateElementCode(node), (node) => this.generateSSRJSXCode(node), (children) => this.generateChildrenCode(children));
         // SSRGenerator depends on CodeGenerator
@@ -56,18 +56,6 @@ export class HyperFXTransformer {
      */
     getOrCreateTemplate(html) {
         return this.templateGen.getOrCreateTemplate(html);
-    }
-    /**
-     * Check if an identifier is a known global that shouldn't be optimized
-     */
-    isKnownGlobal(name) {
-        return this.codeGen.isKnownGlobal(name);
-    }
-    /**
-     * Check if a member expression is a known non-signal pattern
-     */
-    isKnownNonSignal(memberCode) {
-        return this.codeGen.isKnownNonSignal(memberCode);
     }
     /**
      * Transform JSX code to optimized HyperFX runtime calls
@@ -178,6 +166,14 @@ export class HyperFXTransformer {
      */
     transformJSXElement(path, s) {
         const node = path.node;
+        // Check if this is a component
+        if (this.componentGen.isComponentElement(node)) {
+            const code = this.componentGen.generateComponentCall(node);
+            const start = node.start;
+            const end = node.end;
+            s.overwrite(start, end, code);
+            return;
+        }
         // Check if this is a simple static element
         if (this.isStaticElement(node)) {
             this.transformStaticElement(node, path, s);
@@ -190,7 +186,7 @@ export class HyperFXTransformer {
     /**
      * Transform a JSX fragment
      */
-    transformJSXFragment(path, s) {
+    transformJSXFragment(_path, _s) {
         // TODO: Implement fragment transformation
     }
     /**
@@ -249,7 +245,7 @@ export class HyperFXTransformer {
     /**
      * Transform a static element into a template
      */
-    transformStaticElement(node, path, s) {
+    transformStaticElement(node, _path, s) {
         // Generate template HTML
         const html = this.generateTemplateHTML(node);
         const templateId = this.getOrCreateTemplate(html);
@@ -265,19 +261,9 @@ export class HyperFXTransformer {
         return this.templateGen.generateTemplateHTML(node);
     }
     /**
-     * Get tag name from JSX opening element
-     */
-    getTagName(opening) {
-        if (t.isJSXIdentifier(opening.name)) {
-            return opening.name.name;
-        }
-        // Handle namespaced names, member expressions, etc.
-        return 'div'; // Fallback
-    }
-    /**
      * Transform a dynamic element with reactive content
      */
-    transformDynamicElement(node, path, s) {
+    transformDynamicElement(node, _path, s) {
         // Analyze the element to extract static template and dynamic parts
         const analysis = this.analyzeDynamicElement(node);
         if (!analysis) {
@@ -569,9 +555,59 @@ export class HyperFXTransformer {
         }
     }
     /**
+     * Check if an expression is reactive (function that returns content)
+     * Reactive expressions require the marker to remain for updates
+     */
+    isReactiveExpression(node) {
+        // Arrow functions and function expressions are reactive
+        if (t.isArrowFunctionExpression(node) || t.isFunctionExpression(node)) {
+            return true;
+        }
+        // Identifiers could be functions called reactively
+        if (t.isIdentifier(node)) {
+            return true; // Conservative: assume identifiers might be reactive
+        }
+        // Call expressions with arguments are likely to return reactive content
+        if (t.isCallExpression(node)) {
+            // If callee is a member expression (like foo.bar()), it might return reactive content
+            if (t.isMemberExpression(node.callee)) {
+                return true;
+            }
+        }
+        // Logical expressions can contain reactive parts
+        if (t.isLogicalExpression(node)) {
+            return this.isReactiveExpression(node.left) || this.isReactiveExpression(node.right);
+        }
+        // Conditional expressions can contain reactive parts
+        if (t.isConditionalExpression(node)) {
+            return this.isReactiveExpression(node.consequent) || this.isReactiveExpression(node.alternate);
+        }
+        return false;
+    }
+    /**
+     * Generate code to access an element given its path
+     * Path format: ['div[0]', 'span[1]'] means root.children[0].children[1]
+     * Empty path means the root element itself
+     */
+    generateElementAccess(rootVar, path) {
+        if (path.length === 0) {
+            return rootVar;
+        }
+        let code = rootVar;
+        for (const segment of path) {
+            // Parse segment like "div[0]" to extract index
+            const match = segment.match(/\[(\d+)\]$/);
+            if (match) {
+                const index = match[1];
+                code = `${code}.children[${index}]`;
+            }
+        }
+        return code;
+    }
+    /**
      * Generate code for a dynamic element
      */
-    generateDynamicCode(templateId, dynamics, node) {
+    generateDynamicCode(templateId, dynamics, _node) {
         const lines = [];
         // Clone the template
         lines.push(`(() => {`);
@@ -587,12 +623,27 @@ export class HyperFXTransformer {
                 childDynamics.push(d);
             }
         }
+        // Group attribute dynamics by path to create element references once per path
+        const elementsByPath = new Map();
         // Generate code for dynamic attributes
         for (const dynamic of attributeDynamics) {
+            const pathKey = JSON.stringify(dynamic.path);
+            let elementVar = elementsByPath.get(pathKey);
+            if (!elementVar) {
+                if (dynamic.path.length === 0) {
+                    elementVar = '_el$';
+                }
+                else {
+                    elementVar = `_el${elementsByPath.size}$`;
+                    const elementAccess = this.generateElementAccess('_el$', dynamic.path);
+                    lines.push(`  const ${elementVar} = ${elementAccess};`);
+                }
+                elementsByPath.set(pathKey, elementVar);
+            }
             if (dynamic.attributeName === '...spread') {
-                // Spread attributes - inside lambda, keep calls
-                const code = this.codeFromNode(dynamic.expression, 'effect');
-                lines.push(`  _$spread(_el$, () => (${code}));`);
+                // Spread attributes - inside lambda, use reactive context to auto-call signals
+                const code = this.codeFromNode(dynamic.expression, 'reactive');
+                lines.push(`  _$spread(${elementVar}, () => (${code}));`);
             }
             else {
                 // Regular dynamic attribute
@@ -601,12 +652,12 @@ export class HyperFXTransformer {
                 if (attrName.startsWith('on')) {
                     const eventName = attrName.slice(2).toLowerCase();
                     const code = this.codeFromNode(dynamic.expression, 'event');
-                    lines.push(`  _$delegate(_el$, "${eventName}", ${code});`);
+                    lines.push(`  _$delegate(${elementVar}, "${eventName}", ${code});`);
                 }
                 else {
-                    // Reactive attribute - inside effect, keep calls
-                    const code = this.codeFromNode(dynamic.expression, 'effect');
-                    lines.push(`  _$effect(() => _$setProp(_el$, "${attrName}", ${code}));`);
+                    // Reactive attribute - inside effect, use reactive context to auto-call signals
+                    const code = this.codeFromNode(dynamic.expression, 'reactive');
+                    lines.push(`  _$effect(() => _$setProp(${elementVar}, "${attrName}", ${code}));`);
                 }
             }
         }
@@ -619,15 +670,15 @@ export class HyperFXTransformer {
                     const mapOptimization = this.tryOptimizeMapCall(dynamic.expression);
                     if (mapOptimization) {
                         // Use optimized mapArray helper
-                        lines.push(`  const _marker${i}$ = Array.from(_el$.childNodes).find(n => n.nodeType === 8 && n.textContent === '#${dynamic.markerId}');`);
+                        lines.push(`  const _marker${i}$ = _$findMarker(_el$, '#${dynamic.markerId}');`);
                         lines.push(`  if (_marker${i}$) {`);
                         if (mapOptimization.keyFn) {
                             // Use keyed version for efficient diffing
-                            lines.push(`    _$mapArrayKeyed(_el$, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, ${mapOptimization.keyFn}, _marker${i}$);`);
+                            lines.push(`    _$mapArrayKeyed(_marker${i}$.parentNode, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, ${mapOptimization.keyFn}, _marker${i}$);`);
                         }
                         else {
                             // Use non-keyed version
-                            lines.push(`    _$mapArray(_el$, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, _marker${i}$);`);
+                            lines.push(`    _$mapArray(_marker${i}$.parentNode, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, _marker${i}$);`);
                         }
                         lines.push(`    _marker${i}$.remove();`);
                         lines.push(`  }`);
@@ -635,19 +686,24 @@ export class HyperFXTransformer {
                     else {
                         // Regular dynamic content - pass as reactive!
                         const code = this.codeFromNode(dynamic.expression, 'reactive');
-                        lines.push(`  const _marker${i}$ = Array.from(_el$.childNodes).find(n => n.nodeType === 8 && n.textContent === '#${dynamic.markerId}');`);
+                        const isReactive = this.isReactiveExpression(dynamic.expression);
+                        lines.push(`  const _marker${i}$ = _$findMarker(_el$, '#${dynamic.markerId}');`);
                         lines.push(`  if (_marker${i}$) {`);
-                        lines.push(`    _$insert(_el$, ${code}, _marker${i}$);`);
-                        lines.push(`    _marker${i}$.remove();`);
+                        lines.push(`    _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
+                        // Only remove marker for static content - reactive content needs the marker for updates
+                        if (!isReactive) {
+                            lines.push(`    _marker${i}$.remove();`);
+                        }
                         lines.push(`  }`);
                     }
                 }
                 else if (dynamic.type === 'element') {
                     const elementNode = dynamic.expression;
                     const code = this.generateElementCode(elementNode);
-                    lines.push(`  const _marker${i}$ = Array.from(_el$.childNodes).find(n => n.nodeType === 8 && n.textContent === '#${dynamic.markerId}');`);
+                    lines.push(`  const _marker${i}$ = _$findMarker(_el$, '#${dynamic.markerId}');`);
                     lines.push(`  if (_marker${i}$) {`);
-                    lines.push(`    _$insert(_el$, ${code}, _marker${i}$);`);
+                    lines.push(`    _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
+                    // Elements are static, so we can remove the marker
                     lines.push(`    _marker${i}$.remove();`);
                     lines.push(`  }`);
                 }
@@ -675,12 +731,27 @@ export class HyperFXTransformer {
                 childDynamics.push(d);
             }
         }
+        // Group attribute dynamics by path to create element references once per path
+        const elementsByPath = new Map();
         // Generate code for dynamic attributes
         for (const dynamic of attributeDynamics) {
+            const pathKey = JSON.stringify(dynamic.path);
+            let elementVar = elementsByPath.get(pathKey);
+            if (!elementVar) {
+                if (dynamic.path.length === 0) {
+                    elementVar = '_el$';
+                }
+                else {
+                    elementVar = `_el${elementsByPath.size}$`;
+                    const elementAccess = this.generateElementAccess('_el$', dynamic.path);
+                    lines.push(`const ${elementVar} = ${elementAccess};`);
+                }
+                elementsByPath.set(pathKey, elementVar);
+            }
             if (dynamic.attributeName === '...spread') {
-                // Spread attributes - inside lambda, keep calls
-                const code = this.codeFromNode(dynamic.expression, 'effect');
-                lines.push(`_$spread(_el$, () => (${code}));`);
+                // Spread attributes - inside lambda, use reactive context to auto-call signals
+                const code = this.codeFromNode(dynamic.expression, 'reactive');
+                lines.push(`_$spread(${elementVar}, () => (${code}));`);
             }
             else {
                 const attrName = dynamic.attributeName;
@@ -688,7 +759,7 @@ export class HyperFXTransformer {
                 if (attrName.startsWith('on')) {
                     const eventName = attrName.slice(2).toLowerCase();
                     const code = this.codeFromNode(dynamic.expression, 'event');
-                    lines.push(`_$delegate(_el$, "${eventName}", ${code});`);
+                    lines.push(`_$delegate(${elementVar}, "${eventName}", ${code});`);
                 }
                 else if (attrName === 'class' || attrName === 'className') {
                     // Check if the class value is constant
@@ -697,15 +768,15 @@ export class HyperFXTransformer {
                         // Constant class - skip, it's already in the template
                     }
                     else {
-                        // Reactive class - inside effect, keep calls
-                        const code = this.codeFromNode(dynamic.expression, 'effect');
-                        lines.push(`_$effect(() => _$setProp(_el$, "class", ${code}));`);
+                        // Reactive class - inside effect, use reactive context to auto-call signals
+                        const code = this.codeFromNode(dynamic.expression, 'reactive');
+                        lines.push(`_$effect(() => _$setProp(${elementVar}, "class", ${code}));`);
                     }
                 }
                 else {
-                    // Reactive attribute - inside effect, keep calls
-                    const code = this.codeFromNode(dynamic.expression, 'effect');
-                    lines.push(`_$effect(() => _$setProp(_el$, "${attrName}", ${code}));`);
+                    // Reactive attribute - inside effect, use reactive context to auto-call signals
+                    const code = this.codeFromNode(dynamic.expression, 'reactive');
+                    lines.push(`_$effect(() => _$setProp(${elementVar}, "${attrName}", ${code}));`);
                 }
             }
         }
@@ -722,11 +793,11 @@ export class HyperFXTransformer {
                         lines.push(`if (_marker${i}$) {`);
                         if (mapOptimization.keyFn) {
                             // Use keyed version for efficient diffing
-                            lines.push(`  _$mapArrayKeyed(_el$, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, ${mapOptimization.keyFn}, _marker${i}$);`);
+                            lines.push(`  _$mapArrayKeyed(_marker${i}$.parentNode, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, ${mapOptimization.keyFn}, _marker${i}$);`);
                         }
                         else {
                             // Use non-keyed version
-                            lines.push(`  _$mapArray(_el$, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, _marker${i}$);`);
+                            lines.push(`  _$mapArray(_marker${i}$.parentNode, () => ${mapOptimization.arrayExpr}, ${mapOptimization.mapFn}, _marker${i}$);`);
                         }
                         lines.push(`  _marker${i}$.remove();`);
                         lines.push(`}`);
@@ -734,19 +805,23 @@ export class HyperFXTransformer {
                     else {
                         // Regular dynamic content - pass as reactive!
                         const code = this.codeFromNode(dynamic.expression, 'reactive');
-                        lines.push(`const _marker${i}$ = Array.from(_el$.childNodes).find(n => n.nodeType === 8 && n.textContent === '#${dynamic.markerId}');`);
+                        const isReactive = this.isReactiveExpression(dynamic.expression);
+                        lines.push(`const _marker${i}$ = _$findMarker(_el$, '#${dynamic.markerId}');`);
                         lines.push(`if (_marker${i}$) {`);
-                        lines.push(`  _$insert(_el$, ${code}, _marker${i}$);`);
-                        lines.push(`  _marker${i}$.remove();`);
+                        lines.push(`  _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
+                        // Only remove marker for static content - reactive content needs the marker for updates
+                        if (!isReactive) {
+                            lines.push(`  _marker${i}$.remove();`);
+                        }
                         lines.push(`}`);
                     }
                 }
                 else if (dynamic.type === 'element') {
                     const elementNode = dynamic.expression;
                     const code = this.generateElementCode(elementNode);
-                    lines.push(`const _marker${i}$ = Array.from(_el$.childNodes).find(n => n.nodeType === 8 && n.textContent === '#${dynamic.markerId}');`);
+                    lines.push(`const _marker${i}$ = _$findMarker(_el$, '#${dynamic.markerId}');`);
                     lines.push(`if (_marker${i}$) {`);
-                    lines.push(`  _$insert(_el$, ${code}, _marker${i}$);`);
+                    lines.push(`  _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
                     lines.push(`  _marker${i}$.remove();`);
                     lines.push(`}`);
                 }
@@ -882,15 +957,34 @@ export class HyperFXTransformer {
         const childCodes = [];
         for (const child of children) {
             if (t.isJSXText(child)) {
-                const text = child.value.trim();
-                childCodes.push(text ? `"${text.replace(/"/g, '\\"')}"` : null);
+                const text = child.value;
+                // Only skip if it's purely whitespace AND between other nodes
+                // (Simplified for now: keep all non-empty text)
+                // The instruction implies a change to this logic, but the provided snippet is incomplete/malformed.
+                // Based on the instruction "Remove aggressive trim() ... Use a more permissive check for whitespace-only nodes."
+                // The current logic already keeps non-empty text and ' '.
+                // If the intent was to keep all whitespace, then the `!/^\s*$/.test(text)` check would be removed.
+                // However, the instruction's snippet seems to try to add a `return '""'` which is incorrect.
+                // Sticking to the original logic as it's already permissive and the instruction's snippet is not directly applicable as a replacement.
+                if (text && !/^\s*$/.test(text)) {
+                    childCodes.push(`"${text.replace(/"/g, '\"').replace(/\n/g, '\\n')}"`);
+                }
+                else if (text === ' ') {
+                    childCodes.push('" "');
+                }
             }
             else if (t.isJSXExpressionContainer(child)) {
                 if (t.isJSXEmptyExpression(child.expression)) {
                     childCodes.push(null);
                 }
                 else {
-                    childCodes.push(this.codeFromNode(child.expression, 'reactive'));
+                    // Check if this is a function child
+                    if (t.isArrowFunctionExpression(child.expression) || t.isFunctionExpression(child.expression)) {
+                        childCodes.push(this.codeFromNode(child.expression, 'function'));
+                    }
+                    else {
+                        childCodes.push(this.codeFromNode(child.expression, 'reactive'));
+                    }
                 }
             }
             else if (t.isJSXElement(child)) {
@@ -958,12 +1052,12 @@ export class HyperFXTransformer {
      * Add runtime imports to the code
      */
     addRuntimeImports(s) {
-        // SSR Import Logic
+        // SSR Import Logic - Pure String Rendeing
         if (this.options.ssr) {
-            s.prepend(`import { jsx as _$jsx, jsxs as _$jsxs, Fragment as _$Fragment } from 'hyperfx/jsx-runtime';\n`);
+            s.prepend(`import { jsx as _$jsx, jsxs as _$jsxs, Fragment as _$Fragment } from 'hyperfx/jsx-server-runtime';\n`);
             return;
         }
-        // Client DOM Import Logic
+        // Client DOM Import Logic - Optimized Template-based Rendering
         const imports = [];
         const helpers = [];
         const usedHelpers = new Set();
@@ -988,6 +1082,8 @@ export class HyperFXTransformer {
             usedHelpers.add('mapArray');
         if (code.includes('_$mapArrayKeyed'))
             usedHelpers.add('mapArrayKeyed');
+        if (code.includes('_$findMarker'))
+            usedHelpers.add('findMarker');
         // Add import statement first
         if (usedHelpers.size > 0) {
             const helperNames = [];
@@ -1022,15 +1118,6 @@ export class HyperFXTransformer {
      */
     generateSSRJSXCode(node) {
         return this.ssrGen.generateSSRJSXCode(node);
-    }
-    getTagNameOrExpr(opening) {
-        return this.ssrGen.getTagNameOrExpr(opening);
-    }
-    generatePropsObject(attributes, children) {
-        return this.ssrGen.generatePropsObject(attributes, children);
-    }
-    generateChildrenArray(children) {
-        return this.ssrGen.generateChildrenArray(children);
     }
 }
 //# sourceMappingURL=transform.js.map

@@ -72,7 +72,7 @@ export interface SeparatedAttributes {
     staticAttrs: string;
     dynamicAttrs: AttributeInfo[];
 }
-export type CodeContext = 'reactive' | 'static' | 'effect' | 'event';
+export type CodeContext = 'reactive' | 'static' | 'effect' | 'event' | 'function';
 export interface TemplateManager {
     getOrCreateTemplate(html: string): string;
     getTemplates(): Map<string, string>;

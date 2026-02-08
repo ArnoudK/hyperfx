@@ -1,37 +1,13 @@
-import { virtualNodeToHtml, setNodeIdGenerator } from "./virtual-to-html";
+// Server-Side Rendering (SSR) module for HyperFX - Pure String Implementation
 import { getRegisteredSignals } from "../reactive/signal";
-// Node counter for generating unique hydration IDs
-let nodeCounter = 0;
+import { isSSRMode, setSSRMode, clearSSRState, createNodeId } from "../jsx/runtime/hydration";
+export { isSSRMode, setSSRMode, clearSSRState, createNodeId };
 /**
- * Create a unique node ID for hydration
- * Format: 6-digit zero-padded number (e.g., "000001", "000002")
+ * Escape HTML special characters
  */
-export function createNodeId() {
-    nodeCounter++;
-    return String(nodeCounter).padStart(6, '0');
-}
-/**
- * Reset the node counter (used for testing and server-side rendering cleanup)
- */
-export function resetNodeCounter() {
-    nodeCounter = 0;
-}
-// HTML void elements that should not have closing tags
-const VOID_ELEMENTS = new Set([
-    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
-    'link', 'meta', 'param', 'source', 'track', 'wbr'
-]);
-// HTML boolean attributes that should be rendered without values
-const BOOLEAN_ATTRIBUTES = new Set([
-    'autofocus', 'autoplay', 'async', 'checked', 'controls', 'defer',
-    'disabled', 'hidden', 'loop', 'multiple', 'muted', 'open',
-    'readonly', 'required', 'reversed', 'selected'
-]);
-/**
- * Escape HTML special characters to prevent XSS
- * Note: This is re-exported from virtual-to-html for backward compatibility
- */
-function escapeHtml(text) {
+export function escapeHtml(text) {
+    if (typeof text !== 'string')
+        return String(text);
     return text
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -40,177 +16,131 @@ function escapeHtml(text) {
         .replace(/'/g, '&#39;');
 }
 /**
- * Check if a value is a reactive signal
+ * HTML void elements
  */
-function isReactiveSignal(value) {
-    return typeof value === 'function' &&
-        'subscribe' in value &&
-        typeof value.subscribe === 'function';
+const VOID_ELEMENTS = new Set([
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+    'link', 'meta', 'param', 'source', 'track', 'wbr'
+]);
+/**
+ * HTML boolean attributes
+ */
+const BOOLEAN_ATTRIBUTES = new Set([
+    'autofocus', 'autoplay', 'async', 'checked', 'controls', 'defer',
+    'disabled', 'hidden', 'loop', 'multiple', 'muted', 'open',
+    'readonly', 'required', 'reversed', 'selected'
+]);
+/**
+ * Render properties to HTML string
+ */
+export function renderAttributes(props) {
+    let result = '';
+    for (const [key, value] of Object.entries(props)) {
+        if (key === 'children' || key === 'key' || key === 'ref' || key.startsWith('on'))
+            continue;
+        const attrName = key === 'className' ? 'class' : key;
+        if (BOOLEAN_ATTRIBUTES.has(attrName)) {
+            if (value)
+                result += ` ${attrName}`;
+            continue;
+        }
+        if (attrName === 'style' && typeof value === 'object') {
+            const styleStr = Object.entries(value)
+                .map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${v}`)
+                .join('; ');
+            if (styleStr)
+                result += ` style="${escapeHtml(styleStr)}"`;
+            continue;
+        }
+        if (value != null && value !== false) {
+            result += ` ${attrName}="${escapeHtml(String(value))}"`;
+        }
+    }
+    return result;
 }
 /**
- * Render a virtual node (JSX element) to HTML string for SSR
- * Handles both new VirtualNode format and legacy HTMLElement mocks
+ * Main entry point for SSR
  */
-export function renderToString(element, // Accept any for backward compat with mock elements
-options = {}) {
+export function renderToString(element, options = {}) {
     const { ssrHydration = false, initialState } = options;
-    // Note: enableSSRMode() should already be called in server code before component creation
-    // Restore initial state if provided (for stateful SSR)
-    if (ssrHydration && initialState) {
-        if (initialState.signals) {
+    // Reset for new render
+    const prevHydrating = isSSRMode();
+    clearSSRState(); // Reset state
+    setSSRMode(ssrHydration || prevHydrating);
+    try {
+        // Restore initial state if provided
+        if (ssrHydration && initialState?.signals) {
             const registeredSignals = getRegisteredSignals();
             for (const [key, value] of Object.entries(initialState.signals)) {
-                const signal = registeredSignals.get(key);
-                if (signal) {
-                    signal.set(value);
-                }
+                registeredSignals.get(key)?.set(value);
             }
         }
-        // TODO: Restore resources and contexts when implemented
-    }
-    let html;
-    // Always enable node ID generation for hydration attributes (backward compatibility)
-    // Hydration IDs are needed for proper client-side hydration
-    setNodeIdGenerator(createNodeId);
-    try {
-        // Check if this is a VirtualNode (has nodeType property) or a legacy mock element
-        if (element && typeof element === 'object' && 'nodeType' in element) {
-            // New VirtualNode format (DOM-compatible)
-            html = virtualNodeToHtml(element);
+        // Capture the output
+        let result = element;
+        if (typeof element === 'function') {
+            result = element();
         }
-        else if (element && typeof element === 'object' && ('tagName' in element || 'innerHTML' in element)) {
-            // Legacy mock HTMLElement format (from createSafeElement or template())
-            if ('innerHTML' in element && element.innerHTML) {
-                // Mock from template() - just use the innerHTML directly
-                html = element.innerHTML;
+        let html = '';
+        if (result && result.__ssr) {
+            html = result.t;
+        }
+        else if (typeof result === 'string') {
+            html = result;
+        }
+        else if (result && typeof result === 'object') {
+            // Handle real DOM nodes (for tests with happy-dom/jsdom)
+            if ('outerHTML' in result) {
+                html = result.outerHTML;
+            }
+            else if ('textContent' in result) {
+                html = result.textContent || '';
             }
             else {
-                // Mock from createSafeElement
-                html = mockElementToHtml(element);
+                html = String(result || '');
             }
         }
         else {
-            html = '';
+            html = String(result || '');
         }
-    }
-    finally {
-        // Disable node ID generation after rendering
-        setNodeIdGenerator(null);
-    }
-    // Collect serialized state only if hydration is enabled
-    const state = {
-        signals: {},
-        resources: {},
-        contexts: {}
-    };
-    if (ssrHydration) {
-        // Collect signal values
-        const registeredSignals = getRegisteredSignals();
-        for (const [key, signal] of registeredSignals) {
-            try {
+        const state = { signals: {}, resources: {}, contexts: {} };
+        if (ssrHydration) {
+            const registeredSignals = getRegisteredSignals();
+            for (const [key, signal] of registeredSignals) {
                 state.signals[key] = signal.peek();
             }
-            catch (e) {
-                console.warn(`[SSR] Failed to serialize signal "${key}":`, e);
-            }
         }
-        // TODO: Collect resource values when implemented
-        // TODO: Collect context values when implemented
+        return {
+            html,
+            hydrationData: { state, version: '1.0.0' }
+        };
     }
-    const hydrationData = {
-        state,
-        version: '1.0.0'
-    };
-    return { html, hydrationData };
+    finally {
+        setSSRMode(prevHydrating);
+    }
 }
 /**
- * Convert legacy mock HTMLElement to HTML string
- * This handles elements created with createSafeElement()
+ * Create an SSR result for a tag
  */
-function mockElementToHtml(element) {
-    const tagName = (element.tagName || 'div').toLowerCase();
-    let html = `<${tagName}`;
-    // Add className as class attribute
-    if (element.className) {
-        html += ` class="${escapeHtml(element.className)}"`;
+export function ssrElement(tag, props, children) {
+    const t = tag.toLowerCase();
+    let html = `<${t}`;
+    // Inject hydration ID - Removed for ID-less hydration
+    // if (isSSRMode()) {
+    //   html += ` data-hfxh="${createNodeId()}"`;
+    // }
+    html += renderAttributes(props);
+    if (VOID_ELEMENTS.has(t)) {
+        html += '>';
+        return { t: html, __ssr: true };
     }
-    // Add href for links
-    if (element.href) {
-        html += ` href="${escapeHtml(element.href)}"`;
-    }
-    // Add other common attributes
-    if (element.id) {
-        html += ` id="${escapeHtml(element.id)}"`;
-    }
-    // Handle style object
-    if (element.style && typeof element.style === 'object') {
-        const styleStr = Object.entries(element.style)
-            .filter(([_, v]) => v !== '')
-            .map(([k, v]) => `${k}: ${v}`)
-            .join('; ');
-        if (styleStr) {
-            html += ` style="${escapeHtml(styleStr)}"`;
-        }
-    }
-    html += '>';
-    // Add text content
-    if (element.textContent) {
-        html += escapeHtml(element.textContent);
-    }
-    // Add children
-    if (element.childNodes && Array.isArray(element.childNodes)) {
-        for (const child of element.childNodes) {
-            if (typeof child === 'object' && 'nodeType' in child) {
-                // VirtualNode child
-                html += virtualNodeToHtml(child);
-            }
-            else if (typeof child === 'object' && 'tagName' in child) {
-                // Mock element child
-                html += mockElementToHtml(child);
-            }
-            else if (typeof child === 'string') {
-                html += escapeHtml(child);
-            }
-        }
-    }
-    html += `</${tagName}>`;
-    return html;
+    html += `>${children}</${t}>`;
+    return { t: html, __ssr: true };
 }
-/**
- * Render hydration data as inline script that sets window global
- */
 export function renderHydrationData(hydrationData) {
-    const jsonData = JSON.stringify(hydrationData);
-    return `<script>window.__HYPERFX_HYDRATION_DATA__ = ${jsonData};</script>`;
+    return `<script>window.__HYPERFX_HYDRATION_DATA__ = ${JSON.stringify(hydrationData)};</script>`;
 }
-/**
- * Full SSR rendering with hydration data included
- */
 export function renderWithHydration(element) {
-    const { html, hydrationData } = renderToString(element);
+    const { html, hydrationData } = renderToString(element, { ssrHydration: true });
     return html + renderHydrationData(hydrationData);
-}
-/**
- * Stream rendering interface for large components
- * Note: Currently simplified for virtual node implementation
- */
-export function createSSRStream(element) {
-    async function* generateHTML() {
-        // For now, just yield the entire HTML
-        // TODO: Implement true streaming for large virtual node trees
-        yield virtualNodeToHtml(element);
-    }
-    const hydrationData = Promise.resolve({
-        state: {
-            signals: {}, // TODO: Implement signal collection for streaming
-            resources: {},
-            contexts: {}
-        },
-        version: '1.0.0'
-    });
-    return {
-        html: generateHTML(),
-        hydrationData
-    };
 }
 //# sourceMappingURL=render.js.map

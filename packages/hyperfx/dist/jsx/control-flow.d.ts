@@ -15,20 +15,6 @@ export declare function Show<T>(props: {
     children: JSXElement | ((data: T) => JSXElement);
     fallback?: JSXElement | (() => JSXElement);
 }): JSXElement;
-/**
- * ErrorBoundary component for catching and handling errors
- * Can run an Effect when an error occurs
- *
- * @example
- * ```tsx
- * <ErrorBoundary
- *   fallback={(error) => <div>Error: {error.message}</div>}
- *   onError={(error) => Effect.sync(() => console.error(error))}
- * >
- *   <MyComponent />
- * </ErrorBoundary>
- * ```
- */
 export declare function ErrorBoundary(props: {
     fallback: (error: unknown) => JSXElement;
     onError?: (error: unknown) => void;

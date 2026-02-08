@@ -27,15 +27,26 @@ export type ReactiveString = ReactiveValue<string>;
 export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
 
-// JSX Element types
-// Note: Virtual nodes (used in SSR) implement the same interfaces as real DOM nodes
-// so they're type-compatible and don't need to be listed separately
-export type JSXElement =
+import type { SSRNode } from "../../ssr/render";
+type HTMLelementLike =
   | HTMLElement
   | DocumentFragment
   | Text
   | Comment
-  | null;
+  | SSRNode
+  | null
+  | undefined;
+
+  // Bridges to break circularity
+  interface RecursiveSignal extends Signal<JSXElement> {}
+  interface RecursiveComputed extends ComputedSignal<JSXElement> {}
+  
+  export type JSXElement =
+    | HTMLelementLike
+    | JSXElement[]
+    | (() => JSXElement)
+    | RecursiveSignal // Explanatory: Using the interface here breaks the circular reference loop
+    | RecursiveComputed;
 
 export type JSXChildPrimitive = string | number | boolean | null | undefined;
 

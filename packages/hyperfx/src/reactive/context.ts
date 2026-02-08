@@ -1,6 +1,6 @@
-
 import type { JSXElement, JSXChildren } from "../jsx/jsx-runtime";
-import { createVirtualFragment } from "../jsx/runtime/virtual-node";
+import { isSSR, createUniversalFragment } from "../jsx/runtime/universal-node";
+import type { SSRNode } from "../ssr/render";
 
 /**
  * Context API for HyperFX
@@ -37,7 +37,7 @@ export function createContext<T>(defaultValue: T): Context<T> {
 
         // Execute children
         let children: any;
-        
+
         try {
             if (typeof props.children === 'function') {
                 children = (props.children as () => JSXElement)();
@@ -66,19 +66,17 @@ export function createContext<T>(defaultValue: T): Context<T> {
         // Simplest way to return children without extra wrapper is just returning them.
         // However, JSX expects JSXElement.
         // If multiple children, fragment.
+        // If multiple children, fragment.
         if (Array.isArray(children)) {
-            // SSR-safe fragment creation
-            if (typeof document === 'undefined') {
-                // Server-side: use virtual fragment
-                return createVirtualFragment(children) as unknown as JSXElement;
-            } else {
-                // Client-side: use DOM fragment
-                const fragment = document.createDocumentFragment();
-                children.forEach(child => {
-                    if (child instanceof Node) fragment.appendChild(child);
-                });
-                return fragment;
-            }
+            const fragment = createUniversalFragment();
+            children.forEach(child => {
+                if (isSSR()) {
+                    (fragment as SSRNode).appendChild!(child as SSRNode);
+                } else if (child instanceof Node) {
+                    (fragment as DocumentFragment).appendChild(child);
+                }
+            });
+            return fragment as unknown as JSXElement;
         }
 
         return children as JSXElement;
