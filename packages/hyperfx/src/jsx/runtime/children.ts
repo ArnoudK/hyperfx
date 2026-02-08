@@ -1,49 +1,93 @@
 import { isSignal } from "../../reactive/signal";
-import { isHydrationEnabled } from "./hydration";
+import { isHydrationEnabled, pushHydrationContext, popHydrationContext } from "./hydration";
 import { createTextNode } from "./elements";
 import type { JSXChildren } from "./types";
 
-// Improved renderChildren that handles recursion by flattening
-function renderChildrenFlattened(parent: HTMLElement | DocumentFragment, children: JSXChildren, appendedSet?: Set<Node>): void {
+// Improved renderChildren that handles recursion by flattening and node claiming for hydration
+function renderChildrenFlattened(
+  parent: HTMLElement | DocumentFragment,
+  children: JSXChildren,
+  appendedSet?: Set<Node>,
+  hydrationCursor?: { index: number; nodes: Node[] }
+): void {
   const childArray = Array.isArray(children) ? children : [children];
 
   for (const child of childArray) {
     if (child == null || child === false || child === true) continue;
 
+    let node: Node | null = null;
+    const canClaim = hydrationCursor && hydrationCursor.index < hydrationCursor.nodes.length;
+
     if (isSignal(child)) {
       const value = child();
       if (value instanceof Node) {
-        parent.appendChild(value);
-        appendedSet?.add(value);
+        node = value;
       } else {
-        const textNode = createTextNode(child);
-        parent.appendChild(textNode);
-        appendedSet?.add(textNode);
+        // Try to claim existing text node
+        if (canClaim) {
+          const existing = hydrationCursor!.nodes[hydrationCursor!.index];
+          if (existing?.nodeType === 3) { // Text node
+            existing.textContent = String(value);
+            node = existing;
+            hydrationCursor!.index++;
+
+            // Attach reactivity to the claimed node
+            child.subscribe((val) => {
+              if (node) node.textContent = String(val);
+            });
+          }
+        }
+        if (!node) {
+          node = createTextNode(child);
+        }
       }
     } else if (typeof child === 'function') {
       try {
         const result = child();
         if (result instanceof Node) {
-          parent.appendChild(result);
-          appendedSet?.add(result);
+          node = result;
         } else if (Array.isArray(result)) {
-          // Recursion!
-          renderChildrenFlattened(parent, result, appendedSet);
+          renderChildrenFlattened(parent, result, appendedSet, hydrationCursor);
+          continue;
         } else {
-          const textNode = document.createTextNode(String(result));
-          parent.appendChild(textNode);
-          appendedSet?.add(textNode);
+          // Try to claim existing text node
+          if (canClaim) {
+            const existing = hydrationCursor!.nodes[hydrationCursor!.index];
+            if (existing?.nodeType === 3) {
+              existing.textContent = String(result);
+              node = existing;
+              hydrationCursor!.index++;
+            }
+          }
+          if (!node) {
+            node = document.createTextNode(String(result));
+          }
         }
       } catch (error) {
         console.warn('Error rendering function child:', error);
       }
     } else if (typeof child === 'object' && child instanceof Node) {
-      parent.appendChild(child);
-      appendedSet?.add(child);
+      node = child;
     } else {
-      const textNode = document.createTextNode(String(child));
-      parent.appendChild(textNode);
-      appendedSet?.add(textNode);
+      // Try to claim existing text node
+      if (canClaim) {
+        const existing = hydrationCursor!.nodes[hydrationCursor!.index];
+        if (existing?.nodeType === 3) {
+          existing.textContent = String(child);
+          node = existing;
+          hydrationCursor!.index++;
+        }
+      }
+      if (!node) {
+        node = document.createTextNode(String(child));
+      }
+    }
+
+    if (node) {
+      if (!parent.contains(node)) {
+        parent.appendChild(node);
+      }
+      appendedSet?.add(node);
     }
   }
 }
@@ -54,20 +98,28 @@ export function renderChildren(parent: HTMLElement | DocumentFragment, children:
 
   const isHydratingParent = isHydrationEnabled() &&
     (parent instanceof HTMLElement && parent.isConnected ||
-      parent === document.body);
+      parent === document.body); // Body is always connected but good to be explicit
+
+  if (isHydratingParent) {
+    // Push the context to the parent's first child
+    pushHydrationContext(parent.firstChild);
+  }
 
   const appendedNodes = isHydratingParent ? new Set<Node>() : undefined;
   const initialChildNodes = isHydratingParent ? Array.from(parent.childNodes) : null;
+  const hydrationCursor = isHydratingParent ? { index: 0, nodes: initialChildNodes! } : undefined;
 
   // Use flattened renderer
-  renderChildrenFlattened(parent, children, appendedNodes);
+  renderChildrenFlattened(parent, children, appendedNodes, hydrationCursor);
 
-  // Cleanup
+  // Clean up nodes that were not claimed or appended
   if (isHydratingParent && initialChildNodes && appendedNodes) {
     for (const node of initialChildNodes) {
       if (!appendedNodes.has(node)) {
         node.remove();
       }
     }
+    // Pop the context
+    popHydrationContext();
   }
 }

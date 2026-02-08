@@ -1,9 +1,16 @@
 import { createSignal, createComputed } from "hyperfx";
-import { useState } from "hyperfx";
+import { createRoute } from "hyperfx-extra";
+
+
+export const HomeRoute = createRoute('/',
+  {
+    view: HomePage
+  }
+)
 
 export function HomePage() {
 
-  const [thing, setThing] = useState('Thing');
+  const thing = createSignal('Thing');
 
   const name = createSignal('');
   const count = createSignal(0);
@@ -34,8 +41,8 @@ export function HomePage() {
         </p>
       </div>
       <div>
-        <input value={thing} class="p-2 border border-gray-300 rounded" type="text" oninput={(e) => setThing((e.target as any).value)} />
-        <p>{thing}</p>
+        <input value={thing()} class="p-2 border border-gray-300 rounded" type="text" oninput={(e) => thing((e.target as HTMLInputElement).value)} />
+        <p>{thing()}</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -105,36 +112,6 @@ export function HomePage() {
               </p>
 
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Overview */}
-      <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-        <h2 class="text-2xl font-semibold text-cyan-400 mb-4">
-          HyperFX Features
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="text-center p-4 bg-gray-700 rounded-lg">
-            <div class="text-3xl mb-2">⚡</div>
-            <h3 class="font-semibold text-white mb-2">Reactive Signals</h3>
-            <p class="text-sm text-gray-300">
-              Fine-grained reactivity with automatic dependency tracking
-            </p>
-          </div>
-          <div class="text-center p-4 bg-gray-700 rounded-lg">
-            <div class="text-3xl mb-2">🎯</div>
-            <h3 class="font-semibold text-white mb-2">JSX Support</h3>
-            <p class="text-sm text-gray-300">
-              Modern component syntax with full TypeScript support
-            </p>
-          </div>
-          <div class="text-center p-4 bg-gray-700 rounded-lg">
-            <div class="text-3xl mb-2">🚀</div>
-            <h3 class="font-semibold text-white mb-2">Fast Rendering</h3>
-            <p class="text-sm text-gray-300">
-              Efficient DOM updates with smart diffing algorithms
-            </p>
           </div>
         </div>
       </div>

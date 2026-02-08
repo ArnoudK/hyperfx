@@ -1,5 +1,14 @@
 import { createSignal } from "hyperfx";
 import { For } from "hyperfx";
+import { createRoute } from "hyperfx-extra";
+
+
+
+export const ArrayTestRoute = createRoute('array-test', {
+  view: ArrayTest
+}
+)
+
 
 export function ArrayTest() {
   const reactiveArray = createSignal(['Reactive A', 'Reactive B', 'Reactive C']);

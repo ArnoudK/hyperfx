@@ -4,10 +4,13 @@ import { addToBatch } from "./batching";
 import type { NormalizedValue } from "./types";
 
 // Track signal subscriptions for each element for cleanup
-const elementSubscriptions = new WeakMap<Element, Set<() => void>>();
+// Use globalThis to avoid multiple instances in mono-repos
+const elementSubscriptions = (globalThis as any).__HYPERFX_ELEMENT_SUBSCRIPTIONS__ ||
+  ((globalThis as any).__HYPERFX_ELEMENT_SUBSCRIPTIONS__ = new WeakMap<Element, Set<() => void>>());
 
 // Track computed signals for each element so we can destroy them
-const elementComputedSignals = new WeakMap<Element, Set<{ destroy: () => void }>>();
+const elementComputedSignals = (globalThis as any).__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ ||
+  ((globalThis as any).__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ = new WeakMap<Element, Set<{ destroy: () => void }>>());
 
 // Helper to handle reactive values (signals or functions)
 export function handleReactiveValue(
@@ -23,7 +26,7 @@ export function handleReactiveValue(
       if (isComputed) {
         addElementComputedSignal(element, value as any);
       }
-      
+
       const update = () => {
         try {
           setter(element, value());
@@ -37,10 +40,10 @@ export function handleReactiveValue(
       update(); // initial
     } else if (typeof value === 'function') {
       const computed = signal_createComputed(value as () => any);
-      
+
       // Track the computed signal for cleanup
       addElementComputedSignal(element, computed);
-      
+
       const update = () => {
         try {
           setter(element, computed());
@@ -120,7 +123,7 @@ export function cleanupElementSubscriptions(element: Element): void {
   // Clean up regular subscriptions
   const subscriptions = elementSubscriptions.get(element);
   if (subscriptions) {
-    subscriptions.forEach(unsubscribe => {
+    subscriptions.forEach((unsubscribe: () => void) => {
       try {
         unsubscribe();
       } catch (error) {
@@ -130,11 +133,11 @@ export function cleanupElementSubscriptions(element: Element): void {
     subscriptions.clear();
     elementSubscriptions.delete(element);
   }
-  
+
   // Clean up computed signals
   const computedSignals = elementComputedSignals.get(element);
   if (computedSignals) {
-    computedSignals.forEach(computed => {
+    computedSignals.forEach((computed: { destroy: () => void }) => {
       try {
         computed.destroy();
       } catch (error) {

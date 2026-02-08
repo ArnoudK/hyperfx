@@ -25,8 +25,7 @@ export class TemplateGenerator {
   private templatesByHTML = new Map<string, string>();
 
   constructor(
-    private readonly getAttributeValue: (attr: t.JSXAttribute) => string | null
-  ) {}
+  ) { }
 
   /**
    * Get or create a template (with deduplication)
@@ -80,7 +79,7 @@ export class TemplateGenerator {
   analyzeDynamicElement(node: t.JSXElement): DynamicElementAnalysis | null {
     const dynamics: DynamicPart[] = [];
     const markerCounter = { value: 0 };
-    const templateHTML = this.buildTemplateWithMarkers(node, dynamics, markerCounter);
+    const templateHTML = this.buildTemplateWithMarkers(node, dynamics, markerCounter, []);
     return { templateHTML, dynamics };
   }
 
@@ -90,24 +89,25 @@ export class TemplateGenerator {
   private buildTemplateWithMarkers(
     node: t.JSXElement,
     dynamics: DynamicPart[],
-    markerCounter: { value: number }
+    markerCounter: { value: number },
+    currentPath: string[]
   ): string {
     const tagName = this.getTagName(node.openingElement);
     const { staticAttrs, dynamicAttrs } = this.separateAttributes(node.openingElement.attributes);
 
-    // Add dynamic attributes to dynamics array
+    // Add dynamic attributes to dynamics array with current path
     for (const dynAttr of dynamicAttrs) {
       dynamics.push({
         type: 'attribute',
         markerId: -1,
         expression: dynAttr.value,
-        path: [],
+        path: [...currentPath],
         attributeName: dynAttr.name,
       });
     }
 
     // Process children
-    const childrenHTML = this.buildChildrenWithMarkers(node.children, dynamics, markerCounter);
+    const childrenHTML = this.buildChildrenWithMarkers(node.children, dynamics, markerCounter, currentPath, tagName);
 
     if (node.openingElement.selfClosing) {
       return `<${tagName}${staticAttrs} />`;
@@ -122,9 +122,13 @@ export class TemplateGenerator {
   private buildChildrenWithMarkers(
     children: Array<t.JSXText | t.JSXElement | t.JSXExpressionContainer | t.JSXFragment | t.JSXSpreadChild>,
     dynamics: DynamicPart[],
-    markerCounter: { value: number }
+    markerCounter: { value: number },
+    parentPath: string[],
+    parentTag: string
   ): string {
     const parts: string[] = [];
+    let childIndex = 0;
+    
     for (const child of children) {
       if (t.isJSXText(child)) {
         parts.push(child.value);
@@ -141,25 +145,52 @@ export class TemplateGenerator {
           type: 'child',
           markerId,
           expression: child.expression,
-          path: [],
+          path: [...parentPath],
         });
         parts.push(`<!--#${markerId}-->`);
         continue;
       }
 
       if (t.isJSXElement(child)) {
-        parts.push(this.buildTemplateWithMarkers(child, dynamics, markerCounter));
+        if (this.isComponentElement(child)) {
+          const markerId = markerCounter.value++;
+          dynamics.push({
+            type: 'element',
+            markerId,
+            expression: child,
+            path: [...parentPath],
+          });
+          parts.push(`<!--#${markerId}-->`);
+          continue;
+        }
+
+        // Build path for this child element
+        const childPath = [...parentPath, `${parentTag}[${childIndex}]`];
+        parts.push(this.buildTemplateWithMarkers(child, dynamics, markerCounter, childPath));
+        childIndex++;
         continue;
       }
 
       if (t.isJSXFragment(child)) {
-        parts.push(this.buildChildrenWithMarkers(child.children, dynamics, markerCounter));
+        parts.push(this.buildChildrenWithMarkers(child.children, dynamics, markerCounter, parentPath, parentTag));
         continue;
       }
 
       parts.push('');
     }
     return parts.join('');
+  }
+
+  /**
+   * Check if a JSX element is a component (vs HTML element)
+   */
+  private isComponentElement(node: t.JSXElement): boolean {
+    if (t.isJSXIdentifier(node.openingElement.name)) {
+      const tagName = node.openingElement.name.name;
+      return /^[A-Z]/.test(tagName);
+    }
+    // Member expressions (e.g., Foo.Bar) and namespaced names are also components
+    return true;
   }
 
   /**
@@ -200,7 +231,7 @@ export class TemplateGenerator {
             // Skip non-static attributes
             continue;
           }
-          
+
           // Format as HTML attribute
           if (attrValue === 'true' && this.isBooleanAttribute(name)) {
             staticAttrsList.push(name);
@@ -243,7 +274,7 @@ export class TemplateGenerator {
     for (const attr of attributes) {
       if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name)) {
         const attrName = attr.name.name;
-        
+
         // Get the raw value (not JavaScript code)
         let value: string;
         if (!attr.value) {
@@ -254,7 +285,7 @@ export class TemplateGenerator {
           // For expressions, skip them (templates only support static values)
           continue;
         }
-        
+
         if (value !== null) {
           // Check if it's a boolean attribute
           if (value === 'true' && this.isBooleanAttribute(attrName)) {
@@ -283,6 +314,8 @@ export class TemplateGenerator {
     for (const child of children) {
       if (t.isJSXText(child)) {
         parts.push(child.value);
+      } else if (t.isJSXElement(child)) {
+        parts.push(this.generateTemplateHTML(child));
       } else {
         parts.push('');
       }

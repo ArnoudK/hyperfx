@@ -1,17 +1,17 @@
-import { ReactiveSignal, createSignal, createSignal as signal_createSignal, createComputed as signal_createComputed, createEffect as signal_createEffect, batch as signal_batch } from "./signal";
+import { createSignal, isSignal, unwrapSignal, createComputed as signal_createComputed, createEffect as signal_createEffect, batch as signal_batch, Signal, ReactiveSignal } from "./signal.js";
 
 /**
  * State management utilities using custom Signal implementation
  */
 
+/** Re-export types */
+export type { Signal, ReactiveSignal };
+
+/** Re-export utilities */
+export { createSignal, isSignal, unwrapSignal };
+
 /** Type for a computed signal */
 export type ComputedSignal<T> = ReactiveSignal<T>;
-
-/** Re-export ReactiveSignal */
-export type { ReactiveSignal };
-
-/** Re-export createSignal */
-export { createSignal };
 
 /** Type for signal_createEffect cleanup function */
 export type EffectCleanup = () => void;
@@ -61,7 +61,7 @@ export class StateStore {
       throw new Error(`Signal with key "${key}" already exists`);
     }
 
-    const sig = signal_createSignal(initialValue);
+    const sig = createSignal(initialValue);
     this.signals.set(key, sig);
     return sig;
   }
@@ -162,7 +162,8 @@ export class StateStore {
         current(obj);
       }
       if (!(key in obj) || typeof obj[key] !== 'function') {
-        obj[key as string | number] = this.defineSignal(path.slice(0, i + 1).join('.'), undefined);
+        const newSig = createSignal(undefined);
+        obj[key as string | number] = newSig;
         current(obj);
       }
       current = obj[key as string | number];
@@ -174,7 +175,8 @@ export class StateStore {
     if (typeof obj !== 'object' || obj === null) {
       obj = {};
     }
-    obj[lastKey as string | number] = this.defineSignal(path.join('.'), value);
+    const finalSig = createSignal(value);
+    obj[lastKey as string | number] = finalSig;
     current(obj);
   }
 }
@@ -196,12 +198,8 @@ export function createStore(): StateStore {
  */
 export function useState<T>(
   initialValue: T
-): [() => T, (value: T | ((prev: T) => T)) => void] {
-  const sig = signal_createSignal(initialValue);
-
-
-
-  return [sig, sig];
+): Signal<T> {
+  return createSignal(initialValue);
 }
 
 /**
@@ -266,3 +264,6 @@ export function combine<T extends readonly unknown[]>(
 ): ComputedSignal<T> {
   return signal_createComputed(() => signals.map(sig => sig()) as unknown as T);
 }
+
+// Re-export types from elsewhere if needed
+// export type { NormalizedValue } from "../jsx/runtime/types.js";

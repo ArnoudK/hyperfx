@@ -1,5 +1,5 @@
 packages:
-  - packages/hyperfx
+  - packages/**
   - example_project
   - ssr-example
   - docs

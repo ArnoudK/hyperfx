@@ -1,42 +1,43 @@
 {
 	"compilerOptions": {
 		// Lib stuff
-		"lib": ["ES2020", "DOM"],
+		"lib": [
+			"ES2020",
+			"DOM"
+		],
 		"target": "ES2020",
 		"module": "ES2020",
 		"moduleDetection": "force",
 		"allowJs": true,
 		"esModuleInterop": true,
-		
 		// JSX Configuration
 		"jsx": "preserve",
-		"jsxImportSource": "./src/jsx",
-		
+		"jsxImportSource": "./src/jsx/runtime",
 		// Bundler Stuff
 		"moduleResolution": "Bundler",
-
 		"strict": true,
 		"skipLibCheck": true,
 		"noFallthroughCasesInSwitch": true,
 		"rootDir": "src",
 		"noUncheckedIndexedAccess": true,
-		"noUnusedLocals": false,
-		"noUnusedParameters": false,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
 		"strictNullChecks": true,
+		"noImplicitAny": true,
 		"noPropertyAccessFromIndexSignature": false,
 		"allowSyntheticDefaultImports": true,
-		 "emitDecoratorMetadata": true,
+		"emitDecoratorMetadata": true,
 		"experimentalDecorators": true,
 		"outDir": "dist",
 		"tsBuildInfoFile": "dist/.tsbuildinfo",
 		"declaration": true,
 		"sourceMap": true
-		},
+	},
 	"exclude": [
 		"**/*.config.*s",
 		"build",
 		"dist",
-		"test",
+		"../hyperfx-test/test",
 		"example_project",
 		"tsup.config.ts"
 	]

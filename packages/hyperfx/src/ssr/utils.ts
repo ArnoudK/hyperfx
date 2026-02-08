@@ -1,7 +1,4 @@
-// SSR utilities and common patterns - Virtual Node Implementation
-import type { VirtualNode } from "../jsx/runtime/virtual-node";
-import { createVirtualFragment, createVirtualElement } from "../jsx/runtime/virtual-node";
-import { renderToString } from "./render";
+import { renderToString, SSRNode } from "./render";
 
 /**
  * SSR context for passing server-side data
@@ -69,80 +66,22 @@ export class SSRRenderer {
    * Render a page with full HTML document
    */
   renderPage(
-    element: VirtualNode | VirtualNode[],
+    element: SSRNode | string,
     options: HtmlDocumentOptions = {}
   ): string {
     return this.renderDocument(element, options);
   }
 
   /**
-   * Render with streaming support (for large pages)
-   */
-  async *renderStream(
-    element: VirtualNode | VirtualNode[],
-    options: HtmlDocumentOptions = {}
-  ): AsyncIterableIterator<string> {
-    yield '<!DOCTYPE html>';
-    yield `<html lang="${options.lang || 'en'}">`;
-    yield '<head>';
-    
-    const metaTags = this.generateMetaTags(options);
-    yield metaTags;
-    
-    yield '</head>';
-    yield '<body>';
-    
-    // Render element in chunks
-    yield this.renderPage(element);
-    
-    yield '</body>';
-    yield '</html>';
-  }
-
-  /**
-   * Render with hydration support
-   */
-  renderWithHydration(element: VirtualNode): {
-    html: string;
-    hydrationScript: string;
-    fullDocument?: string;
-  } {
-    const { html: elementHtml, hydrationData } = renderToString(element);
-    
-    // Helper function to create the hydration script
-    function createHydrationScript(data: unknown): string {
-      return `<script type="application/json" id="__HYPERFX_HYDRATION_DATA__">${JSON.stringify(data)}</script>`;
-    }
-
-    const hydrationScript = createHydrationScript(hydrationData);
-    const fullDocument = this.renderPage(element);
-
-    return {
-      html: elementHtml,
-      hydrationScript,
-      fullDocument
-    };
-  }
-
-  /**
-   * Render a full HTML document
+   * Render as string
    */
   private renderDocument(
-    element: VirtualNode | VirtualNode[],
+    element: SSRNode | string,
     options: HtmlDocumentOptions
   ): string {
-    let elementToRender: VirtualNode;
-    if (Array.isArray(element)) {
-      // Create a virtual fragment for multiple elements
-      elementToRender = createVirtualFragment(element);
-    } else {
-      elementToRender = element;
-    }
-    
-    const { html: elementHtml } = renderToString(elementToRender);
-
+    const { html: elementHtml } = renderToString(element);
     const metaTags = this.generateMetaTags(options);
-    
+
     return `<!DOCTYPE html>
 <html lang="${options.lang || 'en'}">
 <head>
@@ -200,34 +139,13 @@ ${options.inlineScripts ? `<script>\n${options.inlineScripts}\n</script>` : ''}
   }
 
   /**
-   * Generate critical CSS for above-the-fold content
-   */
-  private generateCriticalCSS(): string {
-    // Basic critical CSS - can be extended
-    return `
-      /* Critical CSS for HyperFX SSR */
-      body { margin: 0; font-family: system-ui, sans-serif; }
-      [data-hfx-hydration] { /* Hydration markers */ }
-    `;
-  }
-
-  /**
    * Check if request is from a bot/crawler
    */
   static isBot(userAgent: string): boolean {
     const botPatterns = [
-      /googlebot/i,
-      /bingbot/i,
-      /slurp/i,
-      /duckduckbot/i,
-      /baiduspider/i,
-      /yandexbot/i,
-      /twitterbot/i,
-      /facebookexternalhit/i,
-      /linkedinbot/i,
-      /whatsapp/i
+      /googlebot/i, /bingbot/i, /slurp/i, /duckduckbot/i, /baiduspider/i,
+      /yandexbot/i, /twitterbot/i, /facebookexternalhit/i, /linkedinbot/i, /whatsapp/i
     ];
-
     return botPatterns.some(pattern => pattern.test(userAgent));
   }
 }
@@ -236,12 +154,12 @@ ${options.inlineScripts ? `<script>\n${options.inlineScripts}\n</script>` : ''}
  * Static site generation helpers
  */
 export class StaticGenerator {
-  private routes: Map<string, () => VirtualNode | Promise<VirtualNode>> = new Map();
+  private routes: Map<string, () => (SSRNode | string) | Promise<SSRNode | string>> = new Map();
 
   /**
    * Add a route handler
    */
-  addRoute(path: string, component: () => VirtualNode | Promise<VirtualNode>): void {
+  addRoute(path: string, component: () => (SSRNode | string) | Promise<SSRNode | string>): void {
     this.routes.set(path, component);
   }
 
@@ -250,35 +168,18 @@ export class StaticGenerator {
    */
   async generateAll(_outputDir: string = './dist'): Promise<Map<string, string>> {
     const pages = new Map<string, string>();
-
     for (const [path, component] of this.routes) {
       try {
         const element = await component();
         const context: SSRContext = { url: path };
         const renderer = new SSRRenderer(context);
         const html = renderer.renderPage(element);
-
         pages.set(path, html);
       } catch (error) {
         console.error(`Failed to generate page for ${path}:`, error);
       }
     }
-
     return pages;
-  }
-
-  /**
-   * Generate sitemap.xml
-   */
-  generateSitemap(baseUrl: string): string {
-    const urls = Array.from(this.routes.keys())
-      .map(path => `  <url><loc>${baseUrl}${path}</loc></url>`)
-      .join('\n');
-
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls}
-</urlset>`;
   }
 }
 
@@ -287,23 +188,20 @@ ${urls}
  */
 export const SSRUtils = {
   /**
-   * Create a server-safe component that handles client-only features
+   * Create a server-safe component
    */
   serverSafe<T>(
-    serverComponent: () => VirtualNode,
+    serverComponent: () => (SSRNode | string),
     clientComponent: () => T,
-    fallback?: () => VirtualNode
-  ): () => VirtualNode | T {
+    fallback?: () => (SSRNode | string)
+  ): () => (SSRNode | string) | T {
     return () => {
       if (typeof window === 'undefined') {
-        // Server-side
         return serverComponent();
       } else {
-        // Client-side
         try {
           return clientComponent();
         } catch (error) {
-          console.warn('Client component failed, using fallback:', error);
           return fallback ? fallback() : serverComponent();
         }
       }
@@ -311,9 +209,9 @@ export const SSRUtils = {
   },
 
   /**
-   * Conditional rendering based on environment
+   * Conditional rendering
    */
-  clientOnly<T>(component: () => T, fallback?: () => VirtualNode): () => VirtualNode | T | null {
+  clientOnly<T>(component: () => T, fallback?: () => (SSRNode | string)): () => (SSRNode | string) | T | null {
     return () => {
       if (typeof window === 'undefined') {
         return fallback ? fallback() : null;
@@ -325,23 +223,12 @@ export const SSRUtils = {
   /**
    * Server-only rendering
    */
-  serverOnly(component: () => VirtualNode): () => VirtualNode | null {
+  serverOnly(component: () => (SSRNode | string)): () => (SSRNode | string) | null {
     return () => {
       if (typeof window === 'undefined') {
         return component();
       }
       return null;
     };
-  },
-
-  /**
-   * Create placeholder for client-side hydration
-   */
-  createHydrationPlaceholder(id: string, tagName: string = 'div'): VirtualNode {
-    return createVirtualElement(tagName, {
-      id,
-      'data-hydration-placeholder': 'true',
-      style: 'display: none'
-    }, []);
   }
 };

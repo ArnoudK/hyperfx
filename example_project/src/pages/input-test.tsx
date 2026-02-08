@@ -1,4 +1,9 @@
 import { createSignal } from "hyperfx";
+import { createRoute } from "hyperfx-extra";
+
+export const InputRoute = createRoute('input-test', {
+  view: InputTest
+})
 
 export function InputTest() {
   const inputValue = createSignal('');

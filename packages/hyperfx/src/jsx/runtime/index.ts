@@ -1,9 +1,12 @@
-// Re-export all runtime functionality
-export * from './types';
-export * from './batching';
-export * from './reactive';
-export * from './attributes';
-export * from './hydration';
-export * from './elements';
-export * from './children';
-export * from './factory';
+// Re-export all common runtime functionality
+export * from './types.js';
+export * from './batching.js';
+export * from './reactive.js';
+export * from './attributes.js';
+export * from './hydration.js';
+export * from './elements.js';
+export * from './children.js';
+export * from './constants.js';
+
+// Default to the client-side factory - curated exports to avoid conflicts (like Fragment)
+export { jsx, jsxs, jsxDEV, createJSXElement, createElement } from './factory.js';

@@ -6,7 +6,6 @@
  */
 
 // Global tracking context for automatic dependency detection
-let currentComputation: Signal | null = null;
 let isTracking = false;
 const accessedSignals = new Set<Signal>();
 
@@ -59,6 +58,7 @@ export type Signal<T = any> = {
   update(updater: (current: T) => T): T;
   subscriberCount: number;
   key?: string; // Optional key for SSR serialization
+  [Symbol.iterator](): Iterator<any>;
 };
 
 /**
@@ -101,7 +101,7 @@ class SignalImpl<T = any> {
     // Copy subscribers array before iterating to avoid issues
     // when subscribers modify the subscription list during notification
     const subscribersToNotify = Array.from(this.subscribers);
-    
+
     subscribersToNotify.forEach((callback) => {
       try {
         callback(newValue);
@@ -176,9 +176,13 @@ export function createSignal<T>(initialValue: T, options?: SignalOptions): Signa
       subscribe: (callback: (value: T) => void) => signal.subscribe(callback),
       peek: () => signal.peek(),
       update: (updater: (current: T) => T) => signal.update(updater),
-      key: options?.key
+      key: options?.key,
+      [Symbol.iterator]: function* () {
+        yield callableSignal;
+        yield callableSignal;
+      }
     }
-  ) as Signal<T>;
+  ) as unknown as Signal<T>;
 
   // Add subscriberCount getter dynamically
   Object.defineProperty(callableSignal, 'subscriberCount', {
@@ -266,39 +270,39 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
   let isDisposed = false;
   let isRunning = false; // Prevent re-entrance during signal notifications
   let pendingRun = false; // Track if we should run after current execution
-  
+
   // Function to run the effect and update subscriptions
   const runEffect = () => {
     if (isDisposed) return;
-    
+
     // If already running, defer this run until current one completes
     if (isRunning) {
       pendingRun = true;
       return;
     }
-    
+
     // Loop to stabilize when effects trigger themselves
     let iterations = 0;
     const MAX_ITERATIONS = 100;
-    
+
     while (iterations < MAX_ITERATIONS) {
       pendingRun = false;
-      
+
       // Unsubscribe from previous dependencies
       unsubscribers.forEach(unsub => unsub());
       unsubscribers = [];
-      
+
       // Call previous cleanup if any
       if (typeof cleanup === 'function') {
         cleanup();
         cleanup = undefined;
       }
-      
+
       // Track dependencies during effect run
       const oldTracking = isTracking;
       isTracking = true;
       accessedSignals.clear();
-      
+
       try {
         // Run effect
         cleanup = effectFn();
@@ -306,34 +310,34 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
         // Reset tracking
         isTracking = oldTracking;
       }
-      
+
       // Subscribe to all accessed signals
       const dependencies = Array.from(accessedSignals);
       accessedSignals.clear();
-      
+
       unsubscribers = dependencies.map(dep =>
         dep.subscribe(() => {
           // Trigger effect to run (will be deferred if currently running)
           runEffect();
         })
       );
-      
+
       // If no new run was triggered during execution, we're done
       if (!pendingRun) {
         break;
       }
-      
+
       iterations++;
     }
-    
+
     if (iterations >= MAX_ITERATIONS) {
       console.error('createEffect: Maximum iterations reached - possible infinite loop in effect');
       pendingRun = false;
     }
-    
+
     isRunning = false;
   };
-  
+
   // Initial run (synchronous)
   runEffect();
 
