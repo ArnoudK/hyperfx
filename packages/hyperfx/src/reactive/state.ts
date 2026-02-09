@@ -47,8 +47,8 @@ export function createEffect(effectFn: () => void | (() => void)): EffectCleanup
  * State store class for managing related state
  */
 export class StateStore {
-  private signals = new Map<string, ReactiveSignal<any>>();
-  private computedSignals = new Map<string, ComputedSignal<any>>();
+  private signals = new Map<string, ReactiveSignal<unknown>>();
+  private computedSignals = new Map<string, ComputedSignal<unknown>>();
   private effects: EffectCleanup[] = [];
 
   /**
@@ -62,7 +62,7 @@ export class StateStore {
     }
 
     const sig = createSignal(initialValue);
-    this.signals.set(key, sig);
+    this.signals.set(key, sig as ReactiveSignal<unknown>);
     return sig;
   }
 
@@ -85,7 +85,7 @@ export class StateStore {
     }
 
     const comp = signal_createComputed(computation);
-    this.computedSignals.set(key, comp);
+    this.computedSignals.set(key, comp as ComputedSignal<unknown>);
     return comp;
   }
 
@@ -133,51 +133,52 @@ export class StateStore {
   /**
    * Get a nested signal_createSignal by path (e.g., ['user', 'profile', 'name'])
    */
-  getNestedSignal<T>(root: ReactiveSignal<any>, path: (string | number)[]): ReactiveSignal<T> | undefined {
-    let current: any = root;
+  getNestedSignal<T>(root: ReactiveSignal<unknown>, path: (string | number)[]): ReactiveSignal<T> | undefined {
+    let current: unknown = root;
     for (const key of path) {
       if (key === undefined || key === null) return undefined;
       if (!current || typeof current !== 'function') return undefined;
       const value = current();
       if (typeof value === 'object' && value !== null && key in value) {
-        current = value[key];
+        current = (value as Record<string | number, unknown>)[key];
       } else {
         return undefined;
       }
     }
-    return typeof current === 'function' ? current : undefined;
+    return typeof current === 'function' ? (current as ReactiveSignal<T>) : undefined;
   }
 
   /**
    * Set a nested value by path (will create signals as needed)
    */
-  setNestedSignal<T>(root: ReactiveSignal<any>, path: (string | number)[], value: T): void {
-    let current: any = root;
+  setNestedSignal<T>(root: ReactiveSignal<unknown>, path: (string | number)[], value: T): void {
+    let current: unknown = root;
     for (let i = 0; i < path.length - 1; i++) {
       const key = path[i];
       if (key === undefined || key === null) return;
-      let obj = current();
+      let obj = (current as ReactiveSignal<unknown>)();
       if (typeof obj !== 'object' || obj === null) {
         obj = {};
-        current(obj);
+        (current as ReactiveSignal<unknown>)(obj);
       }
-      if (!(key in obj) || typeof obj[key] !== 'function') {
+      const objRecord = obj as Record<string | number, unknown>;
+      if (!(key in objRecord) || typeof objRecord[key] !== 'function') {
         const newSig = createSignal(undefined);
-        obj[key as string | number] = newSig;
-        current(obj);
+        objRecord[key] = newSig;
+        (current as ReactiveSignal<unknown>)(obj);
       }
-      current = obj[key as string | number];
+      current = objRecord[key];
     }
     // Set the value at the final key
-    let obj = current();
+    let obj = (current as ReactiveSignal<unknown>)();
     const lastKey = path[path.length - 1];
     if (lastKey === undefined || lastKey === null) return;
     if (typeof obj !== 'object' || obj === null) {
       obj = {};
     }
     const finalSig = createSignal(value);
-    obj[lastKey as string | number] = finalSig;
-    current(obj);
+    (obj as Record<string | number, unknown>)[lastKey] = finalSig;
+    (current as ReactiveSignal<unknown>)(obj);
   }
 }
 
@@ -223,7 +224,7 @@ export function useMemo<T>(computation: () => T): () => T {
  */
 export function useEffect(
   effectFn: () => void | (() => void),
-  deps?: (() => any)[]
+  deps?: (() => unknown)[]
 ): EffectCleanup {
   if (deps && deps.length > 0) {
     // Create a signal_createComputed that tracks dependencies

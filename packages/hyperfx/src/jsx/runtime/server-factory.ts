@@ -13,6 +13,13 @@ export function Fragment(props: ComponentProps): JSXElement {
   } as SSRNode;
 }
 
+export function marker(): SSRNode {
+  return {
+    t: '<!--hfx:dyn-->',
+    __ssr: true
+  } as SSRNode;
+}
+
 /**
  * Render children to string
  */
@@ -27,12 +34,12 @@ function renderChildrenToString(children: JSXChildren): string {
 
   // Handle signals - unwrap them to get current value
   if (isSignal(children)) {
-    return renderChildrenToString(children());
+    return renderChildrenToString(children() as JSXChildren);
   }
 
   // Handle SSRNodes
-  if (children && (children as any).__ssr) {
-    return (children as any).t;
+  if (children && (children as SSRNode).__ssr) {
+    return (children as SSRNode).t;
   }
 
   // Handle primitives - escape and convert to string
@@ -43,14 +50,14 @@ function renderChildrenToString(children: JSXChildren): string {
  * Server-side JSX factory function
  */
 export function jsx(
-  type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
-  props: Record<string, any> | null,
+  type: string | FunctionComponent<Record<string, unknown>> | typeof FRAGMENT_TAG,
+  props: Record<string, unknown> | null,
   _key?: string | number | null
 ): JSXElement {
   // Handle fragments (<>...</>)
   if (type === FRAGMENT_TAG || type === Fragment) {
     return {
-      t: renderChildrenToString(props?.children),
+      t: renderChildrenToString(props?.children as JSXChildren),
       __ssr: true
     } as SSRNode;
   }
@@ -66,16 +73,16 @@ export function jsx(
       }
     });
 
-    return type(proxyProps);
+    return type(proxyProps as ComponentProps);
   }
 
   // Handle regular HTML elements (div, span, etc.)
   const childrenHtml = props?.children
-    ? renderChildrenToString(props.children)
+    ? renderChildrenToString(props.children as JSXChildren)
     : '';
 
   // Unwrap signals in props for HTML elements
-  const unwrappedProps: Record<string, any> = {};
+  const unwrappedProps: Record<string, unknown> = {};
   if (props) {
     for (const [key, value] of Object.entries(props)) {
       if (key === 'children') continue;
@@ -90,11 +97,11 @@ export const jsxs = jsx;
 export const jsxDEV = jsx;
 
 export function createJSXElement(
-  type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
-  props: Record<string, any> | null,
+  type: string | FunctionComponent<Record<string, unknown>> | typeof FRAGMENT_TAG,
+  props: Record<string, unknown> | null,
   ...children: JSXChildren[]
 ): JSXElement {
-  const allProps = {
+  const allProps: Record<string, unknown> = {
     ...props,
     children: children.length > 0 ? children.flat() : props?.children
   };

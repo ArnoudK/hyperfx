@@ -20,7 +20,7 @@ export function Fragment(props: ComponentProps): DocumentFragment {
 /**
  * Create a DOM element with reactive attributes
  */
-function createElement(tag: string, props?: Record<string, any> | null): HTMLElement {
+function createElement(tag: string, props?: Record<string, unknown> | null): HTMLElement {
   let element: HTMLElement | null = null;
 
   // Attempt to claim existing element if hydrating
@@ -59,9 +59,9 @@ function appendChildren(parent: Node, children: JSXChildren): void {
   }
 
   // Handle SSRNodes
-  if (children && (children as any).__ssr) {
+  if (children && (children as { __ssr?: boolean }).__ssr) {
     const div = document.createElement('div');
-    div.innerHTML = (children as any).t;
+    div.innerHTML = String((children as { t?: string }).t ?? '');
     while (div.firstChild) {
       parent.appendChild(div.firstChild);
     }
@@ -79,7 +79,7 @@ function appendChildren(parent: Node, children: JSXChildren): void {
     parent.appendChild(textNode);
     // Simple text-only reactivity for now
     if (isSignal(children)) {
-      (children as any).subscribe((val: any) => {
+      children.subscribe((val) => {
         textNode.textContent = String(val);
       });
       textNode.textContent = String(children());
@@ -93,8 +93,8 @@ function appendChildren(parent: Node, children: JSXChildren): void {
  * Client-side JSX factory function
  */
 export function jsx(
-  type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
-  props: Record<string, any> | null,
+  type: string | FunctionComponent<Record<string, unknown>> | typeof FRAGMENT_TAG,
+  props: Record<string, unknown> | null,
   _key?: string | number | null
 ): JSXElement {
   // Handle fragments
@@ -108,6 +108,14 @@ export function jsx(
 
   // Handle function components
   if (typeof type === 'function') {
+    // Import lifecycle functions dynamically to avoid circular dependency
+    let lifecycle: typeof import('../../reactive/lifecycle.js') | undefined;
+    try {
+      lifecycle = require('../../reactive/lifecycle.js');
+    } catch {
+      // Lifecycle module not available
+    }
+    
     const proxyProps = new Proxy(props || {}, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
@@ -115,7 +123,28 @@ export function jsx(
         return value;
       }
     });
-    return type(proxyProps);
+    
+    // Push lifecycle context before rendering component
+    if (lifecycle) {
+      lifecycle.pushLifecycleContext();
+    }
+    
+    try {
+      const result = type(proxyProps);
+      
+      // Flush mount callbacks after component renders
+      if (lifecycle) {
+        lifecycle.flushMounts();
+      }
+      
+      return result;
+    } catch (error) {
+      // Clean up context on error
+      if (lifecycle) {
+        lifecycle.popLifecycleContext();
+      }
+      throw error;
+    }
   }
 
   // Handle regular HTML elements
@@ -131,11 +160,11 @@ export const jsxs = jsx;
 export const jsxDEV = jsx;
 
 export function createJSXElement(
-  type: string | FunctionComponent<any> | typeof FRAGMENT_TAG,
-  props: Record<string, any> | null,
+  type: string | FunctionComponent<Record<string, unknown>> | typeof FRAGMENT_TAG,
+  props: Record<string, unknown> | null,
   ...children: JSXChildren[]
 ): JSXElement {
-  const allProps = {
+  const allProps: Record<string, unknown> = {
     ...props,
     children: children.length > 0 ? children.flat() : props?.children
   };

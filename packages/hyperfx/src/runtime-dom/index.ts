@@ -7,6 +7,13 @@
 
 import { createEffect } from '../reactive/signal';
 import { addElementSubscription } from '../jsx/runtime/reactive';
+import { isHydrationEnabled } from '../jsx/runtime/hydration';
+
+type Accessor<T> = () => T;
+type SignalLike<T> = Accessor<T> & { get: () => T; subscribe: (callback: (value: T) => void) => () => void };
+type InsertableValue = Node | string | number | boolean | null | undefined;
+type Insertable = InsertableValue | InsertableValue[] | SignalLike<InsertableValue> | Accessor<InsertableValue>;
+type InsertResult = InsertableValue | Node | { _node: Text; toString: () => string; _cleanup?: () => void } | InsertResult[] | null;
 
 // Cache for parsed templates
 const templateCache = new Map<string, Node>();
@@ -20,11 +27,12 @@ const templateCache = new Map<string, Node>();
 export function template(html: string): Node {
   // Server-side: return a simple mock that works with the string-based SSR
   if (typeof document === 'undefined') {
-    return {
+    const mockNode = {
       t: html,
       __ssr: true,
       cloneNode: function () { return { ...this }; }
-    } as any;
+    } as unknown as Node;
+    return mockNode;
   }
 
   // Client-side: use real template caching
@@ -46,10 +54,10 @@ export function template(html: string): Node {
  */
 export function insert(
   parent: Node,
-  accessor: (() => any) | any,
+  accessor: Accessor<InsertableValue> | Insertable,
   marker?: Node | null,
-  init?: any
-): any {
+  init?: InsertResult
+): InsertResult {
   // If accessor is not a function, it's a static value
   if (typeof accessor !== 'function') {
     return insertExpression(parent, accessor, init, marker);
@@ -73,11 +81,25 @@ export function insert(
  */
 function insertExpression(
   parent: Node,
-  value: any,
-  current: any,
+  value: Insertable,
+  current: InsertResult,
   marker?: Node | null,
   unwrapArray = true
-): any {
+): InsertResult {
+  const hydrating = isHydrationEnabled();
+  if (hydrating && marker && marker.nodeType === 8 && marker.textContent && (marker.textContent === 'hfx:dyn' || marker.textContent.startsWith('hfx:dyn:') || marker.textContent.startsWith('#'))) {
+    const prev = marker.previousSibling;
+    const next = marker.nextSibling;
+    const reuse = (prev && prev.nodeType === 3) ? prev : (next && next.nodeType === 3 ? next : null);
+    if (reuse && current === undefined) {
+      const textNode = reuse as Text;
+      const valueText = value == null ? '' : String(value);
+      if (textNode.data !== valueText) {
+        textNode.data = valueText;
+      }
+      return { _node: textNode, toString: () => textNode.data };
+    }
+  }
   // Handle null/undefined
   if (value == null) {
     if (current !== null && current !== undefined) {
@@ -129,52 +151,29 @@ function insertExpression(
   // Handle primitives (string, number, boolean)
   const stringValue = String(value);
 
-  if (current !== null && typeof current !== 'object') {
-    // Update existing text node
-    // We need to be careful NOT to update a static sibling
-    // The previous implementation used marker.previousSibling which is dangerous
-    const node = marker ? ((current && typeof current === 'object' && current._node) || marker.previousSibling) : parent.lastChild;
+  if (current && typeof current === 'object' && (current as { _node?: Text })._node instanceof Text) {
+    const node = (current as { _node: Text })._node;
+    node.data = stringValue;
+    return current;
+  }
 
-    if (node instanceof Text && ((current && current._node === node) || !marker)) {
-      node.data = stringValue;
-      return { _node: node, toString: () => stringValue };
-    } else {
-      // During hydration, we might find a text node even if current is null
-      const existing = marker ? marker.previousSibling : parent.lastChild;
-      if (existing instanceof Text && existing.data === stringValue) {
-        return { _node: existing, toString: () => stringValue };
-      }
-      const textNode = document.createTextNode(stringValue);
-      // Check if marker is still in the DOM, otherwise append at the end
-      const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
-      parent.insertBefore(textNode, insertBeforeNode);
-      return { _node: textNode, toString: () => stringValue };
-    }
-  } else {
-    // Optimization: Reuse existing text node for updates
-    if (current && current._node instanceof Text) {
-      current._node.data = stringValue;
-      return current;
-    }
-
-    // Create new text node - but check for existing one during hydration first
-    const existing = marker ? marker.previousSibling : parent.lastChild;
+  if (hydrating) {
+    const existing = marker && marker.parentNode === parent ? marker.previousSibling : parent.lastChild;
     if (existing instanceof Text) {
       if (current === undefined || existing.data === stringValue) {
         existing.data = stringValue;
         return { _node: existing, toString: () => stringValue };
       }
     }
-
-    const textNode = document.createTextNode(stringValue);
-    if (current != null) {
-      cleanChildren(parent, current, marker);
-    }
-    // Check if marker is still in the DOM, otherwise append at the end
-    const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
-    parent.insertBefore(textNode, insertBeforeNode);
-    return { _node: textNode, toString: () => stringValue };
   }
+
+  const textNode = document.createTextNode(stringValue);
+  if (current != null) {
+    cleanChildren(parent, current, marker);
+  }
+  const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+  parent.insertBefore(textNode, insertBeforeNode);
+  return { _node: textNode, toString: () => stringValue };
 
   return stringValue;
 }
@@ -184,11 +183,11 @@ function insertExpression(
  */
 function insertArray(
   parent: Node,
-  array: any[],
-  _current: any,
+  array: Insertable[],
+  _current: InsertResult,
   marker?: Node | null
-): any[] {
-  const normalized: any[] = [];
+): InsertResult[] {
+  const normalized: InsertResult[] = [];
 
   for (let i = 0; i < array.length; i++) {
     const value = array[i];
@@ -201,7 +200,7 @@ function insertArray(
 /**
  * Clean up children between current and marker
  */
-function cleanChildren(parent: Node, current: any, marker?: Node | null): void {
+function cleanChildren(parent: Node, current: InsertResult, marker?: Node | null): void {
   if (Array.isArray(current)) {
     for (let i = 0; i < current.length; i++) {
       cleanChildren(parent, current[i], marker);
@@ -222,7 +221,7 @@ function cleanChildren(parent: Node, current: any, marker?: Node | null): void {
  */
 export function spread<T extends Element>(
   element: T,
-  accessor: () => Record<string, any>,
+  accessor: () => Record<string, unknown>,
   isSVG?: boolean,
   skipChildren?: boolean
 ): void {
@@ -241,20 +240,20 @@ export function spread<T extends Element>(
       if (typeof value === 'object' && element instanceof HTMLElement) {
         Object.assign(element.style, value);
       } else {
-        element.setAttribute('style', value);
+        element.setAttribute('style', String(value));
       }
     } else if (prop === 'class' || prop === 'className') {
-      element.setAttribute('class', value);
+      element.setAttribute('class', String(value));
     } else if (prop.startsWith('on')) {
       // Event handler - will be handled by delegate
       const eventName = prop.slice(2).toLowerCase();
-      (element as any)[`on${eventName}`] = value;
+      (element as unknown as Record<string, unknown>)[`on${eventName}`] = value;
     } else if (prop in element && !isSVG) {
       // Set as property
-      (element as any)[prop] = value;
+      (element as unknown as Record<string, unknown>)[prop] = value;
     } else {
       // Set as attribute
-      element.setAttribute(prop, value);
+      element.setAttribute(prop, String(value));
     }
   }
 }
@@ -262,7 +261,7 @@ export function spread<T extends Element>(
 /**
  * Event delegation system
  * 
- * Uses document-level listeners for better performance with many elements
+ * Uses document-level listeners for performance with numerous elements
  */
 
 // Map of event types to their delegated listeners
@@ -388,22 +387,22 @@ export function undelegateAll(element: Element): void {
 export function assign<T extends Element>(
   element: T,
   prop: string,
-  value: any
+  value: unknown
 ): void {
   if (prop in element) {
-    (element as any)[prop] = value;
+    (element as unknown as Record<string, unknown>)[prop] = value;
   } else {
-    element.setAttribute(prop, value);
+    element.setAttribute(prop, String(value));
   }
 }
 
 /**
  * Check if a value is a signal (has signal-specific properties)
  */
-function isSignal(value: any): boolean {
+function isSignal(value: unknown): value is SignalLike<unknown> {
   return typeof value === 'function' && 
-         typeof value.get === 'function' && 
-         typeof value.subscribe === 'function';
+         typeof (value as SignalLike<unknown>).get === 'function' && 
+         typeof (value as SignalLike<unknown>).subscribe === 'function';
 }
 
 /**
@@ -412,7 +411,7 @@ function isSignal(value: any): boolean {
 export function setProp<T extends Element>(
   element: T,
   prop: string,
-  value: any
+  value: unknown
 ): void {
   // If value is a signal accessor, call it to get the actual value
   const actualValue = isSignal(value) ? value() : value;
@@ -420,7 +419,7 @@ export function setProp<T extends Element>(
   // Handle null/undefined - remove attribute
   if (actualValue == null) {
     if (prop in element && !(element instanceof SVGElement)) {
-      (element as any)[prop] = null;
+      (element as unknown as Record<string, unknown>)[prop] = null;
     } else {
       element.removeAttribute(prop);
     }
@@ -435,18 +434,18 @@ export function setProp<T extends Element>(
   } else if (prop === 'style') {
     if (typeof actualValue === 'object' && element instanceof HTMLElement) {
       // Style object
-      Object.assign(element.style, actualValue);
+    Object.assign(element.style, actualValue as CSSStyleDeclaration);
     } else {
       element.setAttribute('style', String(actualValue));
     }
   } else if (prop === 'value' && element instanceof HTMLInputElement) {
     // Special handling for input value
-    element.value = actualValue;
+    element.value = String(actualValue);
   } else if (prop === 'checked' && element instanceof HTMLInputElement) {
     element.checked = Boolean(actualValue);
   } else if (prop in element && !(element instanceof SVGElement)) {
     // Set as property for HTML elements
-    (element as any)[prop] = actualValue;
+    (element as unknown as Record<string, unknown>)[prop] = actualValue;
   } else {
     // Set as attribute
     if (typeof actualValue === 'boolean') {
@@ -472,14 +471,14 @@ export function effect(fn: () => void | (() => void)): () => void {
  * Conditional rendering helper
  * Efficiently switches between two branches based on a condition
  */
-export function show<T, U>(
+export function show<T extends Insertable, U extends Insertable>(
   parent: Node,
   condition: () => boolean,
   whenTrue: () => T,
   whenFalse: () => U,
   marker?: Node | null
 ): void {
-  let current: any = undefined;
+  let current: InsertResult = null;
   let currentBranch: 'true' | 'false' | null = null;
 
   const stop = createEffect(() => {
@@ -515,7 +514,7 @@ export function mapArray<T, U>(
     const newItems = accessor();
 
     // Full rebuild for now - can be optimized with diffing later
-    const newMapped: any[] = [];
+    const newMapped: unknown[] = [];
     const newNodes: Node[] = [];
 
     for (let i = 0; i < newItems.length; i++) {
@@ -690,7 +689,7 @@ export function forLoop<T, U>(
   accessor: () => readonly T[],
   mapFn: (item: T, index: () => number) => U,
   options?: {
-    fallback?: () => any;
+    fallback?: () => Insertable;
   },
   marker?: Node | null
 ): void {
@@ -716,8 +715,7 @@ export function forLoop<T, U>(
       return;
     }
 
-    // TODO: Implement efficient keyed diffing
-    // For now, simple rebuild
+    // Use a simple rebuild for now
     mapArray(parent, accessor, mapFn, marker);
   });
 

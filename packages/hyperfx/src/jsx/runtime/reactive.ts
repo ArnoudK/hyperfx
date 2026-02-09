@@ -5,26 +5,26 @@ import type { NormalizedValue } from "./types";
 
 // Track signal subscriptions for each element for cleanup
 // Use globalThis to avoid multiple instances in mono-repos
-const elementSubscriptions = (globalThis as any).__HYPERFX_ELEMENT_SUBSCRIPTIONS__ ||
-  ((globalThis as any).__HYPERFX_ELEMENT_SUBSCRIPTIONS__ = new WeakMap<Element, Set<() => void>>());
+const elementSubscriptions = (globalThis as { __HYPERFX_ELEMENT_SUBSCRIPTIONS__?: WeakMap<Element, Set<() => void>> }).__HYPERFX_ELEMENT_SUBSCRIPTIONS__ ||
+  ((globalThis as { __HYPERFX_ELEMENT_SUBSCRIPTIONS__?: WeakMap<Element, Set<() => void>> }).__HYPERFX_ELEMENT_SUBSCRIPTIONS__ = new WeakMap<Element, Set<() => void>>());
 
 // Track computed signals for each element so we can destroy them
-const elementComputedSignals = (globalThis as any).__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ ||
-  ((globalThis as any).__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ = new WeakMap<Element, Set<{ destroy: () => void }>>());
+const elementComputedSignals = (globalThis as { __HYPERFX_ELEMENT_COMPUTED_SIGNALS__?: WeakMap<Element, Set<{ destroy: () => void }>> }).__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ ||
+  ((globalThis as { __HYPERFX_ELEMENT_COMPUTED_SIGNALS__?: WeakMap<Element, Set<{ destroy: () => void }>> }).__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ = new WeakMap<Element, Set<{ destroy: () => void }>>());
 
 // Helper to handle reactive values (signals or functions)
 export function handleReactiveValue(
   element: HTMLElement,
   key: string,
-  value: any,
-  setter: (el: HTMLElement, val: any) => void
+  value: unknown,
+  setter: (el: HTMLElement, val: unknown) => void
 ): void {
   try {
     if (isSignal(value)) {
       // Check if this is a computed signal (has destroy method)
-      const isComputed = typeof (value as any).destroy === 'function';
+      const isComputed = typeof (value as { destroy?: () => void }).destroy === 'function';
       if (isComputed) {
-        addElementComputedSignal(element, value as any);
+        addElementComputedSignal(element, value as unknown as { destroy: () => void });
       }
 
       const update = () => {
@@ -39,7 +39,7 @@ export function handleReactiveValue(
       addElementSubscription(element, unsubscribe);
       update(); // initial
     } else if (typeof value === 'function') {
-      const computed = signal_createComputed(value as () => any);
+      const computed = signal_createComputed(value as () => unknown);
 
       // Track the computed signal for cleanup
       addElementComputedSignal(element, computed);
@@ -158,7 +158,7 @@ export function normalizeValue<T>(value: T | Signal<T> | (() => T)): NormalizedV
       isFunction: false,
       getValue: () => {
         try {
-          return value();
+          return (value as Signal<T>)();
         } catch (error) {
           console.error('Error accessing signal value:', error);
           return undefined as T;
@@ -166,7 +166,7 @@ export function normalizeValue<T>(value: T | Signal<T> | (() => T)): NormalizedV
       },
       subscribe: (callback: (v: T) => void) => {
         try {
-          return value.subscribe(callback);
+          return (value as Signal<T>).subscribe(callback);
         } catch (error) {
           console.error('Error subscribing to signal:', error);
           return () => { };

@@ -10,8 +10,8 @@ import type { GlobalHTMLAttributes } from './global-attributes';
  * Use this for web components or third-party libraries
  */
 export interface CustomElementAttributes extends GlobalHTMLAttributes {
-  /** Allow any custom attributes for extensibility */
-  [key: string]: any;
+  /** Allow custom attributes for extensibility */
+  [key: string]: unknown;
 }
 
 /**
@@ -106,7 +106,7 @@ export type CreatePolymorphicElementAttributes<T, P = {}> = P & {
  * Only use when strict typing is not possible
  */
 export interface UnknownCustomElementAttributes extends GlobalHTMLAttributes {
-  /** Allow any attributes (use sparingly) */
+  /** Allow attributes (use sparingly) */
   [key: `data-${string}`]: ReactiveString | undefined;
-  [key: string]: any;
+  [key: string]: unknown;
 }

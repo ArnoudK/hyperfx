@@ -12,7 +12,7 @@ export { FRAGMENT_TAG };
 
 
 // Create a text node with optional reactive content
-function createTextNode(content: string | number | boolean | Signal<string | number | boolean>): Text {
+function createTextNode(content: string | number | boolean | Signal<unknown>): Text {
   const textNode = document.createTextNode('');
 
   const updateText = () => {

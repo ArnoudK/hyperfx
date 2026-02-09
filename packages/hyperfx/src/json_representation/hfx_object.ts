@@ -23,7 +23,7 @@ export function elementToHFXObject(el: Element): HFXObject {
   for (const a of elAttrs) {
     const aname = a.name;
     const value = a.value;
-    (attrs as any)[aname] = value;
+    (attrs as Record<string, unknown>)[aname] = value;
   }
 
   for (const c of cNodes) {

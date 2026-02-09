@@ -7,7 +7,8 @@ import * as t from '@babel/types';
 
 export class SSRGenerator {
   constructor(
-    private readonly codeFromNode: (node: t.Node) => string
+    private readonly codeFromNode: (node: t.Node) => string,
+    private readonly shouldEmitMarker: () => boolean
   ) {}
 
   /**
@@ -26,8 +27,8 @@ export class SSRGenerator {
     }
 
     if (t.isJSXText(node)) {
-      const text = node.value.trim();
-      if (!text) return '""';
+      const text = node.value;
+      if (!text || !/\S/.test(text)) return '""';
       // Properly escape all special characters in text content
       const escaped = text
         .replace(/\\/g, '\\\\')
@@ -42,7 +43,10 @@ export class SSRGenerator {
       if (t.isJSXEmptyExpression(node.expression)) {
         return 'null';
       }
-      return this.codeFromNode(node.expression);
+      if (!this.shouldEmitMarker()) {
+        return this.codeFromNode(node.expression);
+      }
+      return `[_$marker(), ${this.codeFromNode(node.expression)}]`;
     }
 
     return 'null';

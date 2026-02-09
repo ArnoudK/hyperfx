@@ -110,7 +110,7 @@ export interface AsyncComponentInjectedProps {
  * )
  * ```
  */
-export function createAsyncComponent<P extends Record<string, any> = {}>(
+export function createAsyncComponent<P extends Record<string, unknown> = {}>(
   fn: (props: P & AsyncComponentInjectedProps) => Stream.Stream<JSXElement, never, never>,
   options: AsyncComponentOptions = {}
 ): (props: P) => JSXElement {
@@ -156,7 +156,7 @@ export function createAsyncComponent<P extends Record<string, any> = {}>(
     let streamCleanup: (() => void) | null = null
 
     // Wrap the stream creation in a memo to track reactive prop dependencies
-    // When any signal accessed inside fn() changes, this memo will re-compute
+    // When a signal accessed inside fn() changes, this memo will re-compute
     const currentStream = createMemo(() => fn(propsWithInjected))
 
     // Function to run the stream and update DOM on each emission
@@ -201,7 +201,7 @@ export function createAsyncComponent<P extends Record<string, any> = {}>(
     // Track when the stream function changes (due to reactive props) and restart stream
     // Use a flag to prevent infinite loops from createEffect
     let isFirstRun = true
-    let lastStreamValue: any = null
+    let lastStreamValue: unknown = null
     createEffect(() => {
       const streamFn = currentStream()
 
@@ -233,7 +233,7 @@ export function createAsyncComponent<P extends Record<string, any> = {}>(
  * Type helper to extract props from async component function
  */
 export type AsyncComponentProps<
-  T extends (props: any) => Stream.Stream<any, any, any>
-> = T extends (props: infer P) => Stream.Stream<any, any, any>
+  T extends (props: Record<string, unknown>) => Stream.Stream<unknown, unknown, unknown>
+> = T extends (props: infer P) => Stream.Stream<unknown, unknown, unknown>
   ? Omit<P, keyof AsyncComponentInjectedProps>
   : never

@@ -22,7 +22,29 @@ export * from "./jsx/jsx-runtime.js";
 // Control Flow Components
 export * from "./jsx/control-flow.jsx";
 
+// Portal Component
+export { Portal } from "./jsx/portal.jsx";
+export type { PortalProps } from "./jsx/portal.jsx";
+
 export * from './jsx/runtime/universal-node.js'
+
+// Hydration (SSR mode control)
+export {
+  setSSRMode,
+  isSSRMode,
+} from './jsx/runtime/hydration.js';
+
+// Lifecycle Hooks
+export {
+  onMount,
+  onCleanup,
+  createRoot,
+  runWithContext,
+  pushLifecycleContext,
+  popLifecycleContext,
+  flushMounts,
+  isInsideEffect,
+} from "./reactive/lifecycle.js";
 
 
 // Additional features

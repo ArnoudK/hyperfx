@@ -1,8 +1,8 @@
-import { isSignal } from "../../reactive/signal";
 import { handleReactiveValue } from "./reactive";
+import { isSignal } from "../../reactive/signal";
 
 // Simple setAttribute function that handles all attribute types
-function setAttribute(element: HTMLElement, key: string, value: any): void {
+function setAttribute(element: HTMLElement, key: string, value: unknown): void {
   // Skip children and key props
   if (key === 'children' || key === 'key') {
     return;
@@ -11,13 +11,15 @@ function setAttribute(element: HTMLElement, key: string, value: any): void {
   // Handle event handlers
   if (key.startsWith('on') && typeof value === 'function') {
     const eventName = key.slice(2).toLowerCase();
-    element.addEventListener(eventName, value);
+    element.addEventListener(eventName, value as EventListener);
     return;
   }
 
   // Handle innerHTML and textContent specially (reactive support)
   if (key === 'innerHTML' || key === 'textContent') {
-    handleReactiveValue(element, key, value, (el, val) => (el as any)[key] = val);
+    handleReactiveValue(element, key, value, (el, val) => {
+      (el as unknown as Record<string, unknown>)[key] = val;
+    });
     return;
   }
 
@@ -60,7 +62,7 @@ function setAttribute(element: HTMLElement, key: string, value: any): void {
       element.readOnly = boolValue;
       element.toggleAttribute('readonly', boolValue);
     } else if (key === 'disabled') {
-      (element as any).disabled = boolValue;
+      (element as HTMLInputElement).disabled = boolValue;
       element.toggleAttribute('disabled', boolValue);
     } else {
       element.toggleAttribute(key, boolValue);
@@ -75,11 +77,11 @@ function setAttribute(element: HTMLElement, key: string, value: any): void {
     } else if (typeof value === 'string') {
       element.setAttribute('style', value);
     } else if (typeof value === 'object') {
-      Object.entries(value as any).forEach(([property, styleValue]) => {
+      Object.entries(value as Record<string, unknown>).forEach(([property, styleValue]) => {
         if (styleValue != null) {
           try {
             const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-            (element.style as any)[camelCaseProperty] = String(styleValue);
+            (element.style as unknown as Record<string, string>)[camelCaseProperty] = String(styleValue);
           } catch (styleError) {
             console.warn(`Failed to set CSS property "${property}":`, styleError);
           }
@@ -107,11 +109,11 @@ function setAttribute(element: HTMLElement, key: string, value: any): void {
 
 // Global attribute manager instance
 export const attributeManager = {
-  applyAttribute(element: HTMLElement, key: string, value: any): void {
+  applyAttribute(element: HTMLElement, key: string, value: unknown): void {
     setAttribute(element, key, value);
   },
 
-  applyAttributes(element: HTMLElement, props: Record<string, any>): void {
+  applyAttributes(element: HTMLElement, props: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(props)) {
       this.applyAttribute(element, key, value);
     }
