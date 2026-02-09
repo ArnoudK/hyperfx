@@ -1,24 +1,36 @@
 // Hydration and SSR State - Global Shared Source of Truth
 // Using globalThis to ensure synchronization across multiple module instances (common in tests)
 
-// Use a very specific key to avoid any conflicts and ensure sharing even if modules are duplicated
+// Use a specific key to avoid conflicts and ensure sharing even if modules are duplicated
 const SSR_STATE_KEY = '__HYPERFX_SSR_STATE_V2__';
 
-if (!(globalThis as any)[SSR_STATE_KEY]) {
-  (globalThis as any)[SSR_STATE_KEY] = {
+type SSRGlobalState = {
+  hydrationEnabled: boolean;
+  ssrMode: boolean;
+  clientNodeCounter: number;
+  ssrNodeCounter: number;
+  hydrationContainer: Node | null;
+  hydrationPointer: Node | null;
+  hydrationStack: Array<Node | null>;
+};
+
+const globalState = globalThis as { [SSR_STATE_KEY]?: SSRGlobalState };
+
+if (!globalState[SSR_STATE_KEY]) {
+  globalState[SSR_STATE_KEY] = {
     hydrationEnabled: false,
     ssrMode: false,
     clientNodeCounter: 0,
     ssrNodeCounter: 0,
-    hydrationContainer: null as any,
+    hydrationContainer: null,
     hydrationPointer: null as Node | null,
     hydrationStack: [] as (Node | null)[]
   };
 }
 
-const SSR_STATE = (globalThis as any)[SSR_STATE_KEY];
+const SSR_STATE = globalState[SSR_STATE_KEY] as SSRGlobalState;
 
-export function startHydration(container?: any): void {
+export function startHydration(container?: Node | null): void {
   SSR_STATE.hydrationEnabled = true;
   if (container) {
     SSR_STATE.hydrationContainer = container;
@@ -38,7 +50,7 @@ export function isHydrationEnabled(): boolean {
   return SSR_STATE.hydrationEnabled;
 }
 
-export function getHydrationContainer(): any {
+export function getHydrationContainer(): Node | null {
   return SSR_STATE.hydrationContainer;
 }
 

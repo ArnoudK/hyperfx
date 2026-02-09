@@ -1,5 +1,5 @@
-import { isSignal } from "../../reactive/signal";
 import { handleReactiveValue } from "./reactive";
+import { isSignal } from "../../reactive/signal";
 // Simple setAttribute function that handles all attribute types
 function setAttribute(element, key, value) {
     // Skip children and key props
@@ -14,7 +14,9 @@ function setAttribute(element, key, value) {
     }
     // Handle innerHTML and textContent specially (reactive support)
     if (key === 'innerHTML' || key === 'textContent') {
-        handleReactiveValue(element, key, value, (el, val) => el[key] = val);
+        handleReactiveValue(element, key, value, (el, val) => {
+            el[key] = val;
+        });
         return;
     }
     // Handle reactive signals

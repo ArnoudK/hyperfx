@@ -78,7 +78,7 @@ export declare const getData: <A, E>(state: ResourceState<A, E>) => A | undefine
  */
 export declare const getError: <A, E>(state: ResourceState<A, E>) => E | undefined;
 /**
- * Check if resource has any data (success or loading with previous)
+ * Check if resource has data (success or loading with previous)
  */
 export declare const hasData: <A, E>(state: ResourceState<A, E>) => boolean;
 /**

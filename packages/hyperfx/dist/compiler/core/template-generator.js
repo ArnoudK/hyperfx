@@ -99,7 +99,14 @@ export class TemplateGenerator {
         let childIndex = 0;
         for (const child of children) {
             if (t.isJSXText(child)) {
-                parts.push(child.value);
+                const text = child.value;
+                if (!/\S/.test(text)) {
+                    if (text === ' ') {
+                        parts.push(' ');
+                    }
+                    continue;
+                }
+                parts.push(text);
                 continue;
             }
             if (t.isJSXExpressionContainer(child)) {
@@ -114,7 +121,7 @@ export class TemplateGenerator {
                     expression: child.expression,
                     path: [...parentPath],
                 });
-                parts.push(`<!--#${markerId}-->`);
+                parts.push(`<!--hfx:dyn:${markerId}-->`);
                 continue;
             }
             if (t.isJSXElement(child)) {
@@ -126,7 +133,7 @@ export class TemplateGenerator {
                         expression: child,
                         path: [...parentPath],
                     });
-                    parts.push(`<!--#${markerId}-->`);
+                    parts.push(`<!--hfx:dyn:${markerId}-->`);
                     continue;
                 }
                 // Build path for this child element
@@ -266,7 +273,14 @@ export class TemplateGenerator {
         const parts = [];
         for (const child of children) {
             if (t.isJSXText(child)) {
-                parts.push(child.value);
+                const text = child.value;
+                if (!/\S/.test(text)) {
+                    if (text === ' ') {
+                        parts.push(' ');
+                    }
+                    continue;
+                }
+                parts.push(text);
             }
             else if (t.isJSXElement(child)) {
                 parts.push(this.generateTemplateHTML(child));

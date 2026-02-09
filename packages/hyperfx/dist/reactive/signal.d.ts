@@ -15,16 +15,16 @@ export declare function disableSSRMode(): void;
 /**
  * Get all registered signals for SSR serialization
  */
-export declare function getRegisteredSignals(): Map<string, Signal>;
+export declare function getRegisteredSignals(): Map<string, Signal<any>>;
 /**
  * Register a signal with a key for SSR
  */
-export declare function registerSignal(key: string, signal: Signal): void;
+export declare function registerSignal<T>(key: string, signal: Signal<T>): void;
 /**
  * Signal function that can be called to get/set values
  * Compatible with both callable API (signal()) and object API (signal.get())
  */
-export type Signal<T = any> = {
+export type Signal<T = unknown> = {
     (): T;
     (value: T): T;
     get(): T;
@@ -34,7 +34,7 @@ export type Signal<T = any> = {
     update(updater: (current: T) => T): T;
     subscriberCount: number;
     key?: string;
-    [Symbol.iterator](): Iterator<any>;
+    [Symbol.iterator](): Iterator<Signal<T>>;
 };
 /**
  * Extended signal interface for computed signals
@@ -74,7 +74,7 @@ export declare function untrack<T>(fn: () => T): T;
 /**
  * Utility to check if a value is a Signal
  */
-export declare function isSignal(value: any): value is Signal;
+export declare function isSignal(value: unknown): value is Signal;
 /**
  * Get signal value, or return value if not a signal
  */

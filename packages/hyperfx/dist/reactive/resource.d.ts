@@ -94,7 +94,7 @@ export declare function createResource<A, E = unknown>(effect: Effect.Effect<A, 
  * const user = fetchUser("123")
  * ```
  */
-export declare function createResourceFn<Args extends any[], A, E = unknown>(fn: (...args: Args) => Effect.Effect<A, E, never>, options?: ResourceOptions<A, E>): (...args: Args) => EffectSignal<A, E>;
+export declare function createResourceFn<Args extends unknown[], A, E = unknown>(fn: (...args: Args) => Effect.Effect<A, E, never>, options?: ResourceOptions<A, E>): (...args: Args) => EffectSignal<A, E>;
 /**
  * Create a lazy resource that doesn't auto-fetch
  *
@@ -118,8 +118,8 @@ export declare function createLazyResource<A, E = unknown>(effect: Effect.Effect
  * Combine multiple resources into a single resource
  *
  * The combined resource is in Success state only when all resources are successful.
- * If any resource is Loading, the combined resource is Loading.
- * If any resource is Failure, the combined resource is Failure.
+ * If a resource is Loading, the combined resource is Loading.
+ * If a resource is Failure, the combined resource is Failure.
  *
  * @example
  * ```tsx
@@ -136,6 +136,6 @@ export declare function createLazyResource<A, E = unknown>(effect: Effect.Effect
  * )}
  * ```
  */
-export declare function combineResources<T extends Record<string, Signal<any>>>(resources: T): Signal<ResourceState<{
-    [K in keyof T]: T[K] extends Signal<ResourceState<infer A, any>> ? A : never;
+export declare function combineResources<T extends Record<string, Signal<ResourceState<unknown, unknown>>>>(resources: T): Signal<ResourceState<{
+    [K in keyof T]: T[K] extends Signal<ResourceState<infer A, unknown>> ? A : never;
 }, unknown>>;

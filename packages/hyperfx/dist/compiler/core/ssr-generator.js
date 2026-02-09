@@ -4,8 +4,9 @@
  */
 import * as t from '@babel/types';
 export class SSRGenerator {
-    constructor(codeFromNode) {
+    constructor(codeFromNode, shouldEmitMarker) {
         this.codeFromNode = codeFromNode;
+        this.shouldEmitMarker = shouldEmitMarker;
     }
     /**
      * Generate SSR JSX code for elements and fragments
@@ -21,8 +22,8 @@ export class SSRGenerator {
             return `_$jsx(${tagName}, ${propsObj})`;
         }
         if (t.isJSXText(node)) {
-            const text = node.value.trim();
-            if (!text)
+            const text = node.value;
+            if (!text || !/\S/.test(text))
                 return '""';
             // Properly escape all special characters in text content
             const escaped = text
@@ -37,7 +38,10 @@ export class SSRGenerator {
             if (t.isJSXEmptyExpression(node.expression)) {
                 return 'null';
             }
-            return this.codeFromNode(node.expression);
+            if (!this.shouldEmitMarker()) {
+                return this.codeFromNode(node.expression);
+            }
+            return `[_$marker(), ${this.codeFromNode(node.expression)}]`;
         }
         return 'null';
     }

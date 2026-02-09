@@ -51,7 +51,7 @@ export declare function isJSXElement(value: unknown): value is JSXElement;
  */
 export declare function isValidJSXChild(value: unknown): value is JSXChildren;
 /**
- * Check if children contain any reactive signals
+ * Check if children contain reactive signals
  */
 export declare function hasReactiveChildren(children: JSXChildren): boolean;
 /**

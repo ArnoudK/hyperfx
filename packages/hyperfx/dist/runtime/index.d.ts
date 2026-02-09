@@ -62,7 +62,7 @@ export declare function runEffectSync<A, E>(effect: Effect.Effect<A, E, never>):
 export declare function runEffectFork<A, E>(effect: Effect.Effect<A, E, never>): () => void;
 /**
  * Run an Effect and ignore the result
- * Errors are logged but not thrown
+ * Errors are logged and rethrown asynchronously
  *
  * Useful for fire-and-forget operations where you don't care about the result
  */

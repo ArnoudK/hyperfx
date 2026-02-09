@@ -12,6 +12,8 @@ export interface HyperFXPluginOptions {
         constants?: boolean;
         /** SSR optimizations (default: true) */
         ssr?: boolean;
+        /** Insert hydration markers for dynamic expressions (default: true) */
+        hydrationMarkers?: boolean;
     };
     /**
      * Advanced optimizations (experimental)
@@ -46,7 +48,7 @@ export interface HyperFXPluginOptions {
 }
 export interface TransformResult {
     code: string;
-    map?: any;
+    map?: import('magic-string').SourceMap;
 }
 export interface TemplateInfo {
     id: string;

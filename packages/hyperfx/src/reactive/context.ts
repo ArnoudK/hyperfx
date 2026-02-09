@@ -17,7 +17,7 @@ export interface Context<T> {
 
 // Global context stack
 // Map of Context ID -> Stack of values
-const contextStacks = new Map<symbol, any[]>();
+const contextStacks = new Map<symbol, unknown[]>();
 
 /**
  * Create a Context object
@@ -36,7 +36,7 @@ export function createContext<T>(defaultValue: T): Context<T> {
         stack.push(props.value);
 
         // Execute children
-        let children: any;
+        let children: JSXChildren | JSXElement;
 
         try {
             if (typeof props.children === 'function') {
@@ -96,7 +96,7 @@ export function createContext<T>(defaultValue: T): Context<T> {
 export function useContext<T>(context: Context<T>): T {
     const stack = contextStacks.get(context.id);
     if (stack && stack.length > 0) {
-        return stack[stack.length - 1];
+        return stack[stack.length - 1] as T;
     }
     return context.defaultValue;
 }

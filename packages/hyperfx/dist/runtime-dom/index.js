@@ -6,6 +6,7 @@
  */
 import { createEffect } from '../reactive/signal';
 import { addElementSubscription } from '../jsx/runtime/reactive';
+import { isHydrationEnabled } from '../jsx/runtime/hydration';
 // Cache for parsed templates
 const templateCache = new Map();
 /**
@@ -17,11 +18,12 @@ const templateCache = new Map();
 export function template(html) {
     // Server-side: return a simple mock that works with the string-based SSR
     if (typeof document === 'undefined') {
-        return {
+        const mockNode = {
             t: html,
             __ssr: true,
             cloneNode: function () { return { ...this }; }
         };
+        return mockNode;
     }
     // Client-side: use real template caching
     let node = templateCache.get(html);
@@ -56,6 +58,20 @@ export function insert(parent, accessor, marker, init) {
  * Insert an expression value into the DOM
  */
 function insertExpression(parent, value, current, marker, unwrapArray = true) {
+    const hydrating = isHydrationEnabled();
+    if (hydrating && marker && marker.nodeType === 8 && marker.textContent && (marker.textContent === 'hfx:dyn' || marker.textContent.startsWith('hfx:dyn:') || marker.textContent.startsWith('#'))) {
+        const prev = marker.previousSibling;
+        const next = marker.nextSibling;
+        const reuse = (prev && prev.nodeType === 3) ? prev : (next && next.nodeType === 3 ? next : null);
+        if (reuse && current === undefined) {
+            const textNode = reuse;
+            const valueText = value == null ? '' : String(value);
+            if (textNode.data !== valueText) {
+                textNode.data = valueText;
+            }
+            return { _node: textNode, toString: () => textNode.data };
+        }
+    }
     // Handle null/undefined
     if (value == null) {
         if (current !== null && current !== undefined) {
@@ -99,51 +115,27 @@ function insertExpression(parent, value, current, marker, unwrapArray = true) {
     }
     // Handle primitives (string, number, boolean)
     const stringValue = String(value);
-    if (current !== null && typeof current !== 'object') {
-        // Update existing text node
-        // We need to be careful NOT to update a static sibling
-        // The previous implementation used marker.previousSibling which is dangerous
-        const node = marker ? ((current && typeof current === 'object' && current._node) || marker.previousSibling) : parent.lastChild;
-        if (node instanceof Text && ((current && current._node === node) || !marker)) {
-            node.data = stringValue;
-            return { _node: node, toString: () => stringValue };
-        }
-        else {
-            // During hydration, we might find a text node even if current is null
-            const existing = marker ? marker.previousSibling : parent.lastChild;
-            if (existing instanceof Text && existing.data === stringValue) {
-                return { _node: existing, toString: () => stringValue };
-            }
-            const textNode = document.createTextNode(stringValue);
-            // Check if marker is still in the DOM, otherwise append at the end
-            const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
-            parent.insertBefore(textNode, insertBeforeNode);
-            return { _node: textNode, toString: () => stringValue };
-        }
+    if (current && typeof current === 'object' && current._node instanceof Text) {
+        const node = current._node;
+        node.data = stringValue;
+        return current;
     }
-    else {
-        // Optimization: Reuse existing text node for updates
-        if (current && current._node instanceof Text) {
-            current._node.data = stringValue;
-            return current;
-        }
-        // Create new text node - but check for existing one during hydration first
-        const existing = marker ? marker.previousSibling : parent.lastChild;
+    if (hydrating) {
+        const existing = marker && marker.parentNode === parent ? marker.previousSibling : parent.lastChild;
         if (existing instanceof Text) {
             if (current === undefined || existing.data === stringValue) {
                 existing.data = stringValue;
                 return { _node: existing, toString: () => stringValue };
             }
         }
-        const textNode = document.createTextNode(stringValue);
-        if (current != null) {
-            cleanChildren(parent, current, marker);
-        }
-        // Check if marker is still in the DOM, otherwise append at the end
-        const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
-        parent.insertBefore(textNode, insertBeforeNode);
-        return { _node: textNode, toString: () => stringValue };
     }
+    const textNode = document.createTextNode(stringValue);
+    if (current != null) {
+        cleanChildren(parent, current, marker);
+    }
+    const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+    parent.insertBefore(textNode, insertBeforeNode);
+    return { _node: textNode, toString: () => stringValue };
     return stringValue;
 }
 /**
@@ -194,11 +186,11 @@ export function spread(element, accessor, isSVG, skipChildren) {
                 Object.assign(element.style, value);
             }
             else {
-                element.setAttribute('style', value);
+                element.setAttribute('style', String(value));
             }
         }
         else if (prop === 'class' || prop === 'className') {
-            element.setAttribute('class', value);
+            element.setAttribute('class', String(value));
         }
         else if (prop.startsWith('on')) {
             // Event handler - will be handled by delegate
@@ -211,14 +203,14 @@ export function spread(element, accessor, isSVG, skipChildren) {
         }
         else {
             // Set as attribute
-            element.setAttribute(prop, value);
+            element.setAttribute(prop, String(value));
         }
     }
 }
 /**
  * Event delegation system
  *
- * Uses document-level listeners for better performance with many elements
+ * Uses document-level listeners for performance with numerous elements
  */
 // Map of event types to their delegated listeners
 const delegatedEvents = new Map();
@@ -325,7 +317,7 @@ export function assign(element, prop, value) {
         element[prop] = value;
     }
     else {
-        element.setAttribute(prop, value);
+        element.setAttribute(prop, String(value));
     }
 }
 /**
@@ -369,7 +361,7 @@ export function setProp(element, prop, value) {
     }
     else if (prop === 'value' && element instanceof HTMLInputElement) {
         // Special handling for input value
-        element.value = actualValue;
+        element.value = String(actualValue);
     }
     else if (prop === 'checked' && element instanceof HTMLInputElement) {
         element.checked = Boolean(actualValue);
@@ -404,7 +396,7 @@ export function effect(fn) {
  * Efficiently switches between two branches based on a condition
  */
 export function show(parent, condition, whenTrue, whenFalse, marker) {
-    let current = undefined;
+    let current = null;
     let currentBranch = null;
     const stop = createEffect(() => {
         const value = condition();
@@ -587,8 +579,7 @@ export function forLoop(parent, accessor, mapFn, options, marker) {
             }
             return;
         }
-        // TODO: Implement efficient keyed diffing
-        // For now, simple rebuild
+        // Use a simple rebuild for now
         mapArray(parent, accessor, mapFn, marker);
     });
     if (parent instanceof Element) {

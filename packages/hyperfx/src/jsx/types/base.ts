@@ -17,7 +17,7 @@ export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
 
 /** Reactive object value - can be static, signal, or computed */
-export type ReactiveObject<T = Record<string, any>> = ReactiveValue<T>;
+export type ReactiveObject<T = Record<string, unknown>> = ReactiveValue<T>;
 
 // ========================================
 // ADVANCED REACTIVE UTILITIES
@@ -48,5 +48,5 @@ export function isReactive(value: unknown): value is ReactiveValue<unknown> {
 
 /** Type guard to check if a value is a reactive signal */
 export function isSignal(value: unknown): value is ReactiveValue<unknown> {
-  return isReactive(value) && typeof (value as any).subscribe === 'function';
+  return isReactive(value) && typeof (value as { subscribe?: unknown }).subscribe === 'function';
 }

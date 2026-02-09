@@ -77,11 +77,11 @@ export declare class StateStore {
     /**
      * Get a nested signal_createSignal by path (e.g., ['user', 'profile', 'name'])
      */
-    getNestedSignal<T>(root: ReactiveSignal<any>, path: (string | number)[]): ReactiveSignal<T> | undefined;
+    getNestedSignal<T>(root: ReactiveSignal<unknown>, path: (string | number)[]): ReactiveSignal<T> | undefined;
     /**
      * Set a nested value by path (will create signals as needed)
      */
-    setNestedSignal<T>(root: ReactiveSignal<any>, path: (string | number)[], value: T): void;
+    setNestedSignal<T>(root: ReactiveSignal<unknown>, path: (string | number)[], value: T): void;
 }
 /**
  * Global state store instance
@@ -106,7 +106,7 @@ export declare function useMemo<T>(computation: () => T): () => T;
 /**
  * Effect hook for components
  */
-export declare function useEffect(effectFn: () => void | (() => void), deps?: (() => any)[]): EffectCleanup;
+export declare function useEffect(effectFn: () => void | (() => void), deps?: (() => unknown)[]): EffectCleanup;
 /**
  * Batch multiple signal_createSignal updates
  */

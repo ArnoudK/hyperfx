@@ -1,7 +1,7 @@
 // Functional Hydration Test
 import { describe, it, expect, beforeEach } from 'vitest';
-import { renderToString, hydrate, isSSRMode, setSSRMode, clearSSRState } from 'hyperfx';
-import { createComputed, createSignal } from 'hyperfx';
+import { renderToString, hydrate, clearSSRState } from 'hyperfx';
+import { createSignal } from 'hyperfx';
 
 describe('Functional Hydration', () => {
     beforeEach(() => {
@@ -11,11 +11,11 @@ describe('Functional Hydration', () => {
 
     it('should hydrate and claim existing nodes', () => {
         function App() {
-            const [count, setCount] = createSignal(0);
+            const count = createSignal<number>(0);
             return (
                 <div id="app-root">
                     <span id="counter">{count}</span>
-                    <button id="inc" onclick={() => setCount(count() + 1)}>Inc</button>
+                    <button id="inc" onclick={() => {count(count() + 1)}}>Inc</button>
                 </div>
             );
         }
@@ -41,11 +41,11 @@ describe('Functional Hydration', () => {
 
     it('should restore interactivity (signals)', () => {
         function Counter() {
-            const [count, setCount] = createSignal(5);
+            const count = createSignal(5);
             return (
                 <div id="counter-app">
                     <span id="display">{count}</span>
-                    <button id="btn" onclick={() => setCount(count() + 1)}>Add</button>
+                    <button id="btn" onclick={() => count(count() + 1)}>Add</button>
                 </div>
             );
         }
@@ -89,7 +89,7 @@ describe('Functional Hydration', () => {
         expect(newSpan?.tagName).toBe(originalSpan?.tagName);
     });
 
-    it('should handle text node updates correctly', () => {
+  it('should handle text node updates correctly', () => {
         function TextApp() {
             const [text, setText] = createSignal('Initial');
             // Store reference globally for interaction
@@ -114,5 +114,77 @@ describe('Functional Hydration', () => {
         const textNodes = Array.from(document.getElementById('text-container')?.childNodes || [])
             .filter(n => n.nodeType === 3);
         expect(textNodes.length).toBe(1);
+    });
+
+    it('should keep fragment root structure with text nodes', () => {
+        function App() {
+            return <>Hello <span>World</span>!</>;
+        }
+
+        const { html } = renderToString(() => <App />, { ssrHydration: true });
+        expect(html).toContain('World');
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+        expect(container.textContent).toBe('Hello World!');
+
+        hydrate(container, () => <App />);
+
+        expect(container.textContent).toBe('Hello World!');
+
+        const textNodes = Array.from(container.childNodes)
+            .filter(n => n.nodeType === 3 && (n.textContent ?? '').trim() !== '');
+        expect(textNodes.length).toBe(2);
+    });
+
+    it('should reuse text node with hydration marker', () => {
+        function App() {
+            const [count] = createSignal(1);
+            return (
+                <div id="root">
+                    <span id="value">{count}</span>
+                </div>
+            );
+        }
+
+        const { html } = renderToString(() => <App />, { ssrHydration: true });
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        const span = container.querySelector('#value') as HTMLElement;
+        expect(span.innerHTML).toContain('hfx:dyn:');
+        let initialTextNode: Text | null = null;
+        let initialMarker: Comment | null = null;
+        for (let i = 0; i < span.childNodes.length; i++) {
+            const node = span.childNodes[i];
+            if (node && node.nodeType === 3) {
+                initialTextNode = node as Text;
+            }
+            if (node && node.nodeType === 8 && (node.textContent ?? '').startsWith('hfx:dyn:')) {
+                initialMarker = node as Comment;
+            }
+        }
+
+        expect(initialTextNode).not.toBeNull();
+        expect(initialMarker).not.toBeNull();
+
+        hydrate(container, () => <App />);
+
+        const spanAfter = container.querySelector('#value') as HTMLElement;
+        let hydratedTextNode: Text | null = null;
+        let hydratedMarker: Comment | null = null;
+        for (let i = 0; i < spanAfter.childNodes.length; i++) {
+            const node = spanAfter.childNodes[i];
+            if (node && node.nodeType === 3) {
+                hydratedTextNode = node as Text;
+            }
+            if (node && node.nodeType === 8 && (node.textContent ?? '').startsWith('hfx:dyn:')) {
+                hydratedMarker = node as Comment;
+            }
+        }
+
+        expect(hydratedMarker?.textContent).toBe(initialMarker?.textContent);
+        expect(hydratedTextNode?.textContent).toBe(initialTextNode?.textContent);
     });
 });

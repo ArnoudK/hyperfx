@@ -53,10 +53,12 @@ Run specific test file:
 pnpm --filter hyperfx-test test -- test/filename.test.tsx
 ```
 
+
 #### Test Conventions
 - Use `.tsx` extension for tests with JSX
 - Use JSX syntax, not `document.createElement`
 - Tests go in `packages/hyperfx-test/test/`
+- If you have an issue, do not write a one-off script. Instead, write a test that reproduces the issue and then fix it in the hyperfx package.
 
 ## Implementation Guidelines
 

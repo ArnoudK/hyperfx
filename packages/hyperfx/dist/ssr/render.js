@@ -15,6 +15,24 @@ export function escapeHtml(text) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
+function domNodeToString(node) {
+    if (node.nodeType === 1) {
+        return String(node.outerHTML ?? '');
+    }
+    if (node.nodeType === 3) {
+        return String(node.data ?? '');
+    }
+    if (node.nodeType === 8) {
+        return `<!--${String(node.data ?? '')}-->`;
+    }
+    if (node.nodeType === 11) {
+        const fragment = node;
+        const wrapper = document.createElement('div');
+        wrapper.appendChild(fragment.cloneNode(true));
+        return wrapper.innerHTML;
+    }
+    return '';
+}
 /**
  * HTML void elements
  */
@@ -35,6 +53,8 @@ const BOOLEAN_ATTRIBUTES = new Set([
  */
 export function renderAttributes(props) {
     let result = '';
+    if (!props)
+        return result;
     for (const [key, value] of Object.entries(props)) {
         if (key === 'children' || key === 'key' || key === 'ref' || key.startsWith('on'))
             continue;
@@ -44,7 +64,7 @@ export function renderAttributes(props) {
                 result += ` ${attrName}`;
             continue;
         }
-        if (attrName === 'style' && typeof value === 'object') {
+        if (attrName === 'style' && typeof value === 'object' && value !== null) {
             const styleStr = Object.entries(value)
                 .map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${v}`)
                 .join('; ');
@@ -87,20 +107,26 @@ export function renderToString(element, options = {}) {
         else if (typeof result === 'string') {
             html = result;
         }
-        else if (result && typeof result === 'object') {
-            // Handle real DOM nodes (for tests with happy-dom/jsdom)
-            if ('outerHTML' in result) {
-                html = result.outerHTML;
-            }
-            else if ('textContent' in result) {
-                html = result.textContent || '';
+        else if (typeof Node !== 'undefined' && result instanceof Node) {
+            html = domNodeToString(result);
+        }
+        else {
+            if (result && typeof result === 'object' && Array.isArray(result.childNodes)) {
+                const nodes = result.childNodes;
+                let buffer = '';
+                for (const node of nodes) {
+                    if (node && node.__ssr) {
+                        buffer += node.t;
+                    }
+                    else {
+                        buffer += escapeHtml(String(node));
+                    }
+                }
+                html = buffer;
             }
             else {
                 html = String(result || '');
             }
-        }
-        else {
-            html = String(result || '');
         }
         const state = { signals: {}, resources: {}, contexts: {} };
         if (ssrHydration) {

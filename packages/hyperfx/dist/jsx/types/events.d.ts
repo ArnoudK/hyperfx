@@ -75,6 +75,6 @@ export type EventHandlerMap = {
     [K in keyof HTMLElementEventMap]?: EventHandler<HTMLElementEventMap[K]>;
 };
 /**
- * Generic event handler for any event type
+ * Generic event handler for a wide event type
  */
-export type GenericEventHandler = EventHandler<any>;
+export type GenericEventHandler = EventHandler<Event>;

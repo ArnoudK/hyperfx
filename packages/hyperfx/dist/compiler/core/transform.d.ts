@@ -27,6 +27,7 @@ export declare class HyperFXTransformer {
      * Parse code to AST
      */
     private parseCode;
+    private getTransformId;
     /**
      * Transform a JSX element
      */
@@ -35,14 +36,6 @@ export declare class HyperFXTransformer {
      * Transform a JSX fragment
      */
     private transformJSXFragment;
-    /**
-     * Check if a JSX element is completely static (no dynamic content at all)
-     */
-    private isStaticElement;
-    /**
-     * Check if children are all static (recursive)
-     */
-    private hasOnlyStaticChildren;
     /**
      * Transform a static element into a template
      */
@@ -83,16 +76,7 @@ export declare class HyperFXTransformer {
      * Generate element creation code without IIFE wrapper (for use in map functions)
      */
     private generateElementCodeInline;
-    /**
-     * Try to optimize a .map() call for list rendering
-     * Returns optimization info if successful, null otherwise
-     */
-    private tryOptimizeMapCall;
-    /**
-     * Extract the key prop from a JSX element
-     * Returns the key expression as a string, or null if no key
-     */
-    private extractKeyProp;
+    private getDynamicElementOptions;
     /**
      * Check if a JSX element is a component (vs HTML element)
      * Components start with uppercase letter

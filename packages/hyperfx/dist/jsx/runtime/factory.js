@@ -51,7 +51,7 @@ function appendChildren(parent, children) {
     // Handle SSRNodes
     if (children && children.__ssr) {
         const div = document.createElement('div');
-        div.innerHTML = children.t;
+        div.innerHTML = String(children.t ?? '');
         while (div.firstChild) {
             parent.appendChild(div.firstChild);
         }
@@ -93,6 +93,14 @@ export function jsx(type, props, _key) {
     }
     // Handle function components
     if (typeof type === 'function') {
+        // Import lifecycle functions dynamically to avoid circular dependency
+        let lifecycle;
+        try {
+            lifecycle = require('../../reactive/lifecycle.js');
+        }
+        catch {
+            // Lifecycle module not available
+        }
         const proxyProps = new Proxy(props || {}, {
             get(target, prop, receiver) {
                 const value = Reflect.get(target, prop, receiver);
@@ -101,7 +109,25 @@ export function jsx(type, props, _key) {
                 return value;
             }
         });
-        return type(proxyProps);
+        // Push lifecycle context before rendering component
+        if (lifecycle) {
+            lifecycle.pushLifecycleContext();
+        }
+        try {
+            const result = type(proxyProps);
+            // Flush mount callbacks after component renders
+            if (lifecycle) {
+                lifecycle.flushMounts();
+            }
+            return result;
+        }
+        catch (error) {
+            // Clean up context on error
+            if (lifecycle) {
+                lifecycle.popLifecycleContext();
+            }
+            throw error;
+        }
     }
     // Handle regular HTML elements
     const element = createElement(type, props);

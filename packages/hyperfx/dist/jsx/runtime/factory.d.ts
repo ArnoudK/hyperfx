@@ -7,8 +7,8 @@ export declare function Fragment(props: ComponentProps): DocumentFragment;
 /**
  * Client-side JSX factory function
  */
-export declare function jsx(type: string | FunctionComponent<any> | typeof FRAGMENT_TAG, props: Record<string, any> | null, _key?: string | number | null): JSXElement;
+export declare function jsx(type: string | FunctionComponent<Record<string, unknown>> | typeof FRAGMENT_TAG, props: Record<string, unknown> | null, _key?: string | number | null): JSXElement;
 export declare const jsxs: typeof jsx;
 export declare const jsxDEV: typeof jsx;
-export declare function createJSXElement(type: string | FunctionComponent<any> | typeof FRAGMENT_TAG, props: Record<string, any> | null, ...children: JSXChildren[]): JSXElement;
+export declare function createJSXElement(type: string | FunctionComponent<Record<string, unknown>> | typeof FRAGMENT_TAG, props: Record<string, unknown> | null, ...children: JSXChildren[]): JSXElement;
 export { createJSXElement as createElement };

@@ -32,28 +32,71 @@ export function readHydrationData() {
  * Returns true if trees match, false if mismatch detected
  */
 function walkAndValidate(clientNode, serverNode, path = 'root') {
-    // Both must be elements
-    if (!(clientNode instanceof Element) || !(serverNode instanceof Element)) {
-        if (clientNode.nodeType !== serverNode.nodeType) {
-            console.warn(`[Hydration] Node type mismatch at ${path}: client=${clientNode.nodeType}, server=${serverNode.nodeType}`);
+    if (clientNode.nodeType !== serverNode.nodeType) {
+        if (isIgnorableWhitespaceText(clientNode) || isIgnorableWhitespaceText(serverNode)) {
+            return true;
+        }
+        if (isIgnorableComment(clientNode) || isIgnorableComment(serverNode)) {
+            return true;
+        }
+        console.warn(`[Hydration] Node type mismatch at ${path}: client=${clientNode.nodeType}, server=${serverNode.nodeType}`);
+        return false;
+    }
+    if (clientNode.nodeType === Node.TEXT_NODE) {
+        const serverText = serverNode.textContent ?? '';
+        const clientText = clientNode.textContent ?? '';
+        if ((serverText.trim() === '' && clientText.trim() !== '') || (serverText.trim() !== '' && clientText.trim() === '')) {
+            return true;
+        }
+        if (clientText !== serverText) {
+            console.warn(`[Hydration] Text mismatch at ${path}: client="${clientText}", server="${serverText}"`);
             return false;
         }
         return true;
     }
-    // Tags must match
+    if (clientNode.nodeType === Node.COMMENT_NODE) {
+        const clientComment = clientNode.textContent ?? '';
+        const serverComment = serverNode.textContent ?? '';
+        if (clientComment !== serverComment) {
+            console.warn(`[Hydration] Comment mismatch at ${path}: client="${clientComment}", server="${serverComment}"`);
+            return false;
+        }
+        return true;
+    }
+    if (!(clientNode instanceof Element) || !(serverNode instanceof Element)) {
+        return true;
+    }
+    const clientTextOnly = Array.from(clientNode.childNodes).every((node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() === '');
+    const serverIsElement = serverNode.nodeType === Node.ELEMENT_NODE;
+    if (clientTextOnly && serverIsElement) {
+        return true;
+    }
     if (clientNode.tagName !== serverNode.tagName) {
         console.warn(`[Hydration] Tag mismatch at ${path}: client=<${clientNode.tagName.toLowerCase()}>, server=<${serverNode.tagName.toLowerCase()}>`);
         return false;
     }
-    // Get element children (ignore text nodes for structure validation)
-    const clientChildren = Array.from(clientNode.children);
-    const serverChildren = Array.from(serverNode.children);
-    // Child count must match
+    const clientChildren = Array.from(clientNode.childNodes).filter((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return (node.textContent ?? '').trim() !== '';
+        }
+        if (node.nodeType === Node.COMMENT_NODE) {
+            return !isHydrationMarker(node);
+        }
+        return true;
+    });
+    const serverChildren = Array.from(serverNode.childNodes).filter((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            return (node.textContent ?? '').trim() !== '';
+        }
+        if (node.nodeType === Node.COMMENT_NODE) {
+            return !isHydrationMarker(node);
+        }
+        return true;
+    });
     if (clientChildren.length !== serverChildren.length) {
         console.warn(`[Hydration] Child count mismatch at ${path}/<${clientNode.tagName.toLowerCase()}>: client=${clientChildren.length}, server=${serverChildren.length}`);
         return false;
     }
-    // Recursively validate all children
     for (let i = 0; i < clientChildren.length; i++) {
         const clientChild = clientChildren[i];
         const serverChild = serverChildren[i];
@@ -65,6 +108,20 @@ function walkAndValidate(clientNode, serverNode, path = 'root') {
         }
     }
     return true;
+}
+function isHydrationMarker(node) {
+    if (node.nodeType !== Node.COMMENT_NODE)
+        return false;
+    const text = node.textContent ?? '';
+    return text.startsWith('hfx:') || text.startsWith('#');
+}
+function isIgnorableWhitespaceText(node) {
+    if (node.nodeType !== Node.TEXT_NODE)
+        return false;
+    return (node.textContent ?? '').trim() === '';
+}
+function isIgnorableComment(node) {
+    return node.nodeType === Node.COMMENT_NODE && isHydrationMarker(node);
 }
 /**
  * Hydrate an application into a container using structural matching.
@@ -81,48 +138,66 @@ function walkAndValidate(clientNode, serverNode, path = 'root') {
  * @param factory - A function that returns the root component (JSXElement)
  */
 export function hydrate(container, factory) {
-    // Get all server-rendered children (could be multiple elements)
-    const serverChildren = Array.from(container.children);
+    const rawServerNodes = Array.from(container.childNodes);
+    let serverChildren = normalizeHydrationNodes(rawServerNodes);
+    if (serverChildren.length === 0 && rawServerNodes.length > 0) {
+        serverChildren = rawServerNodes;
+    }
     if (serverChildren.length === 0) {
-        console.warn('[HyperFX] No server-rendered content found. Performing client-side mount.');
+        const htmlContainer = container;
+        const hasContent = rawServerNodes.length > 0 || (container.textContent ?? '').trim() !== '' || (htmlContainer.innerHTML ?? '').trim() !== '';
+        if (!hasContent) {
+            console.warn('[HyperFX] No server-rendered content found. Performing client-side mount.');
+        }
         const root = factory();
         if (root instanceof Node) {
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
             container.appendChild(root);
         }
         return;
     }
-    // Read hydration data for signal restoration
     const hydrationData = readHydrationData();
-    // Enable hydration mode flag (for any components that need to know)
     startHydration(container);
+    if (hydrationData?.state?.signals) {
+        const registeredSignals = getRegisteredSignals();
+        for (const [key, value] of Object.entries(hydrationData.state.signals)) {
+            const signal = registeredSignals.get(key);
+            if (signal) {
+                try {
+                    signal.set(value);
+                }
+                catch (e) {
+                    console.warn(`[HyperFX] Failed to restore signal "${key}":`, e);
+                }
+            }
+        }
+    }
     try {
         // Execute the component logic - creates a fresh client tree with handlers
         const clientRoot = factory();
-        // Handle different return types from factory
-        let clientElements;
+        let clientNodes;
         if (clientRoot instanceof DocumentFragment) {
-            // Factory returned a fragment - extract all element children
-            clientElements = Array.from(clientRoot.children);
+            clientNodes = normalizeHydrationNodes(Array.from(clientRoot.childNodes));
         }
-        else if (clientRoot instanceof Element) {
-            // Factory returned a single element
-            clientElements = [clientRoot];
+        else if (clientRoot instanceof Node) {
+            clientNodes = [clientRoot];
         }
         else {
-            throw new Error('Factory must return an Element or DocumentFragment for hydration');
+            throw new Error('Factory must return a Node or DocumentFragment for hydration');
         }
-        // Validate client and server have same number of root elements
-        if (clientElements.length !== serverChildren.length) {
-            console.warn(`[HyperFX] Root element count mismatch: client=${clientElements.length}, server=${serverChildren.length}`);
+        if (clientNodes.length !== serverChildren.length) {
+            console.warn(`[HyperFX] Root element count mismatch: client=${clientNodes.length}, server=${serverChildren.length}`);
             throw new Error('Structure mismatch: different number of root elements');
         }
         // Validate that each client/server pair matches structurally
         let allMatch = true;
-        for (let i = 0; i < clientElements.length; i++) {
-            const clientEl = clientElements[i];
-            const serverEl = serverChildren[i];
-            if (clientEl && serverEl) {
-                const matches = walkAndValidate(clientEl, serverEl, `root[${i}]`);
+        for (let i = 0; i < clientNodes.length; i++) {
+            const clientNode = clientNodes[i];
+            const serverNode = serverChildren[i];
+            if (clientNode && serverNode) {
+                const matches = walkAndValidate(clientNode, serverNode, `root[${i}]`);
                 if (!matches) {
                     allMatch = false;
                     break;
@@ -132,23 +207,10 @@ export function hydrate(container, factory) {
         if (!allMatch) {
             console.warn('[HyperFX] Structure mismatch detected. Falling back to full client-side render.');
         }
-        // Replace all server children with client children
-        // Client DOM has all event handlers and reactive bindings attached
-        container.replaceChildren(...clientElements);
-        // Restore signal values after tree is mounted
-        if (hydrationData?.state?.signals) {
-            const registeredSignals = getRegisteredSignals();
-            for (const [key, value] of Object.entries(hydrationData.state.signals)) {
-                const signal = registeredSignals.get(key);
-                if (signal) {
-                    try {
-                        signal.set(value);
-                    }
-                    catch (e) {
-                        console.warn(`[HyperFX] Failed to restore signal "${key}":`, e);
-                    }
-                }
-            }
+        const alreadyMounted = clientNodes.every((node) => node.parentNode === container);
+        const forceReplace = serverChildren.some((node) => node.nodeType !== Node.ELEMENT_NODE);
+        if (!allMatch || !alreadyMounted || forceReplace) {
+            replaceContainerChildren(container, clientNodes);
         }
     }
     catch (error) {
@@ -158,7 +220,7 @@ export function hydrate(container, factory) {
             endHydration();
             const fallbackRoot = factory();
             if (fallbackRoot instanceof Node) {
-                container.replaceChildren(fallbackRoot);
+                replaceContainerChildren(container, [fallbackRoot]);
             }
         }
         catch (fallbackError) {
@@ -170,11 +232,38 @@ export function hydrate(container, factory) {
         endHydration();
     }
 }
+function normalizeHydrationNodes(nodes) {
+    const filtered = [];
+    for (const node of nodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            if ((node.textContent ?? '').trim() === '')
+                continue;
+            filtered.push(node);
+            continue;
+        }
+        if (node.nodeType === Node.COMMENT_NODE) {
+            if (isHydrationMarker(node))
+                continue;
+            filtered.push(node);
+            continue;
+        }
+        filtered.push(node);
+    }
+    return filtered;
+}
+function replaceContainerChildren(container, nodes) {
+    while (container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
+    for (const node of nodes) {
+        container.appendChild(node);
+    }
+}
 /**
  * Check if the page has potential for hydration
  */
 export function isHydratable(container) {
-    // Check if there's any element children in the container
+    // Check if there are element children in the container
     // (text nodes and comments don't count)
     return container.children.length > 0;
 }

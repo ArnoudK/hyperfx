@@ -137,12 +137,13 @@ export class StateStore {
                 obj = {};
                 current(obj);
             }
-            if (!(key in obj) || typeof obj[key] !== 'function') {
+            const objRecord = obj;
+            if (!(key in objRecord) || typeof objRecord[key] !== 'function') {
                 const newSig = createSignal(undefined);
-                obj[key] = newSig;
+                objRecord[key] = newSig;
                 current(obj);
             }
-            current = obj[key];
+            current = objRecord[key];
         }
         // Set the value at the final key
         let obj = current();

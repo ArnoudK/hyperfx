@@ -1,9 +1,10 @@
 // Hydration and SSR State - Global Shared Source of Truth
 // Using globalThis to ensure synchronization across multiple module instances (common in tests)
-// Use a very specific key to avoid any conflicts and ensure sharing even if modules are duplicated
+// Use a specific key to avoid conflicts and ensure sharing even if modules are duplicated
 const SSR_STATE_KEY = '__HYPERFX_SSR_STATE_V2__';
-if (!globalThis[SSR_STATE_KEY]) {
-    globalThis[SSR_STATE_KEY] = {
+const globalState = globalThis;
+if (!globalState[SSR_STATE_KEY]) {
+    globalState[SSR_STATE_KEY] = {
         hydrationEnabled: false,
         ssrMode: false,
         clientNodeCounter: 0,
@@ -13,7 +14,7 @@ if (!globalThis[SSR_STATE_KEY]) {
         hydrationStack: []
     };
 }
-const SSR_STATE = globalThis[SSR_STATE_KEY];
+const SSR_STATE = globalState[SSR_STATE_KEY];
 export function startHydration(container) {
     SSR_STATE.hydrationEnabled = true;
     if (container) {

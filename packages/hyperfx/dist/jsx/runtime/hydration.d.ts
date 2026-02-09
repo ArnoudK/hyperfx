@@ -1,7 +1,7 @@
-export declare function startHydration(container?: any): void;
+export declare function startHydration(container?: Node | null): void;
 export declare function endHydration(): void;
 export declare function isHydrationEnabled(): boolean;
-export declare function getHydrationContainer(): any;
+export declare function getHydrationContainer(): Node | null;
 export declare function setSSRMode(enabled: boolean): void;
 export declare function isSSRMode(): boolean;
 export declare function getHydrationPointer(): Node | null;

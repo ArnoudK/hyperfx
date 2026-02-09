@@ -145,8 +145,8 @@ export function createLazyResource(effect, options) {
  * Combine multiple resources into a single resource
  *
  * The combined resource is in Success state only when all resources are successful.
- * If any resource is Loading, the combined resource is Loading.
- * If any resource is Failure, the combined resource is Failure.
+ * If a resource is Loading, the combined resource is Loading.
+ * If a resource is Failure, the combined resource is Failure.
  *
  * @example
  * ```tsx
@@ -171,7 +171,7 @@ export function combineResources(resources) {
             key,
             state: resource()
         }));
-        // Check if any are loading
+        // Check if some are loading
         const anyLoading = states.some(({ state }) => state._tag === "Loading");
         if (anyLoading) {
             // Get previous data if all had data before
@@ -193,7 +193,7 @@ export function combineResources(resources) {
             }
             return;
         }
-        // Check if any failed
+        // Check if some failed
         const firstFailure = states.find(({ state }) => state._tag === "Failure");
         if (firstFailure) {
             combined(failure(firstFailure.state._tag === "Failure" ? firstFailure.state.error : 'Unknown error'));

@@ -102,8 +102,8 @@ export interface AsyncComponentInjectedProps {
  * )
  * ```
  */
-export declare function createAsyncComponent<P extends Record<string, any> = {}>(fn: (props: P & AsyncComponentInjectedProps) => Stream.Stream<JSXElement, never, never>, options?: AsyncComponentOptions): (props: P) => JSXElement;
+export declare function createAsyncComponent<P extends Record<string, unknown> = {}>(fn: (props: P & AsyncComponentInjectedProps) => Stream.Stream<JSXElement, never, never>, options?: AsyncComponentOptions): (props: P) => JSXElement;
 /**
  * Type helper to extract props from async component function
  */
-export type AsyncComponentProps<T extends (props: any) => Stream.Stream<any, any, any>> = T extends (props: infer P) => Stream.Stream<any, any, any> ? Omit<P, keyof AsyncComponentInjectedProps> : never;
+export type AsyncComponentProps<T extends (props: Record<string, unknown>) => Stream.Stream<unknown, unknown, unknown>> = T extends (props: infer P) => Stream.Stream<unknown, unknown, unknown> ? Omit<P, keyof AsyncComponentInjectedProps> : never;

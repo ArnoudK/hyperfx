@@ -1,6 +1,6 @@
 import type { Signal } from "../../reactive/signal";
 import type { NormalizedValue } from "./types";
-export declare function handleReactiveValue(element: HTMLElement, key: string, value: any, setter: (el: HTMLElement, val: any) => void): void;
+export declare function handleReactiveValue(element: HTMLElement, key: string, value: unknown, setter: (el: HTMLElement, val: unknown) => void): void;
 /**
  * Add a subscription to an element's cleanup list
  */

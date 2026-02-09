@@ -116,7 +116,7 @@ export function createAsyncComponent(fn, options = {}) {
         let currentContent = null;
         let streamCleanup = null;
         // Wrap the stream creation in a memo to track reactive prop dependencies
-        // When any signal accessed inside fn() changes, this memo will re-compute
+        // When a signal accessed inside fn() changes, this memo will re-compute
         const currentStream = createMemo(() => fn(propsWithInjected));
         // Function to run the stream and update DOM on each emission
         const runStream = (forceRefresh = false) => {

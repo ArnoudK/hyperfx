@@ -7,7 +7,7 @@ export type ReactiveNumber = ReactiveValue<number>;
 /** Reactive boolean value - can be static, signal, or computed */
 export type ReactiveBoolean = ReactiveValue<boolean>;
 /** Reactive object value - can be static, signal, or computed */
-export type ReactiveObject<T = Record<string, any>> = ReactiveValue<T>;
+export type ReactiveObject<T = Record<string, unknown>> = ReactiveValue<T>;
 /** Union type for mixed static/reactive values */
 export type MaybeReactive<T> = T | ReactiveValue<T>;
 /** Extract the inner type from a reactive value */

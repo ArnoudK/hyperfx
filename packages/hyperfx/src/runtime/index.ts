@@ -83,22 +83,23 @@ export function runEffectFork<A, E>(
 
 /**
  * Run an Effect and ignore the result
- * Errors are logged but not thrown
+ * Errors are logged and rethrown asynchronously
  * 
  * Useful for fire-and-forget operations where you don't care about the result
  */
 export function runEffectIgnore<A, E>(
   effect: Effect.Effect<A, E, never>
 ): void {
-  Effect.runPromise(
-    effect.pipe(
-      Effect.catchAll((error) => 
-        Effect.sync(() => {
-          console.error("[HyperFX] Effect error:", error)
-        })
-      )
-    )
-  ).catch((error) => {
-    console.error("[HyperFX] Unhandled Effect error:", error)
+  Effect.runPromise(effect).catch((error) => {
+    console.error("[HyperFX] Effect error:", error)
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(() => {
+        throw error
+      })
+    } else {
+      setTimeout(() => {
+        throw error
+      }, 0)
+    }
   })
 }

@@ -5,7 +5,8 @@
 import * as t from '@babel/types';
 export declare class SSRGenerator {
     private readonly codeFromNode;
-    constructor(codeFromNode: (node: t.Node) => string);
+    private readonly shouldEmitMarker;
+    constructor(codeFromNode: (node: t.Node) => string, shouldEmitMarker: () => boolean);
     /**
      * Generate SSR JSX code for elements and fragments
      */

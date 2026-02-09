@@ -175,7 +175,7 @@ export function createResource<A, E = unknown>(
  * const user = fetchUser("123")
  * ```
  */
-export function createResourceFn<Args extends any[], A, E = unknown>(
+export function createResourceFn<Args extends unknown[], A, E = unknown>(
   fn: (...args: Args) => Effect.Effect<A, E, never>,
   options?: ResourceOptions<A, E>
 ): (...args: Args) => EffectSignal<A, E> {
@@ -211,8 +211,8 @@ export function createLazyResource<A, E = unknown>(
  * Combine multiple resources into a single resource
  * 
  * The combined resource is in Success state only when all resources are successful.
- * If any resource is Loading, the combined resource is Loading.
- * If any resource is Failure, the combined resource is Failure.
+ * If a resource is Loading, the combined resource is Loading.
+ * If a resource is Failure, the combined resource is Failure.
  * 
  * @example
  * ```tsx
@@ -229,22 +229,23 @@ export function createLazyResource<A, E = unknown>(
  * )}
  * ```
  */
-export function combineResources<T extends Record<string, Signal<any>>>(
+export function combineResources<T extends Record<string, Signal<ResourceState<unknown, unknown>>>>(
   resources: T
 ): Signal<ResourceState<
-  { [K in keyof T]: T[K] extends Signal<ResourceState<infer A, any>> ? A : never },
+  { [K in keyof T]: T[K] extends Signal<ResourceState<infer A, unknown>> ? A : never },
   unknown
 >> {
-  const combined = createSignal<ResourceState<any, unknown>>(idle())
+  type CombinedData = { [K in keyof T]: T[K] extends Signal<ResourceState<infer A, unknown>> ? A : never };
+  const combined = createSignal<ResourceState<CombinedData, unknown>>(idle())
 
   // Helper to recompute combined state
   const recompute = () => {
     const states = Object.entries(resources).map(([key, resource]) => ({
       key,
-      state: resource()
+      state: resource() as ResourceState<CombinedData[typeof key & keyof CombinedData], unknown>
     }))
 
-    // Check if any are loading
+    // Check if some are loading
     const anyLoading = states.some(({ state }) => state._tag === "Loading")
     if (anyLoading) {
       // Get previous data if all had data before
@@ -253,22 +254,22 @@ export function combineResources<T extends Record<string, Signal<any>>>(
       )
 
       if (allHadData) {
-        const previousData: any = {}
+        const previousData: Partial<CombinedData> = {}
         for (const { key, state } of states) {
           if (state._tag === "Success") {
-            previousData[key] = state.data
+            (previousData as Record<string, unknown>)[key] = state.data
           } else if (state._tag === "Loading" && state.previous) {
-            previousData[key] = state.previous
+            (previousData as Record<string, unknown>)[key] = state.previous
           }
         }
-        combined(loading(previousData))
+        combined(loading(previousData as CombinedData))
       } else {
         combined(loading())
       }
       return
     }
 
-    // Check if any failed
+    // Check if some failed
     const firstFailure = states.find(({ state }) => state._tag === "Failure")
     if (firstFailure) {
       combined(failure(firstFailure.state._tag === "Failure" ? firstFailure.state.error : 'Unknown error'))
@@ -278,10 +279,10 @@ export function combineResources<T extends Record<string, Signal<any>>>(
     // Check if all are successful
     const allSuccess = states.every(({ state }) => state._tag === "Success")
     if (allSuccess) {
-      const data: any = {}
+      const data: CombinedData = {} as CombinedData
       for (const { key, state } of states) {
         if (state._tag === "Success") {
-          data[key] = state.data
+          (data as Record<string, unknown>)[key] = state.data
         }
       }
       combined(success(data))

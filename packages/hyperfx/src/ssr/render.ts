@@ -38,9 +38,9 @@ export interface SSRNode extends SSRResult {
 export interface SSROptions {
   ssrHydration?: boolean;
   initialState?: {
-    signals?: Record<string, any>;
-    resources?: Record<string, any>;
-    contexts?: Record<string, any>;
+    signals?: Record<string, unknown>;
+    resources?: Record<string, unknown>;
+    contexts?: Record<string, unknown>;
   };
 }
 
@@ -49,9 +49,9 @@ export interface SSROptions {
  */
 export interface HydrationData {
   state: {
-    signals: Record<string, any>;
-    resources: Record<string, any>;
-    contexts: Record<string, any>;
+    signals: Record<string, unknown>;
+    resources: Record<string, unknown>;
+    contexts: Record<string, unknown>;
   };
   version: string;
 }
@@ -67,6 +67,25 @@ export function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function domNodeToString(node: Node): string {
+  if (node.nodeType === 1) {
+    return String((node as Element).outerHTML ?? '');
+  }
+  if (node.nodeType === 3) {
+    return String((node as Text).data ?? '');
+  }
+  if (node.nodeType === 8) {
+    return `<!--${String((node as Comment).data ?? '')}-->`;
+  }
+  if (node.nodeType === 11) {
+    const fragment = node as DocumentFragment;
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(fragment.cloneNode(true));
+    return wrapper.innerHTML;
+  }
+  return '';
 }
 
 /**
@@ -89,8 +108,9 @@ const BOOLEAN_ATTRIBUTES = new Set([
 /**
  * Render properties to HTML string
  */
-export function renderAttributes(props: Record<string, any>): string {
+export function renderAttributes(props: Record<string, unknown> | null | undefined): string {
   let result = '';
+  if (!props) return result;
   for (const [key, value] of Object.entries(props)) {
     if (key === 'children' || key === 'key' || key === 'ref' || key.startsWith('on')) continue;
     const attrName = key === 'className' ? 'class' : key;
@@ -98,8 +118,8 @@ export function renderAttributes(props: Record<string, any>): string {
       if (value) result += ` ${attrName}`;
       continue;
     }
-    if (attrName === 'style' && typeof value === 'object') {
-      const styleStr = Object.entries(value)
+    if (attrName === 'style' && typeof value === 'object' && value !== null) {
+      const styleStr = Object.entries(value as Record<string, unknown>)
         .map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${v}`)
         .join('; ');
       if (styleStr) result += ` style="${escapeHtml(styleStr)}"`;
@@ -143,24 +163,30 @@ export function renderToString(
     }
 
     let html = '';
-    if (result && (result as any).__ssr) {
+    if (result && (result as SSRResult).__ssr) {
       html = (result as SSRResult).t;
     } else if (typeof result === 'string') {
       html = result;
-    } else if (result && typeof result === 'object') {
-      // Handle real DOM nodes (for tests with happy-dom/jsdom)
-      if ('outerHTML' in result) {
-        html = (result as any).outerHTML;
-      } else if ('textContent' in result) {
-        html = (result as any).textContent || '';
+    } else if (typeof Node !== 'undefined' && result instanceof Node) {
+      html = domNodeToString(result);
+    } else {
+      if (result && typeof result === 'object' && Array.isArray((result as { childNodes?: SSRNode[] }).childNodes)) {
+        const nodes = (result as { childNodes: SSRNode[] }).childNodes;
+        let buffer = '';
+        for (const node of nodes) {
+          if (node && (node as SSRResult).__ssr) {
+            buffer += (node as SSRResult).t;
+          } else {
+            buffer += escapeHtml(String(node));
+          }
+        }
+        html = buffer;
       } else {
         html = String(result || '');
       }
-    } else {
-      html = String(result || '');
     }
 
-    const state = { signals: {}, resources: {}, contexts: {} } as any;
+    const state: HydrationData['state'] = { signals: {}, resources: {}, contexts: {} };
     if (ssrHydration) {
       const registeredSignals = getRegisteredSignals();
       for (const [key, signal] of registeredSignals) {
@@ -180,7 +206,7 @@ export function renderToString(
 /**
  * Create an SSR result for a tag
  */
-export function ssrElement(tag: string, props: Record<string, any>, children: string): SSRResult {
+export function ssrElement(tag: string, props: Record<string, unknown>, children: string): SSRResult {
   const t = tag.toLowerCase();
   let html = `<${t}`;
 

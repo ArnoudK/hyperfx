@@ -19,7 +19,7 @@ type NormalizedValue<T> = {
   subscribe?: (callback: (v: T) => void) => () => void;
 };
 
-// Core reactive prop type - allows any value to be reactive
+// Core reactive prop type - allows unknown values to be reactive
 export type ReactiveValue<T> = T | Signal<T> | (() => T);
 
 // Specific reactive types for common use cases

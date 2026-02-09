@@ -10,6 +10,12 @@ export function Fragment(props) {
         __ssr: true
     };
 }
+export function marker() {
+    return {
+        t: '<!--hfx:dyn-->',
+        __ssr: true
+    };
+}
 /**
  * Render children to string
  */

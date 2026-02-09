@@ -11,8 +11,10 @@ export interface HyperFXPluginOptions {
     events?: boolean;
     /** Fold constants (default: true) */
     constants?: boolean;
-    /** SSR optimizations (default: true) */
-    ssr?: boolean;
+  /** SSR optimizations (default: true) */
+  ssr?: boolean;
+  /** Insert hydration markers for dynamic expressions (default: true) */
+  hydrationMarkers?: boolean;
   };
 
   /**
@@ -53,7 +55,7 @@ export interface HyperFXPluginOptions {
 
 export interface TransformResult {
   code: string;
-  map?: any; // SourceMap from magic-string
+  map?: import('magic-string').SourceMap; // SourceMap from magic-string
 }
 
 export interface TemplateInfo {

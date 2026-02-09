@@ -104,7 +104,7 @@ export const getError = <A, E>(state: ResourceState<A, E>): E | undefined => {
 }
 
 /**
- * Check if resource has any data (success or loading with previous)
+ * Check if resource has data (success or loading with previous)
  */
 export const hasData = <A, E>(state: ResourceState<A, E>): boolean => {
   return isSuccess(state) || (isLoading(state) && state.previous !== undefined)
@@ -138,7 +138,7 @@ export const map = <A, B, E>(
   if (isLoading(state) && state.previous) {
     return loading(fn(state.previous))
   }
-  return state as any
+  return state as ResourceState<B, E>
 }
 
 /**
@@ -152,7 +152,7 @@ export const mapError = <A, E, F>(
   if (isFailure(state)) {
     return failure(fn(state.error))
   }
-  return state as any
+  return state as ResourceState<A, F>
 }
 
 /**

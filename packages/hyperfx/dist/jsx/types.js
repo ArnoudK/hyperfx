@@ -33,7 +33,7 @@ export function isValidJSXChild(value) {
     return false;
 }
 /**
- * Check if children contain any reactive signals
+ * Check if children contain reactive signals
  */
 export function hasReactiveChildren(children) {
     if (!children)

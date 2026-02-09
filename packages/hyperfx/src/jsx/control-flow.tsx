@@ -39,9 +39,9 @@ export function For<T>(props: ForProps<T>): JSXElement {
   const updateList = (): void => {
     let newItems: T[] = [];
     if (isSignal(props.each)) {
-      newItems = props.each();
+      newItems = props.each() as T[];
     } else if (typeof props.each === 'function') {
-      newItems = (props.each as Function)();
+      newItems = (props.each as Function)() as T[];
     } else {
       newItems = props.each as T[];
     }

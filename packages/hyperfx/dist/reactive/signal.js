@@ -4,6 +4,8 @@
  * A simple, synchronous signal system optimized for reactive DOM updates.
  *
  */
+// Import lifecycle hooks for effect tracking
+import { setInsideEffect } from './lifecycle.js';
 // Global tracking context for automatic dependency detection
 let isTracking = false;
 const accessedSignals = new Set();
@@ -208,6 +210,7 @@ export function createEffect(effectFn) {
             pendingRun = true;
             return;
         }
+        isRunning = true;
         // Loop to stabilize when effects trigger themselves
         let iterations = 0;
         const MAX_ITERATIONS = 100;
@@ -216,7 +219,7 @@ export function createEffect(effectFn) {
             // Unsubscribe from previous dependencies
             unsubscribers.forEach(unsub => unsub());
             unsubscribers = [];
-            // Call previous cleanup if any
+            // Call previous cleanup if present
             if (typeof cleanup === 'function') {
                 cleanup();
                 cleanup = undefined;
@@ -225,13 +228,16 @@ export function createEffect(effectFn) {
             const oldTracking = isTracking;
             isTracking = true;
             accessedSignals.clear();
+            // Mark that we're inside an effect for onMount detection
+            setInsideEffect(true);
             try {
                 // Run effect
                 cleanup = effectFn();
             }
             finally {
-                // Reset tracking
+                // Reset tracking and effect flag
                 isTracking = oldTracking;
+                setInsideEffect(false);
             }
             // Subscribe to all accessed signals
             const dependencies = Array.from(accessedSignals);
@@ -291,7 +297,7 @@ export function untrack(fn) {
  * Utility to check if a value is a Signal
  */
 export function isSignal(value) {
-    return typeof value === 'function' && 'subscribe' in value && 'get' in value && 'set' in value;
+    return typeof value === 'function' && value !== null && 'subscribe' in value && 'get' in value && 'set' in value;
 }
 /**
  * Get signal value, or return value if not a signal

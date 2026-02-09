@@ -70,7 +70,7 @@ export const getError = (state) => {
     return isFailure(state) ? state.error : undefined;
 };
 /**
- * Check if resource has any data (success or loading with previous)
+ * Check if resource has data (success or loading with previous)
  */
 export const hasData = (state) => {
     return isSuccess(state) || (isLoading(state) && state.previous !== undefined);

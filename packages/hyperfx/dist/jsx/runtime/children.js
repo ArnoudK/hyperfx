@@ -1,6 +1,6 @@
-import { isSignal } from "../../reactive/signal";
-import { isHydrationEnabled, pushHydrationContext, popHydrationContext } from "./hydration";
+import { isHydrationEnabled, pushHydrationContext, popHydrationContext, setHydrationPointer } from "./hydration";
 import { createTextNode } from "./elements";
+import { isSignal } from "../../reactive/signal";
 // Improved renderChildren that handles recursion by flattening and node claiming for hydration
 function renderChildrenFlattened(parent, children, appendedSet, hydrationCursor) {
     const childArray = Array.isArray(children) ? children : [children];
@@ -113,6 +113,12 @@ export function renderChildren(parent, children) {
         }
         // Pop the context
         popHydrationContext();
+    }
+    if (isHydratingParent && hydrationCursor) {
+        const remainingNodes = hydrationCursor.nodes;
+        const nextIndex = hydrationCursor.index;
+        const nextNode = nextIndex < remainingNodes.length ? remainingNodes[nextIndex] : null;
+        setHydrationPointer(nextNode ?? null);
     }
 }
 //# sourceMappingURL=children.js.map

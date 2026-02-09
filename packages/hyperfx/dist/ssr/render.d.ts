@@ -27,9 +27,9 @@ export interface SSRNode extends SSRResult {
 export interface SSROptions {
     ssrHydration?: boolean;
     initialState?: {
-        signals?: Record<string, any>;
-        resources?: Record<string, any>;
-        contexts?: Record<string, any>;
+        signals?: Record<string, unknown>;
+        resources?: Record<string, unknown>;
+        contexts?: Record<string, unknown>;
     };
 }
 /**
@@ -37,9 +37,9 @@ export interface SSROptions {
  */
 export interface HydrationData {
     state: {
-        signals: Record<string, any>;
-        resources: Record<string, any>;
-        contexts: Record<string, any>;
+        signals: Record<string, unknown>;
+        resources: Record<string, unknown>;
+        contexts: Record<string, unknown>;
     };
     version: string;
 }
@@ -50,7 +50,7 @@ export declare function escapeHtml(text: string): string;
 /**
  * Render properties to HTML string
  */
-export declare function renderAttributes(props: Record<string, any>): string;
+export declare function renderAttributes(props: Record<string, unknown> | null | undefined): string;
 /**
  * Main entry point for SSR
  */
@@ -61,6 +61,6 @@ export declare function renderToString(element: SSRNode | string | Function | nu
 /**
  * Create an SSR result for a tag
  */
-export declare function ssrElement(tag: string, props: Record<string, any>, children: string): SSRResult;
+export declare function ssrElement(tag: string, props: Record<string, unknown>, children: string): SSRResult;
 export declare function renderHydrationData(hydrationData: HydrationData): string;
 export declare function renderWithHydration(element: SSRNode | string | null | undefined): string;

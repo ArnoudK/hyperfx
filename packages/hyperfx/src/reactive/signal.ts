@@ -5,12 +5,15 @@
  * 
  */
 
+// Import lifecycle hooks for effect tracking
+import { setInsideEffect } from './lifecycle.js';
+
 // Global tracking context for automatic dependency detection
 let isTracking = false;
-const accessedSignals = new Set<Signal>();
+const accessedSignals = new Set<Signal<any>>();
 
 // Global signal registry for SSR serialization
-const globalSignalRegistry = new Map<string, Signal>();
+const globalSignalRegistry = new Map<string, Signal<any>>();
 let isSSRMode = false;
 
 /**
@@ -33,14 +36,14 @@ export function disableSSRMode(): void {
 /**
  * Get all registered signals for SSR serialization
  */
-export function getRegisteredSignals(): Map<string, Signal> {
+export function getRegisteredSignals(): Map<string, Signal<any>> {
   return globalSignalRegistry;
 }
 
 /**
  * Register a signal with a key for SSR
  */
-export function registerSignal(key: string, signal: Signal): void {
+export function registerSignal<T>(key: string, signal: Signal<T>): void {
   globalSignalRegistry.set(key, signal);
 }
 
@@ -48,7 +51,7 @@ export function registerSignal(key: string, signal: Signal): void {
  * Signal function that can be called to get/set values
  * Compatible with both callable API (signal()) and object API (signal.get())
  */
-export type Signal<T = any> = {
+export type Signal<T = unknown> = {
   (): T;
   (value: T): T;
   get(): T;
@@ -58,7 +61,7 @@ export type Signal<T = any> = {
   update(updater: (current: T) => T): T;
   subscriberCount: number;
   key?: string; // Optional key for SSR serialization
-  [Symbol.iterator](): Iterator<any>;
+  [Symbol.iterator](): Iterator<Signal<T>>;
 };
 
 /**
@@ -68,7 +71,7 @@ interface ComputedSignal<T> extends Signal<T> {
   destroy(): void;
 }
 
-class SignalImpl<T = any> {
+class SignalImpl<T = unknown> {
   private _value: T;
   private subscribers: Set<(value: T) => void> = new Set();
   callableSignal!: Signal<T>;
@@ -227,7 +230,7 @@ export function createComputed<T>(computeFn: () => T): ComputedSignal<T> {
   const signal = createSignal(initialValue);
 
   // Get the dependencies that were accessed
-  const deps = Array.from(accessedSignals);
+  const deps = Array.from(accessedSignals) as Signal<any>[];
 
   // Clear accessed signals for future use
   accessedSignals.clear();
@@ -281,6 +284,8 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
       return;
     }
 
+    isRunning = true;
+
     // Loop to stabilize when effects trigger themselves
     let iterations = 0;
     const MAX_ITERATIONS = 100;
@@ -292,7 +297,7 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
       unsubscribers.forEach(unsub => unsub());
       unsubscribers = [];
 
-      // Call previous cleanup if any
+      // Call previous cleanup if present
       if (typeof cleanup === 'function') {
         cleanup();
         cleanup = undefined;
@@ -303,16 +308,20 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
       isTracking = true;
       accessedSignals.clear();
 
+      // Mark that we're inside an effect for onMount detection
+      setInsideEffect(true);
+
       try {
         // Run effect
         cleanup = effectFn();
       } finally {
-        // Reset tracking
+        // Reset tracking and effect flag
         isTracking = oldTracking;
+        setInsideEffect(false);
       }
 
       // Subscribe to all accessed signals
-      const dependencies = Array.from(accessedSignals);
+  const dependencies = Array.from(accessedSignals) as Signal<any>[];
       accessedSignals.clear();
 
       unsubscribers = dependencies.map(dep =>
@@ -379,15 +388,15 @@ export function untrack<T>(fn: () => T): T {
 /**
  * Utility to check if a value is a Signal
  */
-export function isSignal(value: any): value is Signal {
-  return typeof value === 'function' && 'subscribe' in value && 'get' in value && 'set' in value;
+export function isSignal(value: unknown): value is Signal {
+  return typeof value === 'function' && value !== null && 'subscribe' in value && 'get' in value && 'set' in value;
 }
 
 /**
  * Get signal value, or return value if not a signal
  */
 export function unwrapSignal<T>(value: T | Signal<T>): T {
-  return isSignal(value) ? value() : (value as T);
+  return isSignal(value) ? (value as Signal<T>)() : (value as T);
 }
 
 /**
