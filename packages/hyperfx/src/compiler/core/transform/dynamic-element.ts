@@ -70,11 +70,18 @@ export function generateDynamicCode(
       continue;
     }
 
-    const code = options.codeFromNode(dynamic.expression, 'reactive');
-    lines.push(`  _$bindProp(${elementVar}, "${attrName}", ${code});`);
+    const attrValue = formatDynamicAttributeValue(dynamic.expression, options);
+    lines.push(`  _$bindProp(${elementVar}, "${attrName}", ${attrValue});`);
   }
 
   if (childDynamics.length > 0) {
+    for (let i = 0; i < childDynamics.length; i++) {
+      const dynamic = childDynamics[i]!;
+      if (dynamic.type === 'child' || dynamic.type === 'element') {
+        lines.push(`  const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerScope}:${dynamic.markerId}');`);
+      }
+    }
+
     for (let i = 0; i < childDynamics.length; i++) {
       const dynamic = childDynamics[i]!;
 
@@ -82,7 +89,6 @@ export function generateDynamicCode(
         const mapOptimization = tryOptimizeMapCall(dynamic.expression, options.mapOptimization);
 
         if (mapOptimization) {
-          lines.push(`  const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerId}');`);
           lines.push(`  if (_marker${i}$) {`);
 
           if (mapOptimization.keyFn) {
@@ -98,7 +104,6 @@ export function generateDynamicCode(
 
         const code = options.codeFromNode(dynamic.expression, 'reactive');
         const isReactive = options.isReactiveExpression(dynamic.expression);
-        lines.push(`  const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerId}');`);
         lines.push(`  if (_marker${i}$) {`);
         lines.push(`    _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
         if (!isReactive) {
@@ -108,7 +113,6 @@ export function generateDynamicCode(
       } else if (dynamic.type === 'element') {
         const elementNode = dynamic.expression as t.JSXElement;
         const code = options.generateElementCode(elementNode);
-        lines.push(`  const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerId}');`);
         lines.push(`  if (_marker${i}$) {`);
         lines.push(`    _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
         // Don't remove marker for components - they might return signals and need it for reactivity
@@ -180,11 +184,18 @@ export function generateElementCodeInline(
       }
     }
 
-    const code = options.codeFromNode(dynamic.expression, 'reactive');
-    lines.push(`_$bindProp(${elementVar}, "${attrName}", ${code});`);
+    const attrValue = formatDynamicAttributeValue(dynamic.expression, options);
+    lines.push(`_$bindProp(${elementVar}, "${attrName}", ${attrValue});`);
   }
 
   if (childDynamics.length > 0) {
+    for (let i = 0; i < childDynamics.length; i++) {
+      const dynamic = childDynamics[i]!;
+      if (dynamic.type === 'child' || dynamic.type === 'element') {
+        lines.push(`const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerScope}:${dynamic.markerId}');`);
+      }
+    }
+
     for (let i = 0; i < childDynamics.length; i++) {
       const dynamic = childDynamics[i]!;
 
@@ -192,7 +203,6 @@ export function generateElementCodeInline(
         const mapOptimization = tryOptimizeMapCall(dynamic.expression, options.mapOptimization);
 
         if (mapOptimization) {
-          lines.push(`const _marker${i}$ = Array.from(_el$.childNodes).find(n => n.nodeType === 8 && n.textContent === 'hfx:dyn:${dynamic.markerId}');`);
           lines.push(`if (_marker${i}$) {`);
 
           if (mapOptimization.keyFn) {
@@ -208,7 +218,6 @@ export function generateElementCodeInline(
 
         const code = options.codeFromNode(dynamic.expression, 'reactive');
         const isReactive = options.isReactiveExpression(dynamic.expression);
-        lines.push(`const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerId}');`);
         lines.push(`if (_marker${i}$) {`);
         lines.push(`  _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
         if (!isReactive) {
@@ -218,7 +227,6 @@ export function generateElementCodeInline(
       } else if (dynamic.type === 'element') {
         const elementNode = dynamic.expression as t.JSXElement;
         const code = options.generateElementCode(elementNode);
-        lines.push(`const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerId}');`);
         lines.push(`if (_marker${i}$) {`);
         lines.push(`  _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
         // Don't remove marker for components - they might return signals and need it for reactivity
@@ -237,4 +245,46 @@ export function createDynamicElementAnalysis(
   dynamics: DynamicPart[]
 ): DynamicElementAnalysis {
   return { templateHTML, dynamics };
+}
+
+function formatDynamicAttributeValue(
+  expression: t.Node,
+  options: DynamicElementOptions
+): string {
+  if (shouldWrapAttributeExpression(expression)) {
+    const code = options.codeFromNode(expression, 'function');
+    return `() => (${code})`;
+  }
+
+  return options.codeFromNode(expression, 'reactive');
+}
+
+function shouldWrapAttributeExpression(expression: t.Node): boolean {
+  if (t.isArrowFunctionExpression(expression) || t.isFunctionExpression(expression)) {
+    return false;
+  }
+
+  if (t.isIdentifier(expression) || t.isMemberExpression(expression) || t.isOptionalMemberExpression(expression)) {
+    return false;
+  }
+
+  if (t.isCallExpression(expression) || t.isOptionalCallExpression(expression)) {
+    if (expression.arguments.length === 0) {
+      const callee = expression.callee;
+      if (t.isIdentifier(callee) || t.isMemberExpression(callee) || t.isOptionalMemberExpression(callee)) {
+        return false;
+      }
+    }
+  }
+
+  if (
+    t.isStringLiteral(expression) ||
+    t.isNumericLiteral(expression) ||
+    t.isBooleanLiteral(expression) ||
+    t.isNullLiteral(expression)
+  ) {
+    return false;
+  }
+
+  return true;
 }

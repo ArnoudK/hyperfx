@@ -396,22 +396,21 @@ export class HyperFXTransformer {
    * Path format: ['div[0]', 'span[1]'] means root.children[0].children[1]
    * Empty path means the root element itself
    */
-  private generateElementAccess(rootVar: string, path: string[]): string {
-    if (path.length === 0) {
-      return rootVar;
-    }
+   private generateElementAccess(rootVar: string, path: string[]): string {
+     if (path.length === 0) {
+       return rootVar;
+     }
 
-    let code = rootVar;
-    for (const segment of path) {
-      // Parse segment like "div[0]" to extract index
-      const match = segment.match(/\[(\d+)\]$/);
-      if (match) {
-        const index = match[1];
-        code = `${code}.children[${index}]`;
-      }
-    }
-    return code;
-  }
+     let code = rootVar;
+     for (const segment of path) {
+       const match = segment.match(/\[(\d+)\]$/);
+       if (match) {
+         const index = match[1];
+         code = `${code}.children[${index}]`;
+       }
+     }
+     return code;
+   }
 
   /**
    * Generate code for a dynamic element

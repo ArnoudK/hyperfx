@@ -23,6 +23,7 @@ export class TemplateGenerator {
   private templateCounter = 0;
   private templates = new Map<string, string>();
   private templatesByHTML = new Map<string, string>();
+  private markerScopeCounter = 0;
 
   constructor(
   ) { }
@@ -56,6 +57,7 @@ export class TemplateGenerator {
     this.templateCounter = 0;
     this.templates.clear();
     this.templatesByHTML.clear();
+    this.markerScopeCounter = 0;
   }
 
   /**
@@ -79,7 +81,8 @@ export class TemplateGenerator {
   analyzeDynamicElement(node: t.JSXElement): DynamicElementAnalysis | null {
     const dynamics: DynamicPart[] = [];
     const markerCounter = { value: 0 };
-    const templateHTML = this.buildTemplateWithMarkers(node, dynamics, markerCounter, []);
+    const markerScope = this.markerScopeCounter++;
+    const templateHTML = this.buildTemplateWithMarkers(node, dynamics, markerCounter, [], markerScope);
     return { templateHTML, dynamics };
   }
 
@@ -90,16 +93,18 @@ export class TemplateGenerator {
     node: t.JSXElement,
     dynamics: DynamicPart[],
     markerCounter: { value: number },
-    currentPath: string[]
+    currentPath: string[],
+    markerScope: number
   ): string {
     const tagName = this.getTagName(node.openingElement);
     const { staticAttrs, dynamicAttrs } = this.separateAttributes(node.openingElement.attributes);
 
-    // Add dynamic attributes to dynamics array with current path
+    // Add dynamic attributes to dynamics array with element-specific path
     for (const dynAttr of dynamicAttrs) {
       dynamics.push({
         type: 'attribute',
         markerId: -1,
+        markerScope,
         expression: dynAttr.value,
         path: [...currentPath],
         attributeName: dynAttr.name,
@@ -107,7 +112,7 @@ export class TemplateGenerator {
     }
 
     // Process children
-    const childrenHTML = this.buildChildrenWithMarkers(node.children, dynamics, markerCounter, currentPath, tagName);
+    const childrenHTML = this.buildChildrenWithMarkers(node.children, dynamics, markerCounter, currentPath, tagName, markerScope);
 
     if (node.openingElement.selfClosing) {
       return `<${tagName}${staticAttrs} />`;
@@ -124,7 +129,8 @@ export class TemplateGenerator {
     dynamics: DynamicPart[],
     markerCounter: { value: number },
     parentPath: string[],
-    parentTag: string
+    parentTag: string,
+    markerScope: number
   ): string {
     const parts: string[] = [];
     let childIndex = 0;
@@ -151,10 +157,11 @@ export class TemplateGenerator {
         dynamics.push({
           type: 'child',
           markerId,
+          markerScope,
           expression: child.expression,
           path: [...parentPath],
         });
-        parts.push(`<!--hfx:dyn:${markerId}-->`);
+        parts.push(`<!--hfx:dyn:${markerScope}:${markerId}-->`);
         continue;
       }
 
@@ -164,22 +171,37 @@ export class TemplateGenerator {
           dynamics.push({
             type: 'element',
             markerId,
+            markerScope,
             expression: child,
             path: [...parentPath],
           });
-          parts.push(`<!--hfx:dyn:${markerId}-->`);
+          parts.push(`<!--hfx:dyn:${markerScope}:${markerId}-->`);
           continue;
         }
 
-        // Build path for this child element
+        const isStaticChild = this.isStaticElement(child);
+        if (!isStaticChild) {
+          const markerId = markerCounter.value++;
+          dynamics.push({
+            type: 'element',
+            markerId,
+            markerScope,
+            expression: child,
+            path: [...parentPath],
+          });
+          parts.push(`<!--hfx:dyn:${markerScope}:${markerId}-->`);
+          continue;
+        }
+
+        // Build path for this static child element
         const childPath = [...parentPath, `${parentTag}[${childIndex}]`];
-        parts.push(this.buildTemplateWithMarkers(child, dynamics, markerCounter, childPath));
+        parts.push(this.buildTemplateWithMarkers(child, dynamics, markerCounter, childPath, markerScope));
         childIndex++;
         continue;
       }
 
       if (t.isJSXFragment(child)) {
-        parts.push(this.buildChildrenWithMarkers(child.children, dynamics, markerCounter, parentPath, parentTag));
+        parts.push(this.buildChildrenWithMarkers(child.children, dynamics, markerCounter, parentPath, parentTag, markerScope));
         continue;
       }
 
@@ -350,4 +372,47 @@ export class TemplateGenerator {
   isVoidElement(tag: string): boolean {
     return VOID_ELEMENTS.has(tag.toLowerCase());
   }
+
+  private isStaticElement(node: t.JSXElement): boolean {
+    for (const attr of node.openingElement.attributes) {
+      if (t.isJSXSpreadAttribute(attr)) {
+        return false;
+      }
+
+      if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name)) {
+        if (attr.value && t.isJSXExpressionContainer(attr.value)) {
+          return false;
+        }
+      }
+    }
+
+    for (const child of node.children) {
+      if (t.isJSXExpressionContainer(child)) {
+        if (t.isJSXEmptyExpression(child.expression)) {
+          continue;
+        }
+        return false;
+      }
+
+      if (t.isJSXElement(child)) {
+        if (this.isComponentElement(child)) {
+          return false;
+        }
+        if (!this.isStaticElement(child)) {
+          return false;
+        }
+      }
+
+      if (t.isJSXFragment(child)) {
+        return false;
+      }
+
+      if (t.isJSXSpreadChild(child)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
 }

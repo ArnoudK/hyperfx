@@ -33,11 +33,17 @@ function getCurrentFrame(): TrackingFrame | undefined {
   return trackingStack[trackingStack.length - 1];
 }
 
+type AccessorDeps = Accessor<any> & { __deps?: Set<Accessor<any>> };
+
 function trackSignal(signal: Accessor<any>): void {
   const frame = getCurrentFrame();
-  if (frame) {
-    frame.dependencies.add(signal);
+  if (!frame) return;
+  const deps = (signal as AccessorDeps).__deps;
+  if (deps && deps.size > 0) {
+    deps.forEach((dep) => frame.dependencies.add(dep));
+    return;
   }
+  frame.dependencies.add(signal);
 }
 
 // Owner stack for nested effect tracking
@@ -224,41 +230,44 @@ function createSetter<T>(impl: SignalImpl<T>) {
  * Automatically tracks dependencies when accessed
  */
 export function createComputed<T>(computeFn: () => T): Accessor<T> {
-  // Track dependencies during computation
+  // Track dependencies during initial computation
   const oldTracking = isTracking;
   isTracking = true;
-
-  // Push a new tracking frame for this computed
   pushTrackingFrame();
 
   let initialValue: T;
-  let deps: Array<Accessor<T>>;
+  let deps: Set<Accessor<any>>;
   try {
     initialValue = computeFn();
   } finally {
-    // Get the dependencies from this frame
-    deps = Array.from(popTrackingFrame());
+    deps = popTrackingFrame();
     isTracking = oldTracking;
   }
 
-  // Use a raw impl to store computed value so it's writable internally
   const impl = createRawSignal(initialValue);
-
-  // Create getter to return (read-only)
   const getter = createGetter(impl);
+  (getter as AccessorDeps).__deps = deps;
 
-  // Subscribe to dependencies
-  const unsubscribers = deps.map((dep) =>
-    dep.subscribe ? dep.subscribe(() => {
-      const newValue = computeFn();
+  let isRecomputing = false;
+
+  const recompute = () => {
+    if (isRecomputing) return;
+    isRecomputing = true;
+    const newValue = computeFn();
+    if (!Object.is(newValue, impl.get())) {
       impl.set(newValue);
-    }) : () => {}
-  );
+    }
+    isRecomputing = false;
+  };
 
-  // Add destroy method to clean up subscriptions
+  const unsubscribers = Array.from(deps).map((dep) => dep.subscribe(recompute));
+
   getter.destroy = () => {
-    unsubscribers.forEach(unsub => unsub());
+    for (let i = 0; i < unsubscribers.length; i++) {
+      unsubscribers[i]!();
+    }
     unsubscribers.length = 0;
+    (getter as AccessorDeps).__deps = undefined;
   };
 
   return getter;
@@ -341,7 +350,9 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
       context.children.clear();
 
       // Unsubscribe from previous dependencies
-      unsubscribers.forEach(unsub => unsub());
+      for (let i = 0; i < unsubscribers.length; i++) {
+        unsubscribers[i]!();
+      }
       unsubscribers = [];
 
       // Call previous cleanup if present
@@ -377,15 +388,13 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
       }
 
       // Subscribe to all accessed signals
-  const dependencies = Array.from(popTrackingFrame());
+      const dependencies = Array.from(popTrackingFrame());
 
       unsubscribers = dependencies.map(dep =>
-        dep.subscribe ? dep.subscribe(() => {
+        dep.subscribe(() => {
           // Trigger effect to run (will be deferred if currently running)
           runEffect();
-        }) : () => {
-          /* no-op if no subscribe support */
-        }
+        })
       );
 
       // If no new run was triggered during execution, we're done
@@ -437,18 +446,13 @@ export function isAccessor(value: unknown): value is Accessor<any> {
   return typeof value === 'function' && 'subscribe' in value && typeof value.subscribe === 'function';
 }
 
-/**
- * Utility to check if a value is a Signal tuple
- */
-export function isSignal<T>(value: Signal<T> | unknown): value is Signal<T> {
-  return Array.isArray(value) && value.length === 2 && typeof value[0] === 'function' && typeof value[1] === 'function';
-}
-
 export function getAccessor<T>(value: Signal<T>): Accessor<T>;
 export function getAccessor<T>(value: Accessor<T>): Accessor<T>;
 export function getAccessor(value: unknown): Accessor<unknown> | undefined;
 export function getAccessor<T>(value: Signal<T> | Accessor<T> | unknown): Accessor<T> | Accessor<unknown> | undefined {
-  if (isSignal(value)) return value[0];
+  if (Array.isArray(value) && value.length === 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
+    return value[0] as Accessor<T>;
+  }
   if (isAccessor(value)) return value;
   return undefined;
 }
@@ -456,7 +460,9 @@ export function getAccessor<T>(value: Signal<T> | Accessor<T> | unknown): Access
 export function getSetter<T>(value: Signal<T>): (v: T | ((prev: T) => T)) => () => void;
 export function getSetter(value: unknown): ((v: unknown | ((prev: unknown) => unknown)) => () => void) | undefined;
 export function getSetter<T>(value: Signal<T> | unknown): ((v: T | ((prev: T) => T)) => () => void) | ((v: unknown | ((prev: unknown) => unknown)) => () => void) | undefined {
-  if (isSignal(value)) return value[1];
+  if (Array.isArray(value) && value.length === 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
+    return value[1] as (v: T | ((prev: T) => T)) => () => void;
+  }
   return undefined;
 }
 
@@ -468,7 +474,9 @@ export function unwrapSignal<T>(value: Accessor<T>): T;
 export function unwrapSignal<T>(value: T): T;
 export function unwrapSignal(value: unknown): unknown;
 export function unwrapSignal<T>(value: T | Signal<T> | Accessor<T>): unknown {
-  if (isSignal(value)) return value[0]();
+  if (Array.isArray(value) && value.length === 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
+    return (value[0] as Accessor<T>)();
+  }
   if (isAccessor(value)) return value();
   return value;
 }

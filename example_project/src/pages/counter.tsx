@@ -12,8 +12,8 @@ export const CounterRoute = createRoute('counter', {
 
 
 export function CounterPage() {
-  const count = createSignal(0);
-  const step = createSignal(1);
+  const [count, setCount] = createSignal(0);
+  const [step, setStep] = createSignal(1);
 
   // Computed values
   const isEven = createComputed(() => count() % 2 === 0);
@@ -24,7 +24,12 @@ export function CounterPage() {
     if (c > 0) return "Positive";
     return "Negative";
   });
-  const evenOddText = createComputed(() => isEven() ? 'Even' : 'Odd');
+  const evenOddText = createComputed(() => {
+    const c = count();
+    console.log("Recomputing even/odd text for count:", c);
+    if (c === 0) return "N/A";
+    return isEven() ? "Even" : "Odd";
+  });
 
 
 
@@ -42,7 +47,7 @@ export function CounterPage() {
     <div class="bg-gray-800 p-8 rounded-lg shadow-lg text-center">
       <div class="space-y-6">
         <div class="text-6xl font-bold text-yellow-400">
-          <Show when={()=>count() === 0} fallback={<p>{count()}</p>}>
+          <Show when={count() == 0} fallback={<p>{count()}</p>}>
             <p class="italic">Zero</p>
           </Show>
         </div>
@@ -51,21 +56,21 @@ export function CounterPage() {
           <div class="p-4 bg-gray-700 rounded-lg">
             <div class="text-sm text-gray-400">Status</div>
             <div class="font-semibold">
-              {status}
+              {status()}
             </div>
           </div>
 
           <div class="p-4 bg-gray-700 rounded-lg">
             <div class="text-sm text-gray-400">Even/Odd</div>
             <div class="font-semibold">
-              {evenOddText}
+              {evenOddText()}
             </div>
           </div>
 
           <div class="p-4 bg-gray-700 rounded-lg">
             <div class="text-sm text-gray-400">Double</div>
             <div class="font-semibold text-cyan-400">
-              {doubleCount}
+              {doubleCount()}
             </div>
           </div>
         </div>
@@ -84,7 +89,7 @@ export function CounterPage() {
           <div class="flex justify-center gap-2">
             <Button
               type="button"
-              onclick={() => count(count() + step())}
+              onclick={() => setCount(count() + step())}
               variant="success"
               size="medium"
             >
@@ -92,7 +97,7 @@ export function CounterPage() {
             </Button>
             <Button
               type="button"
-              onclick={() => count(count() - step())}
+              onclick={() => setCount(count() - step())}
               variant="danger"
               size="medium"
             >
@@ -100,7 +105,7 @@ export function CounterPage() {
             </Button>
             <Button
               type="button"
-              onclick={() => count(0)}
+              onclick={() => setCount(0)}
               variant="secondary"
               size="medium"
             >
@@ -111,7 +116,7 @@ export function CounterPage() {
           <div class="flex justify-center space-x-2">
             <Button
               type="button"
-              onclick={() => count(count() * 2)}
+              onclick={() => setCount(count() * 2)}
               variant="primary"
               size="medium"
             >
@@ -119,7 +124,7 @@ export function CounterPage() {
             </Button>
             <Button
               type="button"
-              onclick={() => count(Math.floor(count() / 2))}
+              onclick={() => setCount(Math.floor(count() / 2))}
               variant="primary"
               size="medium"
             >
@@ -127,7 +132,7 @@ export function CounterPage() {
             </Button>
             <Button
               type="button"
-              onclick={() => count(count() * -1)}
+              onclick={() => setCount(count() * -1)}
               variant="primary"
               size="medium"
             >
@@ -147,14 +152,12 @@ export function CounterPage() {
           <div class="grid grid-cols-3 gap-2">
             <For each={[1, 2, 5, 10, 25, 100]}>
               {(val ) => {
-               const isActive = step() === val;
+               const activeClass = createComputed(() => step() === val ? 'bg-blue-600 text-white'
+               : 'bg-gray-700 text-gray-300 hover:bg-gray-600')
                return <button
                   type="button"
-                  onclick={() => step(val)}
-                  class={`px-3 py-2 rounded-md transition-colors ${isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
+                  onclick={() => setStep(val)}
+                  class={`px-3 py-2 rounded-md transition-colors ${activeClass()}`}
                 >
                   {val}
                 </button>
@@ -170,10 +173,10 @@ export function CounterPage() {
               id="step-input"
               type="number"
               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={step()}
+              value={()=>String(step())}
               oninput={(e) => {
                 const value = parseInt((e.target as HTMLInputElement).value) || 1;
-                step(Math.max(1, value));
+                setStep(Math.max(1, value));
               }}
             />
           </div>
@@ -192,7 +195,7 @@ export function CounterPage() {
           {(value) => (
             <button
               type="button"
-              onclick={() => count(value)}
+              onclick={() => setCount(value)}
               class="px-3 py-2 bg-gray-700 text-gray-300 rounded-md hover:bg-gray-600 transition-colors text-sm"
             >
               {String(value)}
