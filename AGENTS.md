@@ -68,6 +68,10 @@ NEVER leave bloat, backwards compatibility code, or dead code in the codebase. I
 
 Treat warnings as errors. Fix them before proceeding.
 
+Correctness is more important than performance. Write code that is correct and easy to understand first, then optimize if necessary.
+
+Falsehoods are not allowed. it's better to throw an error than to silently fail or produce incorrect results.
+
 Make sure to write clean, well-documented code. Use comments to explain complex logic.
 
 Files should be modular and be under 1000 lines. Split into multiple files if necessary.

@@ -84,6 +84,20 @@ describe('Signal Attributes in JSX Runtime', () => {
       expect(element.tabIndex).toBe(5);
       expect(element.getAttribute('tabindex')).toBe('5');
     });
+
+    it('should update class from computed expression', () => {
+      const [count, setCount] = createSignal(0);
+      const element = (
+        <button class={`btn ${count() > 0 ? 'active' : 'idle'}`} />
+      ) as HTMLButtonElement;
+
+      container.appendChild(element);
+
+      expect(element.className).toBe('btn idle');
+
+      setCount(1);
+      expect(element.className).toBe('btn active');
+    });
   });
 
   describe('Form Input Attributes', () => {

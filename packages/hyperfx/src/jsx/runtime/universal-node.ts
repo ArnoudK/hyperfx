@@ -22,7 +22,7 @@ export type UniversalText = Text | SSRNode;
 /**
  * Create a fragment
  */
-export function createUniversalFragment(): UniversalFragment {
+export function createUniversalFragment() {
   if (isSSR()) {
     const fragment: SSRNode = {
       t: '',

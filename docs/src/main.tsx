@@ -1,13 +1,9 @@
 import {
-  getQueryValue,
-  Router,
-  Route,
-  usePath,
-  useNavigate,
   JSX,
   createEffect,
   createComputed,
   Show,
+  mountComponent,
 } from "hyperfx";
 
 import { DocNav, SideNavComp } from "./docnav";
@@ -21,6 +17,7 @@ import html from "highlight.js/lib/languages/xml";
 import json from "highlight.js/lib/languages/json";
 import { editor } from "./editor";
 import editor_code from "./editor?raw";
+import { createRoute, createRouter } from "hyperfx-extra";
 
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("html", html);
@@ -40,15 +37,31 @@ function MetaDescription(description: string) {
   }
 }
 
+export const DocumentationRoute = createRoute("/hyperfx", {
+  view: DocumentationPage,
+});
+
+export const EditorRoute = createRoute("/hyperfx/editor", {
+  view: EditorPage,
+});
+
+const router = createRouter([DocumentationRoute, EditorRoute]);
+
+const RouterComponent = router.Router;
+
+export const Link = router.Link
 
 // Documentation page component
-function DocumentationPage(): JSX.Element {
-  const path = usePath();
-
+function DocumentationPage(_props: {
+  search: {
+document?: string;
+  }
+}) {
+  
   const docToRender = createComputed(() => {
     // path();
     // console.log(path());
-    const doc = getQueryValue("doc")() || "main";
+    const doc = (router.currentSearch().document || "main") as string;
     console.log('docname:', doc);
     const md_doc = docsMD.find((a) => a.route_name == doc);
     if (md_doc) {
@@ -77,7 +90,7 @@ function DocumentationPage(): JSX.Element {
 
   // Highlight code blocks after render
   createEffect(() => {
-    path(); // Track path changes
+    router.currentPath(); // Track path for re-highlighting on navigation
     setTimeout(() => {
       const codeBlocks = document.querySelectorAll("pre code");
       for (const codeBlock of codeBlocks) {
@@ -157,8 +170,8 @@ function EditorPage(): JSX.Element {
 }
 
 function MainLayout(): JSX.Element {
-  const navigate = useNavigate();
-  const path = usePath();
+  const navigate = router.navigate;
+  const path = router.currentPath;
 
   createEffect(() => {
     if (path() === "/") {
@@ -173,8 +186,9 @@ function MainLayout(): JSX.Element {
         <p class="p-2 bg-red-800 text-white text-center w-full! max-w-full!" >
           A LOT OF CHANGES. DOCS ARE NOT UP TO DATE.
         </p>
-        <Route path="/hyperfx/editor" component={EditorPage} />
-        <Route path="/hyperfx" component={DocumentationPage} exact={true} />
+      <div>
+      <RouterComponent />
+      </div>
       </main>
       <footer class="bg-slate-900 mx-auto w-full min-h-12 p-4 text-center mt-auto">
         <a
@@ -184,18 +198,17 @@ function MainLayout(): JSX.Element {
         >
           Github
         </a>
-        <span class="w-full "> - © {new Date().getFullYear()} Arnoud Kerkhof</span>
       </footer>
     </div>
   );
 }
 
 function App() {
-  return (
-    <Router initialPath="/hyperfx" children={() => <MainLayout />} />
-  );
+  return <MainLayout />;
 }
 
 // Mount the app
 const appContainer = document.getElementById('app')!;
-appContainer.replaceChildren(App() as unknown as Node);
+// appContainer.replaceChildren(App() as Node);
+appContainer.innerHTML = ""; // Clear existing content
+mountComponent(App, undefined ,appContainer);

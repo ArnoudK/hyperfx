@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi } from 'vitest';
-import { createSignal, createEffect, isSignal, createComputed } from 'hyperfx';
+import { createSignal, createEffect, createComputed } from 'hyperfx';
 
 // Helper to render a component
 function render(component: any) {
@@ -18,7 +18,7 @@ describe('Reactive Props', () => {
             receivedValue = props.value;
             // Should NOT be a signal function anymore
             expect(typeof props.value).toBe('number');
-            expect(isSignal(props.value)).toBe(false);
+            expect(typeof props.value).not.toBe('function');
             return document.createElement('div');
         };
 

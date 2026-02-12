@@ -39,4 +39,26 @@ describe("Show when expression", () => {
     expect(container.querySelector(".zero")).toBeTruthy();
     expect(container.querySelector(".count")).toBeFalsy();
   });
+
+  it("renders fallback expression values", () => {
+    const [count, setCount] = createSignal(0);
+
+    const element = (
+      <Show when={count() === 0} fallback={<p class="count">{count()}</p>}>
+        <p class="zero">Zero</p>
+      </Show>
+    );
+
+    container.appendChild(element as Node);
+
+    expect(container.querySelector(".zero")).toBeTruthy();
+    expect(container.querySelector(".count")).toBeFalsy();
+
+    setCount(3);
+
+    expect(container.querySelector(".zero")).toBeFalsy();
+    const countNode = container.querySelector(".count");
+    expect(countNode).toBeTruthy();
+    expect(countNode?.textContent).toContain("3");
+  });
 });

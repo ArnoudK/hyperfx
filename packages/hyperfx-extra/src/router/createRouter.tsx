@@ -2,7 +2,7 @@
  * Router factory - creates a typesafe router with signals and components
  */
 
-import {  createEffect, createComputed, JSXElement, Signal, createSignal } from "hyperfx";
+import { createEffect, createComputed, JSXElement, Signal, createSignal, untrack } from "hyperfx";
 import { markerSlot } from "hyperfx/runtime-dom";
 import type { RouteDefinition, RouteMatch } from "./createRoute";
 import { matchFirst } from "./createRoute";
@@ -47,7 +47,6 @@ export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
   const currentMatch = createComputed(() => {
     const path = currentPath();
     const search = currentSearch();
-    console.log("Matching route for path:", path, "with search:", search);
     return matchFirst(routes, path, search);
   });
 
@@ -108,13 +107,23 @@ export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
   };
 
   function Router(props: Omit<RouterProps<R>, "routes">) {
-    const initialPath = props.initialPath ?? (isBrowser() ? window.location.pathname : "/");
-    const initialSearch = props.initialSearch ?? (isBrowser()
-      ? parseSearchParams(window.location.search)
-      : {});
+    let initialized = false;
 
-    setCurrentPath(initialPath);
-    setCurrentSearch(initialSearch);
+    createEffect(() => {
+      if (initialized) return;
+      initialized = true;
+
+      if (props.initialPath) {
+        const { path, search } = parseUrl(props.initialPath);
+        setCurrentPath(path);
+        setCurrentSearch(search);
+        return;
+      }
+
+      if (props.initialSearch) {
+        setCurrentSearch(props.initialSearch);
+      }
+    });
 
     createEffect(() => {
       if (isBrowser()) {
@@ -143,11 +152,11 @@ export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
     const renderRoute = () => {
       const match = currentMatch();
       if (match) {
-        return match.route.view(match.params);
+        return untrack(() => match.route.view(match.params));
       }
 
       if (props.notFound) {
-        return props.notFound({ path: currentPath() });
+        return untrack(() => props.notFound!({ path: currentPath() }));
       }
 
       return null;

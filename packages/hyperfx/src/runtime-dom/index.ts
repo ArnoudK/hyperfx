@@ -6,12 +6,11 @@
  */
 
 import { createEffect, isAccessor, getAccessor } from '../reactive/signal';
+import type { Accessor } from '../reactive/signal';
 import type { JSXElement } from '../jsx/runtime/types';
 import { addElementSubscription, addElementSignal } from '../jsx/runtime/reactive';
 import { isHydrationEnabled } from '../jsx/runtime/hydration';
 
-type Accessor<T> = () => T;
-type SignalLike<T> = Accessor<T> & { get: () => T; subscribe: (callback: (value: T) => void) => () => void, destroy?: () => void };
 type TemplateNode = Node & { t?: string; __ssr?: boolean; cloneNode: (deep?: boolean) => Node };
  
 export type InsertableValue = Node | string | number | boolean | null | undefined | DocumentFragment;
@@ -19,20 +18,16 @@ export type Insertable =
   | JSXElement
   | InsertableValue
   | InsertableValue[]
-  | SignalLike<JSXElement>
+  | (() => InsertableValue | JSXElement | InsertableValue[] | JSXElement[])
+  | Accessor<InsertableValue>
   | Accessor<JSXElement>;
 type InsertResult = InsertableValue | Node | { _node: Text; toString: () => string; _cleanup?: () => void } | InsertResult[] | null;
 
 /**
- * Check if a value is a signal (has subscribe and get methods)
+ * Check if a value is a signal accessor
  */
-function isSignalValue(value: unknown): value is SignalLike<unknown> {
-  return value !== null &&
-    (typeof value === 'function' || typeof value === 'object') &&
-    'subscribe' in value &&
-    typeof (value as { subscribe: unknown }).subscribe === 'function' &&
-    'get' in value &&
-    typeof (value as { get: unknown }).get === 'function';
+function isSignalValue(value: unknown): value is Accessor<unknown> {
+  return isAccessor(value);
 }
 
 /**
@@ -41,7 +36,7 @@ function isSignalValue(value: unknown): value is SignalLike<unknown> {
  */
 export function unwrapComponent<T>(result: T): T | (() => T) {
   if (isSignalValue(result)) {
-    return () => (result as SignalLike<T>)();
+    return () => (result as Accessor<T>)();
   }
   return result;
 }
@@ -166,9 +161,37 @@ export function markerSlot(
   markerId = 'hfx:slot'
 ): DocumentFragment {
   const fragment = document.createDocumentFragment();
-  const marker = document.createComment(markerId);
-  fragment.appendChild(marker);
-  insert(fragment, accessor, marker);
+  const startMarker = document.createComment(markerId);
+  const endMarker = document.createComment(`${markerId}:end`);
+  fragment.appendChild(startMarker);
+  fragment.appendChild(endMarker);
+
+  const resolveValue = (): InsertableValue | JSXElement => {
+    if (isSignalValue(accessor)) {
+      return (accessor as Accessor<InsertableValue | JSXElement>)();
+    }
+
+    if (typeof accessor === 'function') {
+      return (accessor as () => InsertableValue | JSXElement)();
+    }
+
+    return accessor as InsertableValue | JSXElement;
+  };
+
+  const wrapped = () => {
+    const parent = endMarker.parentNode;
+    if (parent) {
+      let node = startMarker.nextSibling;
+      while (node && node !== endMarker) {
+        const next = node.nextSibling;
+        parent.removeChild(node);
+        node = next;
+      }
+    }
+    return resolveValue();
+  };
+
+  insert(fragment, wrapped, endMarker);
   return fragment;
 }
 
@@ -207,6 +230,9 @@ function insertExpression(
   // Handle arrays
   if (Array.isArray(value)) {
     if (unwrapArray) {
+      if (current != null) {
+        cleanChildren(parent, current, marker);
+      }
       return insertArray(parent, value, current, marker);
     }
     value = String(value);

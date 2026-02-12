@@ -35,6 +35,9 @@ importers:
       hyperfx:
         specifier: workspace:*
         version: link:../packages/hyperfx
+      hyperfx-extra:
+        specifier: workspace:*
+        version: link:../packages/hyperfx-extra
       marked:
         specifier: ^15.0.12
         version: 15.0.12

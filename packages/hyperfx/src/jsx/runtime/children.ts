@@ -1,6 +1,6 @@
 import { isHydrationEnabled, pushHydrationContext, popHydrationContext, setHydrationPointer } from "./hydration";
 import { createTextNode } from "./elements";
-import { getAccessor, isSignal } from "../../reactive/signal";
+import { getAccessor } from "../../reactive/signal";
 import type { JSXChildren } from "./types";
 
 // Improved renderChildren that handles recursion by flattening and node claiming for hydration
@@ -18,8 +18,8 @@ function renderChildrenFlattened(
     let node: Node | null = null;
     const canClaim = hydrationCursor && hydrationCursor.index < hydrationCursor.nodes.length;
 
-    if (isSignal(child)) {
-      const accessor = getAccessor(child);
+    const accessor = getAccessor(child);
+    if (accessor) {
       const value = accessor();
       if (value instanceof Node) {
         node = value;

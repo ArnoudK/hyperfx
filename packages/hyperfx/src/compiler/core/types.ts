@@ -67,6 +67,7 @@ export interface TemplateInfo {
 export interface DynamicPart {
   type: 'child' | 'attribute' | 'element';
   markerId: number;
+  markerScope: number;
   expression: t.Node;
   path: string[];
   attributeName?: string;

@@ -41,7 +41,7 @@ export function HomePage() {
         </p>
       </div>
       <div>
-        <input value={thing()} class="p-2 border border-gray-300 rounded" type="text" oninput={(e) => thing((e.target as HTMLInputElement).value)} />
+        <input value={thing()} class="p-2 border border-gray-300 rounded" type="text" oninput={(e) => setThing((e.target as HTMLInputElement).value)} />
         <p>{thing()}</p>
       </div>
 
@@ -62,7 +62,7 @@ export function HomePage() {
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Your name..."
                 value={name}
-                oninput={(e) => name((e.target as HTMLInputElement).value)}
+                oninput={(e) => setName((e.target as HTMLInputElement).value)}
               />
             </div>
             <div class="p-4 bg-gray-700 rounded-md">

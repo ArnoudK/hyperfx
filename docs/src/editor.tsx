@@ -8,7 +8,7 @@ import {
 import type { HFXObject } from "hyperfx";
 
 // Create reactive signals for state management
-const articleSignal = createSignal<HFXObject>("todo" as HFXObject);
+const [articleSignal, setArticleSignal] = createSignal<HFXObject>("todo" as HFXObject);
 
 // Create a derived signal for the preview HTML
 const previewHtml = createComputed(() => {
@@ -73,7 +73,7 @@ export function editor(): JSX.Element {
   const updateArticleFromEditor = () => {
     const editorEl = document.getElementById(editor_content_id);
     if (editorEl) {
-      articleSignal(nodeToHFXObject(editorEl));
+      setArticleSignal(nodeToHFXObject(editorEl));
     }
   };
 

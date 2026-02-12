@@ -1,25 +1,27 @@
-import { createSignal, JSX, Link, For, createComputed } from "hyperfx";
-import { docsMD, prefix_md_doc } from "./docregister";
+import { createSignal,  For, createComputed } from "hyperfx";
+import { docsMD } from "./docregister";
+import { Link, DocumentationRoute, EditorRoute } from "./main";
 
-export function DocNav(): JSX.Element {
+export function DocNav() {
 
   return (
     <nav class="flex text-xl p-3 bg-slate-950 text-gray-200 border-b border-indigo-950/50 shadow-lg">
       <Link
         class="px-4 py-2 rounded-lg transition-all duration-200 hover:bg-slate-800 text-gray-400"
-        to="/hyperfx"
+        to={DocumentationRoute}
       >
         Home
       </Link>
       <Link
         class="px-4 py-2 rounded-lg transition-all duration-200 hover:bg-slate-800 text-gray-400"
-        to="/hyperfx?doc=get_started"
+        to={DocumentationRoute}
+        search={{ document: "get_started" }}
       >
         Docs
       </Link>
       <Link
         class="px-4 py-2 rounded-lg transition-all duration-200 hover:bg-slate-800 text-gray-400"
-        to="/hyperfx/editor"
+        to={EditorRoute}
       >
         Example
       </Link>
@@ -32,7 +34,7 @@ function handleToggle() {
   setExpandSignal(prev => !prev);
 }
 
-export function SideNavComp(): JSX.Element {
+export function SideNavComp() {
   const expandClass = createComputed(() => {
     return `flex-col sm:flex gap-1 ${expandSignal() ? "flex" : "hidden"}`
   })
@@ -58,7 +60,8 @@ export function SideNavComp(): JSX.Element {
           {a => (
             <Link
               class="px-3 py-2 rounded-lg text-base transition-all duration-200 no-underline block"
-              to={`${prefix_md_doc}${a.route_name}`}
+              to={DocumentationRoute}
+              search={{ document: a.route_name }}
             >
               {a.title}
             </Link>

@@ -72,7 +72,7 @@ export class ComponentGenerator {
         const key = attr.name.name;
         const value = isShow && key === 'when'
           ? this.getShowWhenValue(attr)
-          : this.getAttributeValue(attr);
+          : (isShow && key === 'fallback' ? this.getShowFallbackValue(attr) : this.getAttributeValue(attr));
         parts.push(`{ ${key}: ${value} }`);
       } else if (t.isJSXSpreadAttribute(attr)) {
         parts.push(this.codeFromNode(attr.argument));
@@ -82,7 +82,11 @@ export class ComponentGenerator {
     // Add children if present
     if (node.children.length > 0) {
       const childrenCode = this.generateChildren(node.children);
-      parts.push(`{ children: ${childrenCode} }`);
+      if (isShow && !this.isShowChildrenFunction(node.children)) {
+        parts.push(`{ children: () => (${childrenCode}) }`);
+      } else {
+        parts.push(`{ children: ${childrenCode} }`);
+      }
     }
 
     const mergedProps = parts.length > 1
@@ -108,7 +112,7 @@ export class ComponentGenerator {
         const key = attr.name.name;
         const value = isShow && key === 'when'
           ? this.getShowWhenValue(attr)
-          : this.getAttributeValue(attr);
+          : (isShow && key === 'fallback' ? this.getShowFallbackValue(attr) : this.getAttributeValue(attr));
         props.push(`${key}: ${value}`);
       }
     }
@@ -116,7 +120,11 @@ export class ComponentGenerator {
     // Add children if present
     if (node.children.length > 0) {
       const childrenCode = this.generateChildren(node.children);
-      props.push(`children: ${childrenCode}`);
+      if (isShow && !this.isShowChildrenFunction(node.children)) {
+        props.push(`children: () => (${childrenCode})`);
+      } else {
+        props.push(`children: ${childrenCode}`);
+      }
     }
 
     const propsObj = props.length > 0 ? `{ ${props.join(', ')} }` : '{}';
@@ -165,13 +173,7 @@ export class ComponentGenerator {
         return 'undefined';
       }
 
-      if (
-        t.isArrowFunctionExpression(expr) ||
-        t.isFunctionExpression(expr) ||
-        t.isIdentifier(expr) ||
-        t.isMemberExpression(expr) ||
-        t.isOptionalMemberExpression(expr)
-      ) {
+      if (this.isShowFunctionExpression(expr)) {
         return this.codeFromNode(expr);
       }
 
@@ -183,5 +185,71 @@ export class ComponentGenerator {
     }
 
     return this.codeFromNode(attr.value);
+  }
+
+  private getShowFallbackValue(attr: t.JSXAttribute): string {
+    if (!attr.value) {
+      return '() => true';
+    }
+
+    if (t.isJSXExpressionContainer(attr.value)) {
+      const expr = attr.value.expression;
+      if (t.isJSXEmptyExpression(expr)) {
+        return '() => undefined';
+      }
+
+      if (this.isShowFunctionExpression(expr)) {
+        return this.codeFromNode(expr);
+      }
+
+      return `() => (${this.codeFromNode(expr)})`;
+    }
+
+    if (t.isStringLiteral(attr.value)) {
+      return `() => "${attr.value.value}"`;
+    }
+
+    return `() => (${this.codeFromNode(attr.value)})`;
+  }
+
+  private isShowFunctionExpression(expr: t.Expression): boolean {
+    return (
+      t.isArrowFunctionExpression(expr) ||
+      t.isFunctionExpression(expr) ||
+      t.isIdentifier(expr) ||
+      t.isMemberExpression(expr) ||
+      t.isOptionalMemberExpression(expr)
+    );
+  }
+
+  private isShowChildrenFunction(
+    children: Array<t.JSXText | t.JSXExpressionContainer | t.JSXSpreadChild | t.JSXElement | t.JSXFragment>
+  ): boolean {
+    let candidate: t.Expression | null = null;
+
+    for (const child of children) {
+      if (t.isJSXText(child)) {
+        if (/^\s*$/.test(child.value)) {
+          continue;
+        }
+        return false;
+      }
+
+      if (t.isJSXExpressionContainer(child)) {
+        const expr = child.expression;
+        if (t.isJSXEmptyExpression(expr)) {
+          continue;
+        }
+        if (candidate) {
+          return false;
+        }
+        candidate = expr;
+        continue;
+      }
+
+      return false;
+    }
+
+    return candidate ? this.isShowFunctionExpression(candidate) : false;
   }
 }

@@ -23,7 +23,7 @@ const router  = createRouter([
 
 
 export const Link = router.Link;
-
+const Router = router.Router
 
 function NotFound(props: { path: string }) {
   return <div class="p-4 bg-gray-700 text-white rounded-md m-4 text-center">
@@ -57,13 +57,13 @@ function App() {
         </div>
       </nav>
       <div class="p-2">
-      <router.Router notFound={NotFound}  initialPath={initial} />
+      <Router notFound={NotFound}  initialPath={initial} />
       </div>
     </div>
   );
 }
 
-const app = document.getElementById('app');
-if (app) {
-  app.replaceChildren(App() as unknown as Node);
-}
+const app = document.getElementById('app')!;
+
+app.replaceChildren(App() as Node);
+
