@@ -4,61 +4,88 @@
 
 import { parsePath } from "./path";
 import type { FunctionComponent } from "hyperfx/jsx/jsx-runtime";
+import type { RouteMatch, RouteError } from "./types";
+
+export type { RouteMatch, RouteError };
+export type { InferRouteProps } from "./types";
 
 /**
  * Options for createRoute
  */
-export interface CreateRouteOptions<Path extends string> {
+export interface CreateRouteOptions<
+  Path extends string,
+  Params = undefined,
+  Search = undefined,
+> {
   /** The route view component */
   view: FunctionComponent<any>;
+  /** Params validator - can be a type assertion or validation function */
+  params?: Params;
+  /** Search params validator function */
+  search?: Search;
 }
 
 /**
- * Route definition created by createRoute
+ * Route definition with full type information
  */
-export interface RouteDefinition<Path extends string = string> {
-  /** The route path pattern */
+export interface RouteDefinition<
+  Path extends string = string,
+  RawParams = undefined,
+  RawSearch = undefined,
+> {
   readonly path: Path;
-  /** The view component */
   readonly view: FunctionComponent<any>;
-  /** Parsed path segments for matching */
-  readonly _parsed: ReturnType<typeof parsePath>;
+  readonly _parsed: ReturnType<typeof import("./path").parsePath>;
+  readonly _paramsValidator?: RawParams;
+  readonly _searchValidator?: RawSearch;
 }
 
 /**
  * Create a typesafe route definition
  *
- * @param path - Route path pattern (e.g., "/users/:id", "/docs/...[slug]")
- * @param options - Route options including view component
+ * @param path - Route path pattern (e.g., "/users/:id", "/posts/[slug]")
+ * @param options - Route options including view component and validators
  *
  * @example
  * ```tsx
+ * // Basic usage - params inferred from path
  * const userRoute = createRoute("/user/:userId", {
  *   view: UserPage
  * });
+ *
+ * // With param validation
+ * const userRoute = createRoute("/user/:userId", {
+ *   view: UserPage,
+ *   params: (raw) => ({ userId: Number(raw.userId) })
+ * });
+ *
+ * // With search params validation
+ * const postsRoute = createRoute("/posts", {
+ *   view: PostsPage,
+ *   search: (raw) => ({
+ *     page: Number(raw.page) || 1,
+ *     filter: raw.filter as string | undefined
+ *   })
+ * });
  * ```
  */
-export function createRoute<Path extends string>(
+export function createRoute<
+  Path extends string,
+  Params = undefined,
+  Search = undefined,
+>(
   path: Path,
-  options: CreateRouteOptions<Path>,
-): RouteDefinition<Path> {
-  const route: RouteDefinition<Path> = {
+  options: CreateRouteOptions<Path, Params, Search>,
+): RouteDefinition<Path, Params, Search> {
+  const route: RouteDefinition<Path, Params, Search> = {
     path,
     view: options.view,
     _parsed: parsePath(path),
+    _paramsValidator: options.params as any,
+    _searchValidator: options.search as any,
   };
 
   return route;
-}
-
-/**
- * Route match result
- */
-export interface RouteMatch<R extends RouteDefinition<any>> {
-  route: R;
-  params: Record<string, any>;
-  search: Record<string, any>;
-  matchedPath: string;
 }
 
 /**
@@ -68,22 +95,26 @@ export function matchRoute<R extends RouteDefinition<any>>(
   route: R,
   urlPath: string,
   urlSearch: Record<string, string | string[]>,
-): RouteMatch<R> | null {
+): RouteMatch<R> {
   const matchResult = route._parsed.hasCatchAll
     ? matchCatchAll(urlPath, route.path)
     : matchStandard(urlPath, route.path);
 
   if (!matchResult || !matchResult.match) {
-    return null;
+    return {
+      route,
+      params: {},
+      search: {},
+      matchedPath: "/",
+      error: { type: "params", message: "Route not matched" },
+    };
   }
-
-  const { params, matchedPath } = matchResult;
 
   return {
     route,
-    params,
-    search: {},
-    matchedPath,
+    params: matchResult.params,
+    search: urlSearch,
+    matchedPath: matchResult.matchedPath,
   };
 }
 
@@ -94,14 +125,26 @@ export function matchFirst<R extends RouteDefinition<any>>(
   routes: R[],
   urlPath: string,
   urlSearch: Record<string, string | string[]>,
-): RouteMatch<R> | null {
+): RouteMatch<R> {
   for (const route of routes) {
     const match = matchRoute(route, urlPath, urlSearch);
-    if (match) {
+    if (match && !match.error) {
       return match;
     }
   }
-  return null;
+
+  const lastRoute = routes[routes.length - 1];
+  if (lastRoute) {
+    return matchRoute(lastRoute, urlPath, urlSearch);
+  }
+
+  return {
+    route: undefined as any,
+    params: {} as any,
+    search: {} as any,
+    matchedPath: "/",
+    error: { type: "params" as const, message: "No routes defined" },
+  };
 }
 
 /**
@@ -115,13 +158,19 @@ export function matchAll<R extends RouteDefinition<any>>(
   const matches: Array<RouteMatch<R>> = [];
 
   for (const route of routes) {
-    // Treat root route as a prefix match for matchAll (include it for non-root URLs)
+    const match = matchRoute(route, urlPath, urlSearch);
+
     if (route.path === "/" && urlPath !== "/" && !urlPath.includes("//")) {
-      matches.push({ route, params: {}, search: {}, matchedPath: "/" });
+      matches.push({
+        route,
+        params: {} as any,
+        search: {} as any,
+        matchedPath: "/",
+        error: { type: "params" as const, message: "Root route only matches exact path" },
+      });
       continue;
     }
 
-    const match = matchRoute(route, urlPath, urlSearch);
     if (match) {
       matches.push(match);
     }
@@ -145,7 +194,6 @@ function matchStandard(
   const urlSegments = urlPath.split("/").filter(Boolean);
   const routeSegments = routePath.split("/").filter(Boolean);
 
-  // Root route ("/") should only match the root URL exactly.
   if (routeSegments.length === 0) {
     if (urlSegments.length === 0) {
       return {
@@ -157,7 +205,6 @@ function matchStandard(
     return null;
   }
 
-  // Count required segments (non-optional parameters)
   let requiredSegments = 0;
   for (const seg of routeSegments) {
     if (!seg.endsWith("?")) {
@@ -165,7 +212,6 @@ function matchStandard(
     }
   }
 
-  // URL must have at least the required segments
   if (urlSegments.length < requiredSegments) {
     return null;
   }
@@ -177,7 +223,6 @@ function matchStandard(
     const urlSeg = urlSegments[i];
 
     if (!routeSeg.startsWith(":")) {
-      // Static segment - must match exactly
       if (routeSeg !== urlSeg) {
         return null;
       }
@@ -188,20 +233,16 @@ function matchStandard(
       const paramName = routeSeg.slice(1).replace("?", "");
       const isOptional = routeSeg.endsWith("?");
 
-      // If URL segment exists, use it; otherwise undefined for optional params
       if (urlSeg !== undefined) {
         params[paramName] = urlSeg;
       } else if (isOptional) {
         params[paramName] = undefined;
       } else {
-        // Required param but no URL segment - this should not happen
-        // due to the length check above, but be safe
         return null;
       }
     }
   }
 
-  // Calculate matched path length
   const matchedSegmentCount = Math.min(urlSegments.length, routeSegments.length);
 
   return {

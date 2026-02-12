@@ -71,13 +71,13 @@ Hydrates server-rendered content by:
 4. Restoring signal state
 
 ```tsx
-import { hydrate, isHydratable } from "hyperfx";
+import { hydrate, isHydratable, mount } from "hyperfx";
 
 if (isHydratable(document.body)) {
   hydrate(document.body, () => <App />);
 } else {
   // No SSR content, do client-side mount
-  document.body.appendChild(<App />);
+  mount(() => <App />, document.body, { mode: "replace" });
 }
 ```
 
@@ -151,7 +151,7 @@ export default async function handler(req: Request) {
 
 ```tsx
 // client.tsx
-import { hydrate, isHydratable } from "hyperfx";
+import { hydrate, isHydratable, mount } from "hyperfx";
 import { App } from "./App";
 
 function initializeClient() {
@@ -162,7 +162,7 @@ function initializeClient() {
     hydrate(document.body, ClientApp);
   } else {
     // No SSR content, do client-side mount
-    document.body.appendChild(<ClientApp />);
+    mount(() => <ClientApp />, document.body, { mode: "replace" });
   }
 }
 

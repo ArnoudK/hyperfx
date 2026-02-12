@@ -174,32 +174,6 @@ export const globalStore = new StateStore();
 export function createStore(): StateStore {
   return new StateStore();
 }
-
-/**
- * Reactive state hook for components
- */
-export function useState<T>(
-  initialValue: T
-): Accessor<T> {
-  return createSignal(initialValue)[0];
-}
-
-/**
- * Reactive computed hook for components
- */
-export function useComputed<T>(computation: () => T): () => T {
-  const comp = createComputed(computation);
-  return () => comp();
-}
-
-/**
- * Memoized value hook for components (alias for useComputed)
- */
-export function useMemo<T>(computation: () => T): () => T {
-  const comp = createComputed(computation);
-  return () => comp();
-}
-
 /**
  * Effect hook for components
  */

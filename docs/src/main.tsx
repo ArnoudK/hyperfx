@@ -3,7 +3,7 @@ import {
   createEffect,
   createComputed,
   Show,
-  mountComponent,
+  mount,
 } from "hyperfx";
 
 import { DocNav, SideNavComp } from "./docnav";
@@ -210,5 +210,4 @@ function App() {
 // Mount the app
 const appContainer = document.getElementById('app')!;
 // appContainer.replaceChildren(App() as Node);
-appContainer.innerHTML = ""; // Clear existing content
-mountComponent(App, undefined ,appContainer);
+mount(App, undefined, appContainer, { mode: 'replace' });

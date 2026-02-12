@@ -7,6 +7,9 @@ export * from "./reactive/context.js";
 export * from "./reactive/reactive-dom.js";
 export * from './reactive/signal'
 
+// Hooks and State
+export * from "./reactive/state.js";
+
 // Effect Integration
 export * from "./reactive/resource.js";
 export * from "./reactive/resource-state.js";

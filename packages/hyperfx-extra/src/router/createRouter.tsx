@@ -4,7 +4,7 @@
 
 import { createEffect, createComputed, JSXElement, Signal, createSignal, untrack } from "hyperfx";
 import { markerSlot } from "hyperfx/runtime-dom";
-import type { RouteDefinition, RouteMatch } from "./createRoute";
+import type { RouteDefinition, RouteMatch, RouteError, InferRouteProps } from "./types";
 import { matchFirst } from "./createRoute";
 import { parseUrl, parseSearchParams } from "./path";
 
@@ -27,12 +27,13 @@ interface RouterProps<R extends RouteDefinition<any>> {
   initialSearch?: Record<string, string | string[]>;
   notFound?: (props: { path: string }) => JSXElement;
   onRouteChange?: (match: RouteMatch<R> | null) => void;
+  onRouteError?: (error: NonNullable<RouteMatch<R>["error"]>) => JSXElement;
 }
 
 interface LinkProps<R extends RouteDefinition<any>> {
   to: R;
-  params?: Record<string, any>;
-  search?: Record<string, any>;
+  params?: InferRouteProps<R>["params"];
+  search?: InferRouteProps<R>["search"];
   class?: string;
   children: any;
 }
@@ -44,10 +45,39 @@ function isBrowser() {
 export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
   const [currentPath, setCurrentPath] = createSignal<string>("/");
   const [currentSearch, setCurrentSearch] = createSignal<Record<string, string | string[]>>({});
+
   const currentMatch = createComputed(() => {
     const path = currentPath();
     const search = currentSearch();
-    return matchFirst(routes, path, search);
+    const match = matchFirst(routes, path, search);
+    if (!match || match.error) return match;
+
+    const route = match.route;
+    let validatedParams = match.params;
+    let validatedSearch = match.search;
+    let error: RouteError | undefined;
+
+    const paramsValidator = route._paramsValidator as ((raw: typeof match.params) => any) | undefined;
+    if (paramsValidator) {
+      try {
+        validatedParams = paramsValidator(match.params);
+      } catch (e) {
+        error = { type: "params", message: e instanceof Error ? e.message : "Invalid params", details: e };
+      }
+    }
+
+    const searchValidator = route._searchValidator as ((raw: typeof match.search) => any) | undefined;
+    if (searchValidator) {
+      try {
+        validatedSearch = searchValidator(match.search);
+      } catch (e) {
+        error = error || { type: "search", message: e instanceof Error ? e.message : "Invalid search params", details: e };
+      }
+    }
+
+    return error
+      ? { ...match, error, params: validatedParams, search: validatedSearch }
+      : { ...match, params: validatedParams, search: validatedSearch };
   });
 
   const navigate = (path: string, options?: NavigateOptions) => {
@@ -74,13 +104,25 @@ export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
   };
 
   const Link = function Link(props: LinkProps<R>) {
-    const paramKeys = createComputed(() => props.to.path.match(/:(\w+)/g) || []);
-    const path = createComputed<string>(() =>
-      paramKeys().reduce((result: string, match: string) => {
-        const key = match.slice(1);
-        return result.replace(match, String(props.params?.[key] ?? ""));
-      }, props.to.path),
-    );
+    const paramKeys = createComputed(() => {
+      const matches = props.to.path.match(/:(\w+)/g) || [];
+      const arrayMatches = props.to.path.match(/\[(\w+)\]/g) || [];
+      return [...matches, ...arrayMatches];
+    });
+
+    const path = createComputed<string>(() => {
+      let result = props.to.path;
+      for (const key of paramKeys()) {
+        const paramKey = key.replace(/[:\[\]]/g, "");
+        const value = props.params?.[paramKey as keyof typeof props.params];
+        if (Array.isArray(value)) {
+          result = result.replace(key, value.join("/"));
+        } else if (value !== undefined) {
+          result = result.replace(key, String(value));
+        }
+      }
+      return result;
+    });
 
     const searchEntries = createComputed(() =>
       Object.entries(props.search ?? {}).filter(([, v]) => v !== undefined && v !== null),
@@ -151,15 +193,31 @@ export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
 
     const renderRoute = () => {
       const match = currentMatch();
-      if (match) {
-        return untrack(() => match.route.view(match.params));
+      if (!match) {
+        if (props.notFound) {
+          return untrack(() => props.notFound!({ path: currentPath() }));
+        }
+        return null;
       }
 
-      if (props.notFound) {
-        return untrack(() => props.notFound!({ path: currentPath() }));
+      const error = match.error;
+      if (error) {
+        const onRouteError = props.onRouteError;
+        if (onRouteError) {
+          return untrack(() => onRouteError(error));
+        }
+        return untrack(() => (
+          <div style={{ color: "red", padding: "20px" }}>
+            Route Error: {error.message}
+          </div>
+        ));
       }
 
-      return null;
+      const view = match.route.view;
+      if (!view) {
+        return null;
+      }
+      return untrack(() => view({ params: match.params, search: match.search }));
     };
 
     if (typeof document === "undefined") {

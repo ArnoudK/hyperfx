@@ -1,4 +1,4 @@
-import { createSignal, createComputed } from 'hyperfx';
+import { createSignal, createComputed, mount } from 'hyperfx';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('Component returning computed', () => {
@@ -28,13 +28,11 @@ describe('Component returning computed', () => {
       });
     }
 
-    const element = (
+    const dispose = mount(() => (
       <div class="wrapper">
         <MyComponent />
       </div>
-    );
-
-    container.appendChild(element as Node);
+    ), container, { mode: 'replace' });
 
     
     
@@ -57,6 +55,7 @@ describe('Component returning computed', () => {
     expect(container.querySelector('div.wrapper div:not(.wrapper)')).toBeTruthy();
     expect(container.querySelector('div.wrapper div:not(.wrapper)')?.textContent).toBe('Div content');
     expect(container.querySelector('div.wrapper span')).toBeNull();
+    dispose();
   });
 
   it('should handle component returning memo with text nodes', () => {
@@ -69,13 +68,11 @@ describe('Component returning computed', () => {
       });
     }
 
-    const element = (
+    const dispose = mount(() => (
       <div class="app">
         <Counter />
       </div>
-    );
-
-    container.appendChild(element as Node);
+    ), container, { mode: 'replace' });
 
     const counterDiv = container.querySelector('.counter');
     expect(counterDiv).toBeTruthy();
@@ -85,6 +82,7 @@ describe('Component returning computed', () => {
     setCount(5);
 
     expect(container.querySelector('.counter')?.textContent?.trim()).toBe('Count: 5');
+    dispose();
   });
 
   it('should handle nested components returning memos', () => {
@@ -110,13 +108,11 @@ describe('Component returning computed', () => {
       });
     }
 
-    const element = (
+    const dispose = mount(() => (
       <div class="root">
         <Outer />
       </div>
-    );
-
-    container.appendChild(element as Node);
+    ), container, { mode: 'replace' });
     
     // Initially should show inner component
     expect(container.querySelector('.outer')).toBeTruthy();
@@ -129,6 +125,7 @@ describe('Component returning computed', () => {
     expect(container.querySelector('.outer-empty')).toBeTruthy();
     expect(container.querySelector('.outer-empty')?.textContent).toBe('Empty');
     expect(container.querySelector('.inner')).toBeNull();
+    dispose();
   });
 
   it('should handle component returning memo with dynamic attributes', () => {
@@ -152,13 +149,11 @@ describe('Component returning computed', () => {
       return memo;
     }
 
-    const element = (
+    const dispose = mount(() => (
       <div class="container">
         <DynamicComponent />
       </div>
-    );
-
-    container.appendChild(element as Node);
+    ), container, { mode: 'replace' });
 
    
     
@@ -178,6 +173,7 @@ describe('Component returning computed', () => {
     expect(updatedDiv?.classList.contains('active')).toBe(true);
     expect(updatedDiv?.getAttribute('data-text')).toBe('updated');
     expect(updatedDiv?.textContent?.includes('Active')).toBe(true);
+    dispose();
   });
 
   it('should handle component returning memo that can be null', () => {
@@ -192,13 +188,11 @@ describe('Component returning computed', () => {
       });
     }
 
-    const element = (
+    const dispose = mount(() => (
       <div class="wrapper">
         <OptionalComponent />
       </div>
-    );
-
-    container.appendChild(element as Node);
+    ), container, { mode: 'replace' });
 
     expect(container.querySelector('.visible')).toBeTruthy();
     expect(container.querySelector('.visible')?.textContent).toBe('Visible');
@@ -214,6 +208,7 @@ describe('Component returning computed', () => {
     
     expect(container.querySelector('.visible')).toBeTruthy();
     expect(container.querySelector('.visible')?.textContent).toBe('Visible');
+    dispose();
   });
 
   it('should not recompute computed with stale values', async () => {
@@ -228,13 +223,11 @@ describe('Component returning computed', () => {
       return isEven() ? 'Even' : 'Odd';
     });
 
-    const element = (
+    const dispose = mount(() => (
       <div>
         {evenOddText}
       </div>
-    ) as HTMLDivElement;
-
-    container.appendChild(element as Node);
+    ) as HTMLDivElement, container, { mode: 'replace' });
 
     expect(recomputed.length).toBe(1);
     expect(recomputed[0]).toBe(0);
@@ -244,6 +237,7 @@ describe('Component returning computed', () => {
 
     expect(recomputed.length).toBe(2);
     expect(recomputed[1]).toBe(1);
-    expect(element.textContent).toBe('Odd');
+    expect(container.textContent).toBe('Odd');
+    dispose();
   });
 });

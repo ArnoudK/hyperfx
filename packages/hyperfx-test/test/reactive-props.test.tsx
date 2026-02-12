@@ -1,12 +1,6 @@
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createSignal, createEffect, createComputed } from 'hyperfx';
-
-// Helper to render a component
-function render(component: any) {
-    const el = component();
-    return el;
-}
 
 describe('Reactive Props', () => {
     it('should auto-unwrap signals in props', () => {

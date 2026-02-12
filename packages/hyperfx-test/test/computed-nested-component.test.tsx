@@ -47,8 +47,7 @@ describe('Computed nested component', () => {
       <div>
         <Component />
       </div>
-    ) as HTMLDivElement;
-
+    ) 
     container.appendChild(element as Node);
 
     await new Promise(resolve => setTimeout(resolve, 0));

@@ -11,11 +11,13 @@ export interface ParsedPath {
 export type PathSegment =
   | { type: "static"; value: string }
   | { type: "param"; name: string; optional: boolean }
+  | { type: "paramArray"; name: string }
   | { type: "catchAll"; name: string; optional?: boolean };
 
 const COLON_PARAM_REGEX = /:([^/?]+)/g;
 const CATCH_ALL_REGEX = /\.\.\.\[([^\]]+)\]/g;
 const OPTIONAL_PARAM_REGEX = /:([^?]+)\?/g;
+const PARAM_ARRAY_REGEX = /^\[([^\]]+)\]$/;
 
 /**
  * Parse a path string into segments for matching
@@ -28,7 +30,6 @@ export function parsePath(path: string): ParsedPath {
   const pathParts = path.split("/").filter(Boolean);
 
   for (const part of pathParts) {
-    // Check for catch-all pattern ...[slug] or optional ...[slug]?
     if (part.startsWith("...[") && (part.endsWith("]") || part.endsWith("]?"))) {
       const isOptional = part.endsWith("]?");
       const paramName = isOptional ? part.slice(4, -2) : part.slice(4, -1);
@@ -38,21 +39,25 @@ export function parsePath(path: string): ParsedPath {
       continue;
     }
 
-    // Check for optional param :param?
+    const paramArrayMatch = PARAM_ARRAY_REGEX.exec(part);
+    if (paramArrayMatch) {
+      const paramName = paramArrayMatch[1]!;
+      segments.push({ type: "paramArray", name: paramName });
+      continue;
+    }
+
     if (part.startsWith(":") && part.endsWith("?")) {
       const paramName = part.slice(1, -1);
       segments.push({ type: "param", name: paramName, optional: true });
       continue;
     }
 
-    // Check for required param :param
     if (part.startsWith(":")) {
       const paramName = part.slice(1);
       segments.push({ type: "param", name: paramName, optional: false });
       continue;
     }
 
-    // Static segment
     segments.push({ type: "static", value: part });
   }
 
@@ -119,10 +124,9 @@ export function matchPath(
   routePath: string,
 ): {
   match: boolean;
-  params: Record<string, string | undefined>;
+  params: Record<string, string | string[] | undefined>;
   matchedPath: string;
 } | null {
-  // Check for multiple consecutive slashes - these should not match
   if (urlPath.includes("//")) {
     return null;
   }
@@ -130,7 +134,6 @@ export function matchPath(
   const parsed = parsePath(routePath);
   const regex = buildMatchRegex(parsed);
 
-  // Normalize URL path - ensure it starts with /
   const normalizedUrlPath = urlPath.startsWith("/") ? urlPath : "/" + urlPath;
 
   const match = normalizedUrlPath.match(regex);
@@ -139,22 +142,43 @@ export function matchPath(
     return null;
   }
 
-  const params: Record<string, string | undefined> = {};
+  const params: Record<string, string | string[] | undefined> = {};
+  const urlSegments = normalizedUrlPath.split("/").filter(Boolean);
+  const routeSegments = routePath.split("/").filter(Boolean);
 
-  let paramIndex = 1;
-  for (const segment of parsed.segments) {
-    if (segment.type === "param") {
-      params[segment.name] = match[paramIndex] !== undefined ? match[paramIndex] : undefined;
-      paramIndex++;
-    } else if (segment.type === "catchAll") {
-      const value = match[paramIndex];
-      // If catch-all segment is present, keep empty string; if absent and optional then undefined
-      if (value !== undefined) {
-        params[segment.name] = value.replace(/^\//, "");
-      } else {
-        params[segment.name] = segment.optional ? undefined : "";
+  for (let i = 0; i < routeSegments.length; i++) {
+    const routeSeg = routeSegments[i]!;
+    const urlSeg = urlSegments[i];
+
+    if (!routeSeg.startsWith(":") && !routeSeg.startsWith("[")) {
+      if (routeSeg !== urlSeg) {
+        return null;
       }
-      paramIndex++;
+      continue;
+    }
+
+    if (routeSeg.startsWith(":")) {
+      const paramName = routeSeg.slice(1).replace("?", "");
+      const isOptional = routeSeg.endsWith("?");
+
+      if (urlSeg !== undefined) {
+        params[paramName] = urlSeg;
+      } else if (isOptional) {
+        params[paramName] = undefined;
+      } else {
+        return null;
+      }
+    }
+
+    if (routeSeg.startsWith("[")) {
+      const paramName = routeSeg.slice(1, -1);
+      const remainingSegments = urlSegments.slice(i);
+      if (remainingSegments.length > 0) {
+        params[paramName] = remainingSegments;
+        break;
+      } else {
+        params[paramName] = [];
+      }
     }
   }
 

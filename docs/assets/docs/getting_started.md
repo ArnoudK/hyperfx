@@ -52,7 +52,7 @@ Example `./index.html`
 Example `./src/main.tsx`
 
 ```tsx
-import { RenderToBody } from 'hyperfx'
+import { mount } from 'hyperfx'
 
 function App() {
   return (
@@ -63,7 +63,7 @@ function App() {
 }
 
 const appRoot = document.getElementById("app")!;
-appRoot.replaceChildren(App());
+mount(App, undefined, appRoot, { mode: 'replace' });
 ```
 
 Run it with realtime updates with:

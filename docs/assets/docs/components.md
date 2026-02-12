@@ -3,7 +3,7 @@
 Components in HyperFX are just functions that return JSX elements. They can use signals for reactive state management.
 
 ```tsx
-import { createSignal } from "hyperfx";
+import { createSignal, mount } from "hyperfx";
 
 // Simple component function
 function MyComponent() {
@@ -37,7 +37,7 @@ function MyComponent() {
 
 // Usage
 const myComponent = <MyComponent />;
-document.body.appendChild(myComponent);
+mount(() => myComponent, document.body, { mode: "append" });
 ```
 
 ## Should you use them?

@@ -26,6 +26,36 @@ export interface ComponentWithLifecycle<P = ComponentProps> extends Component<P>
   __hooks?: LifecycleHooks<P>;
 }
 
+export type MountMode = 'replace' | 'append';
+
+export interface MountOptions {
+  mode?: MountMode;
+  anchor?: Node | null;
+}
+
+function mountComponentInstance<P = ComponentProps>(
+  component: Component<P> | ComponentWithLifecycle<P>,
+  props: P
+): JSXElement {
+  const element = component(props);
+
+  if (typeof component === 'function' && (component as ComponentWithLifecycle<P>).onMount) {
+    (component as ComponentWithLifecycle<P>).onMount?.(element, props);
+  }
+
+  if (component instanceof ClassComponent) {
+    component.mount(element, props);
+  }
+
+  const domElement = element as Node;
+  if (domElement instanceof HTMLElement) {
+    domElement.__componentRef = component as Component<unknown>;
+    domElement.__componentProps = props as unknown;
+  }
+
+  return element;
+}
+
 /**
  * Create a component with optional lifecycle hooks
  */
@@ -130,17 +160,7 @@ export function mountComponent<P = ComponentProps>(
   container: HTMLElement,
   anchor: Node | null = null
 ): JSXElement {
-  const element = component(props);
-
-  // Call mount lifecycle if it exists
-  if (typeof component === 'function' && (component as ComponentWithLifecycle<P>).onMount) {
-    (component as ComponentWithLifecycle<P>).onMount?.(element, props);
-  }
-
-  // Handle class components
-  if (component instanceof ClassComponent) {
-    component.mount(element, props);
-  }
+  const element = mountComponentInstance(component, props);
 
   // Insert into DOM
   // Note: mount functions only run on client, so element is always a DOM Node
@@ -152,6 +172,75 @@ export function mountComponent<P = ComponentProps>(
   }
 
   return element;
+}
+
+/**
+ * Mount a component or factory into a container.
+ * Returns an unmount function.
+ */
+export function mount<P = ComponentProps>(
+  componentOrFactory: Component<P> | ComponentWithLifecycle<P> | (() => JSXElement),
+  propsOrContainer: P | HTMLElement,
+  containerOrOptions?: HTMLElement | MountOptions,
+  maybeOptions?: MountOptions
+): () => void {
+  let component: Component<P> | ComponentWithLifecycle<P> | null = null;
+  let props: P | undefined;
+  let container: HTMLElement;
+  let options: MountOptions | undefined;
+
+  if (propsOrContainer instanceof HTMLElement) {
+    container = propsOrContainer;
+    options = containerOrOptions as MountOptions | undefined;
+  } else {
+    component = componentOrFactory as Component<P> | ComponentWithLifecycle<P>;
+    props = propsOrContainer as P;
+    container = containerOrOptions as HTMLElement;
+    options = maybeOptions;
+  }
+
+  if (!(container instanceof HTMLElement)) {
+    throw new Error('mount: container must be an HTMLElement');
+  }
+
+  const mode = options?.mode ?? 'replace';
+  const anchor = options?.anchor ?? null;
+
+  if (mode === 'replace' && anchor) {
+    throw new Error('mount: anchor is not supported with mode "replace"');
+  }
+
+  if (component) {
+    let element: JSXElement;
+    if (mode === 'replace') {
+      element = mountComponentInstance(component, props as P);
+      container.replaceChildren(element as Node);
+    } else {
+      element = mountComponent(component, props as P, container, anchor);
+    }
+
+    return () => {
+      unmountComponent(component, element, container);
+    };
+  }
+
+  const factory = componentOrFactory as () => JSXElement;
+  const element = factory();
+  const domElement = element as Node;
+
+  if (mode === 'replace') {
+    container.replaceChildren(domElement);
+  } else if (anchor) {
+    container.insertBefore(domElement, anchor);
+  } else {
+    container.appendChild(domElement);
+  }
+
+  return () => {
+    if (domElement.parentNode === container) {
+      container.removeChild(domElement);
+    }
+  };
 }
 
 /**

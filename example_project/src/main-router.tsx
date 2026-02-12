@@ -3,6 +3,7 @@
  */
 
 import './index.css';
+import { mount } from 'hyperfx';
 import { createRouter } from 'hyperfx-extra';
 import {  HomeRoute } from './pages/home';
 import { CounterRoute } from './pages/counter';
@@ -65,5 +66,4 @@ function App() {
 
 const app = document.getElementById('app')!;
 
-app.replaceChildren(App() as Node);
-
+mount(App, undefined, app, { mode: 'replace' });

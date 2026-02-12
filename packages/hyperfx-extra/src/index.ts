@@ -2,7 +2,7 @@
  * HyperFX Router - Typesafe routing for SSR and client-side rendering
  */
 
-export { createRoute, type RouteDefinition, type RouteMatch } from "./router/createRoute";
+export { createRoute, type RouteDefinition, type RouteMatch, type RouteError, type InferRouteProps } from "./router/createRoute";
 export {
   parsePath,
   matchPath,

@@ -20,13 +20,15 @@ function MyComponent() {
 Because HyperFX components return real DOM nodes, you can use them anywhere you'd use a standard element:
 
 ```tsx
+import { mount } from "hyperfx";
+
 const app = document.getElementById("app")!;
 const myElement = <MyComponent />;
 
 // It's just a div!
 console.log(myElement instanceof HTMLDivElement); // true
 
-app.appendChild(myElement);
+mount(() => myElement, app, { mode: "append" });
 ```
 
 ## Reactive Text and Attributes
@@ -37,13 +39,13 @@ You can embed logic directly in your JSX. When you use a signal, HyperFX automat
 import { createSignal } from "hyperfx";
 
 function Greeting() {
-  const name = createSignal("World");
+  const [name, setName] = createSignal("World");
 
   return (
     <div>
       <input 
-        value={name} 
-        oninput={(e) => name(e.target.value)} 
+        value={name()} 
+        oninput={(e) => setName(e.target.value)} 
       />
       <h1>Hello, {name}!</h1>
     </div>
@@ -53,12 +55,12 @@ function Greeting() {
 
 ## Styling
 
-Styles can be strings or reactive objects:
+Styles can be strings or reactive values:
 
 ```tsx
-const color = createSignal("red");
+const [color, setColor] = createSignal("red");
 
-<div style={{ color: color, fontWeight: "bold" }}>
+<div style={{ color: color(), fontWeight: "bold" }}>
   Reactive styles!
 </div>
 ```
