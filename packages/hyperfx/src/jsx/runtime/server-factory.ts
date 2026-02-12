@@ -1,6 +1,6 @@
 import { FRAGMENT_TAG } from "./constants.js";
 import type { FunctionComponent, JSXChildren, JSXElement, ComponentProps } from "./types.js";
-import { isSignal } from "../../reactive/signal.js";
+import { getAccessor } from "../../reactive/signal.js";
 import { ssrElement, escapeHtml, SSRNode } from "../../ssr/render.js";
 
 /**
@@ -10,14 +10,14 @@ export function Fragment(props: ComponentProps): JSXElement {
   return {
     t: renderChildrenToString(props.children),
     __ssr: true
-  } as SSRNode;
+  };
 }
 
 export function marker(): SSRNode {
   return {
     t: '<!--hfx:dyn-->',
     __ssr: true
-  } as SSRNode;
+  };
 }
 
 /**
@@ -32,9 +32,10 @@ function renderChildrenToString(children: JSXChildren): string {
     return children.map(renderChildrenToString).join('');
   }
 
-  // Handle signals - unwrap them to get current value
-  if (isSignal(children)) {
-    return renderChildrenToString(children() as JSXChildren);
+  // Handle signals/accessors - unwrap them to get current value
+  const childAccessor = getAccessor(children);
+  if (childAccessor) {
+    return renderChildrenToString(childAccessor() as JSXChildren);
   }
 
   // Handle SSRNodes
@@ -68,7 +69,8 @@ export function jsx(
     const proxyProps = new Proxy(props || {}, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
-        if (isSignal(value)) return value();
+        const acc = getAccessor(value);
+        if (acc) return acc();
         return value;
       }
     });
@@ -86,11 +88,12 @@ export function jsx(
   if (props) {
     for (const [key, value] of Object.entries(props)) {
       if (key === 'children') continue;
-      unwrappedProps[key] = isSignal(value) ? value() : value;
+      const acc = getAccessor(value);
+      unwrappedProps[key] = acc ? acc() : value;
     }
   }
 
-  return ssrElement(type as string, unwrappedProps, childrenHtml) as unknown as JSXElement;
+  return ssrElement(type as string, unwrappedProps, childrenHtml);
 }
 
 export const jsxs = jsx;

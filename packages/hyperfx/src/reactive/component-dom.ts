@@ -1,4 +1,4 @@
-import { createEffect } from "../reactive/state";
+import { createEffect } from "./signal";
 import type { JSXElement, ComponentProps } from "../jsx/jsx-runtime";
 
 /**

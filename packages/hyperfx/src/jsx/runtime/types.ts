@@ -1,5 +1,4 @@
-import { Signal } from "../../reactive/signal";
-import { ComputedSignal } from "../../reactive/state";
+import { Accessor } from "../../reactive/signal";
 import { Prettify } from "../../tools/type_utils";
 import { IntrinsicElements as BaseIntrinsicElements } from "../types/index";
 
@@ -12,7 +11,7 @@ export namespace JSX {
   export type IntrinsicElements = BaseIntrinsicElements;
 }
 
-type NormalizedValue<T> = {
+export type NormalizedValue<T> = {
   isReactive: boolean;
   isFunction: boolean;
   getValue: () => T;
@@ -20,7 +19,7 @@ type NormalizedValue<T> = {
 };
 
 // Core reactive prop type - allows unknown values to be reactive
-export type ReactiveValue<T> = T | Signal<T> | (() => T);
+export type ReactiveValue<T> = T | Accessor<T> | (() => T);
 
 // Specific reactive types for common use cases
 export type ReactiveString = ReactiveValue<string>;
@@ -28,7 +27,7 @@ export type ReactiveNumber = ReactiveValue<number>;
 export type ReactiveBoolean = ReactiveValue<boolean>;
 
 import type { SSRNode } from "../../ssr/render";
-type HTMLelementLike =
+export type HTMLelementLike =
   | HTMLElement
   | DocumentFragment
   | Text
@@ -38,8 +37,8 @@ type HTMLelementLike =
   | undefined;
 
   // Bridges to break circularity
-  interface RecursiveSignal extends Signal<JSXElement> {}
-  interface RecursiveComputed extends ComputedSignal<JSXElement> {}
+  interface RecursiveSignal extends Accessor<JSXElement> {}
+  interface RecursiveComputed extends Accessor<JSXElement> {}
   
   export type JSXElement =
     | HTMLelementLike
@@ -54,10 +53,10 @@ export type JSXChildPrimitive = string | number | boolean | null | undefined;
 export type JSXChild = Prettify<
   | JSXElement
   | JSXChildPrimitive
-  | Signal<JSXElement | JSXChildPrimitive>
+  | Accessor<JSXElement | JSXChildPrimitive>
   | (() => JSXElement)
   | (() => JSXElement[])
-  | ComputedSignal<JSXElement | JSXChildPrimitive>
+  | Accessor<JSXElement | JSXChildPrimitive>
 >;
 
 export type JSXChildren = JSXChild | JSXChild[];
@@ -98,5 +97,3 @@ export type ComponentProps<P = {}> = P & {
 // Function component type
 export type FunctionComponent<P extends ComponentProps = ComponentProps> = (props: P) => JSXElement;
 
-// Re-export for backwards compatibility
-export type { NormalizedValue };

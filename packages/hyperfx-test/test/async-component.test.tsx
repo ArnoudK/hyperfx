@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Effect, Stream } from 'effect'
-import { createAsyncComponent, createSignal, ReactiveSignal } from 'hyperfx'
+import { createAsyncComponent, createSignal, Signal } from 'hyperfx'
 
 
 describe('createAsyncComponent (Stream-based)', () => {
@@ -251,9 +251,9 @@ describe('createAsyncComponent (Stream-based)', () => {
 
   it('should restart stream when reactive props change', async () => {
     let fetchCount = 0
-    const userIdSignal = createSignal('user1')
+    const [userIdSignal, setUserIdSignal] = createSignal('user1')
 
-    type Props = { userId: ReactiveSignal<string> }
+    type Props = { userId: Signal<string> }
 
     const AsyncComponent = createAsyncComponent(
       (props: Props) => {
@@ -285,7 +285,7 @@ describe('createAsyncComponent (Stream-based)', () => {
     expect(fetchCount).toBe(1)
 
     // Change the signal value
-    userIdSignal('user2')
+    setUserIdSignal('user2')
 
     // Wait for stream to restart and complete
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -297,10 +297,10 @@ describe('createAsyncComponent (Stream-based)', () => {
 
   it('should restart stream when multiple reactive props change', async () => {
     let fetchCount = 0
-    const userIdSignal = createSignal('user1')
-    const includeEmailSignal = createSignal(false)
+    const [userIdSignal, setUserIdSignal] = createSignal('user1')
+    const [includeEmailSignal, setIncludeEmailSignal] = createSignal(false)
 
-    type Props = { userId: ReactiveSignal<string>; includeEmail: ReactiveSignal<boolean> }
+    type Props = { userId: Signal<string>; includeEmail: Signal<boolean> }
 
     const AsyncComponent = createAsyncComponent(
       (props: Props) => {
@@ -337,14 +337,14 @@ describe('createAsyncComponent (Stream-based)', () => {
     expect(fetchCount).toBe(1)
 
     // Change userId
-    userIdSignal('user2')
+    setUserIdSignal('user2')
     await new Promise(resolve => setTimeout(resolve, 100))
 
     expect(document.body.textContent).toContain('User: user2')
     expect(fetchCount).toBe(2)
 
     // Change includeEmail
-    includeEmailSignal(true)
+    setIncludeEmailSignal(true)
     await new Promise(resolve => setTimeout(resolve, 100))
 
     expect(document.body.textContent).toContain('Email: shown')

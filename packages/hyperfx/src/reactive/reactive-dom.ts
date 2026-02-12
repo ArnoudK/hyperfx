@@ -1,5 +1,6 @@
-import { createSignal, createEffect, createComputed, ReactiveSignal } from "../reactive/state";
+import { createEffect, createComputed, getAccessor, getSetter } from "./signal";
 import type { JSXElement, ComponentProps } from "../jsx/jsx-runtime";
+import { createSignal, Accessor, Signal } from "./signal";
 
 /**
  * Direct DOM Reactive Helpers for HyperFX
@@ -11,9 +12,9 @@ import type { JSXElement, ComponentProps } from "../jsx/jsx-runtime";
 // Reactive text node that updates when signal changes
 export function ReactiveText(initialValue: string): {
   node: Text;
-  signal: ReactiveSignal<string>;
+  signal: Accessor<string>;
 } {
-  const text = createSignal(initialValue);
+  const [text] = createSignal(initialValue);
   const node = document.createTextNode(initialValue);
 
   createEffect(() => {
@@ -27,7 +28,7 @@ export function ReactiveText(initialValue: string): {
 export function bindAttribute<T>(
   element: HTMLElement,
   attribute: string,
-  signal: ReactiveSignal<T>
+  signal: Accessor<T>
 ): void {
   createEffect(() => {
     const value = signal();
@@ -58,14 +59,16 @@ export function bindAttribute<T>(
 }
 
 // Reactive style binding
+type StyleValue = string | number;
+
 export function bindStyle(
   element: HTMLElement,
   styleProperty: string,
-  signal: ReactiveSignal<string | number>
+  signal: Accessor<StyleValue>
 ): void {
   createEffect(() => {
     const value = signal();
-    (element.style as unknown as Record<string, string>)[styleProperty] = String(value);
+    element.style.setProperty(styleProperty, String(value));
   });
 }
 
@@ -73,7 +76,7 @@ export function bindStyle(
 export function bindClass(
   element: HTMLElement,
   className: string,
-  signal: ReactiveSignal<boolean>
+  signal: Accessor<boolean>
 ): void {
   createEffect(() => {
     if (signal()) {
@@ -88,7 +91,7 @@ export function bindClass(
 export function bindCSSVariable(
   element: HTMLElement,
   variableName: string,
-  signal: ReactiveSignal<string | number>
+  signal: Accessor<string | number>
 ): void {
   createEffect(() => {
     const value = signal();
@@ -101,7 +104,7 @@ export function bindEvent(
   element: HTMLElement,
   eventType: string,
   handler: (event: Event) => void,
-  enabledSignal?: ReactiveSignal<boolean>
+  enabledSignal?: Accessor<boolean>
 ): void {
   const eventHandler = (event: Event) => {
     if (!enabledSignal || enabledSignal()) {
@@ -124,7 +127,7 @@ export function bindEvent(
 
 // Reactive list rendering with direct DOM manipulation
 export function ReactiveList<T>(
-  items: ReactiveSignal<T[]>,
+  items: Accessor<T[]>,
   renderItem: (item: T, index: number) => JSXElement,
   container?: HTMLElement
 ): {
@@ -163,7 +166,7 @@ export function ReactiveList<T>(
 
 // Reactive conditional rendering
 export function ReactiveIf(
-  condition: ReactiveSignal<boolean>,
+  condition: Accessor<boolean>,
   renderTrue: () => JSXElement,
   renderFalse?: () => JSXElement,
   container?: HTMLElement
@@ -206,18 +209,23 @@ export function ReactiveIf(
 // Reactive two-way binding for form inputs
 export function bindTwoWay<T extends HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
   element: T,
-  signal: ReactiveSignal<string>
+  signal: Signal<string>
 ): {
   element: T;
-  signal: ReactiveSignal<string>;
+  signal: Signal<string>;
   destroy: () => void;
 } {
   // Set initial value
-  element.value = signal();
+  const acc = getAccessor(signal);
+  const set = getSetter(signal);
+  if (!acc || !set) {
+    throw new Error('bindTwoWay expected a signal tuple');
+  }
+  element.value = String(acc());
 
   // Update signal when element value changes
   const handleChange = (): void => {
-    signal(element.value);
+    set(element.value);
   };
 
   element.addEventListener('input', handleChange);
@@ -225,8 +233,8 @@ export function bindTwoWay<T extends HTMLInputElement | HTMLTextAreaElement | HT
 
   // Update element when signal changes
   const unsubscribe = createEffect(() => {
-    if (element.value !== signal()) {
-      element.value = signal();
+    if (element.value !== String(acc())) {
+      element.value = String(acc());
     }
   });
 
@@ -242,8 +250,8 @@ export function bindTwoWay<T extends HTMLInputElement | HTMLTextAreaElement | HT
 // Reactive template string helper
 export function reactiveTemplate(
   strings: TemplateStringsArray,
-  ...values: (ReactiveSignal<unknown> | unknown)[]
-): ReactiveSignal<string> {
+  ...values: (Accessor<unknown> | unknown)[]
+): Accessor<string> {
   return createComputed(() => {
     let result = strings[0] || '';
     
@@ -314,7 +322,7 @@ export function measureReactivePerformance<T>(
 
 // Utility to create reactive components easily
 export function createReactiveComponent<P extends ComponentProps>(
-  renderFn: (props: P, createReactive: <T>(initial: T) => ReactiveSignal<T>) => JSXElement
+  renderFn: (props: P, createReactive: <T>(initial: T) => Signal<T>) => JSXElement
 ): (props: P) => JSXElement {
   return (props: P): JSXElement => {
     return renderFn(props, createSignal);

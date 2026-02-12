@@ -11,8 +11,8 @@ export const ArrayTestRoute = createRoute('array-test', {
 
 
 export function ArrayTest() {
-  const reactiveArray = createSignal(['Reactive A', 'Reactive B', 'Reactive C']);
-  const staticArray = createSignal(['Static X', 'Static Y', 'Static Z']); // Now also a Signal
+  const [reactiveArray, setReactiveArray] = createSignal(['Reactive A', 'Reactive B', 'Reactive C']);
+  const [staticArray, setStaticArray] = createSignal(['Static X', 'Static Y', 'Static Z']); // Now also a Signal
 
   return (
     <div class="p-6 max-w-2xl mx-auto">
@@ -22,7 +22,7 @@ export function ArrayTest() {
         <h2 class="text-xl font-semibold mb-4 text-green-600">Reactive Array (Signal)</h2>
         <button
           type="button"
-          onclick={() => reactiveArray.set([...reactiveArray.get(), `Item ${reactiveArray.get().length + 1}`])}
+          onclick={() => setReactiveArray(prev => [...prev, `Item ${prev.length + 1}`])}
           class="bg-green-500 text-white px-4 py-2 rounded mb-4"
         >
           Add Reactive Item
@@ -42,7 +42,7 @@ export function ArrayTest() {
         <h2 class="text-xl font-semibold mb-4 text-blue-600">Second Reactive Signal</h2>
         <button
           type="button"
-          onclick={() => staticArray.set([...staticArray.get(), `Item ${staticArray.get().length + 1}`])}
+          onclick={() => setStaticArray(prev => [...prev, `Item ${prev.length + 1}`])}
           class="bg-blue-500 text-white px-4 py-2 rounded mb-4"
         >
           Add to Second Array

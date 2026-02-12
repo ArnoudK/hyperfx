@@ -17,13 +17,13 @@ export const FormRoute = createRoute('form', {
 
 export function FormPage() {
   // Form state
-  const name = createSignal('');
-  const email = createSignal('');
-  const age = createSignal(18);
-  const country = createSignal('');
-  const interests = createSignal<string[]>([]);
-  const newsletter = createSignal(false);
-  const comments = createSignal('');
+  const [name, setName] = createSignal('');
+  const [email, setEmail] = createSignal('');
+  const [age, setAge] = createSignal(18);
+  const [country, setCountry] = createSignal('');
+  const [interests, setInterests] = createSignal<string[]>([]);
+  const [newsletter, setNewsletter] = createSignal(false);
+  const [comments, setComments] = createSignal('');
 
   // Validation
   const isValidEmail = createComputed(() => {
@@ -90,9 +90,9 @@ export function FormPage() {
   const toggleInterest = (interest: string) => {
     const current = interests();
     if (current.includes(interest)) {
-      interests(current.filter(i => i !== interest));
+      setInterests(current.filter(i => i !== interest));
     } else {
-      interests([...current, interest]);
+      setInterests([...current, interest]);
     }
   };
 
@@ -104,13 +104,13 @@ export function FormPage() {
   };
 
   const resetForm = () => {
-    name('');
-    email('');
-    age(18);
-    country('');
-    interests([]);
-    newsletter(false);
-    comments('');
+    setName('');
+    setEmail('');
+    setAge(18);
+    setCountry('');
+    setInterests([]);
+    setNewsletter(false);
+    setComments('');
   };
 
   const availableInterests = ['Technology', 'Sports', 'Music', 'Travel', 'Cooking', 'Reading', 'Gaming', 'Art'];
@@ -146,8 +146,8 @@ export function FormPage() {
                 required
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="Enter your name"
-                value={name}
-                oninput={(e) => name((e.target as HTMLInputElement).value)}
+                value={name()}
+                oninput={(e) => setName((e.target as HTMLInputElement).value)}
               />
             </div>
 
@@ -165,8 +165,8 @@ export function FormPage() {
                   : 'border-gray-600 focus:border-green-500'
                   }`}
                 placeholder="Enter your email"
-                value={email}
-                oninput={(e) => email((e.target as HTMLInputElement).value)}
+                value={email()}
+                oninput={(e) => setEmail((e.target as HTMLInputElement).value)}
               />
               <p class={`mt-1 text-sm text-red-400 ${emailErrorVisible() ? '' : 'hidden'}`}>
                 Please enter a valid email
@@ -189,7 +189,7 @@ export function FormPage() {
                   : 'border-gray-600 focus:border-green-500'
                   }`}
                 value={age().toString()}
-                oninput={(e) => age(parseInt((e.target as HTMLInputElement).value) || 18)}
+                oninput={(e) => setAge(parseInt((e.target as HTMLInputElement).value) || 18)}
               />
               <p class={`mt-1 text-sm text-red-400 ${ageErrorVisible() ? '' : 'hidden'}`}>
                 Age must be between 13 and 120
@@ -205,8 +205,8 @@ export function FormPage() {
                 id="country"
                 required
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                value={country}
-                onchange={(e) => country((e.target as HTMLSelectElement).value)}
+                value={country()}
+                onchange={(e) => setCountry((e.target as HTMLSelectElement).value)}
               >
                 <option value="">Select a country</option>
                 <>
@@ -258,8 +258,8 @@ export function FormPage() {
                 rows={4}
                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 placeholder="Any additional comments..."
-                value={comments}
-                oninput={(e) => comments((e.target as HTMLTextAreaElement).value)}
+                value={comments()}
+                oninput={(e) => setComments((e.target as HTMLTextAreaElement).value)}
               />
             </div>
 

@@ -6,11 +6,11 @@ export const InputRoute = createRoute('input-test', {
 })
 
 export function InputTest() {
-  const inputValue = createSignal('');
+  const [inputValue, setInputValue] = createSignal('');
 
   const addItem = () => {
-    console.log('Adding:', inputValue.get());
-    inputValue.set(''); // This should clear the input
+    console.log('Adding:', inputValue());
+    setInputValue(''); // This should clear the input
   };
 
   return (
@@ -18,19 +18,19 @@ export function InputTest() {
       <h1 class="text-xl mb-4">Input Clearing Test</h1>
       <input
         type="text"
-        value={inputValue}
-        oninput={(e) => inputValue.set((e.target as HTMLInputElement).value)}
+        value={inputValue()}
+        oninput={(e) => setInputValue((e.target as HTMLInputElement).value)}
         placeholder="Type something..."
         class="border p-2 mr-2"
       />
       <button
         type="button"
-        onclick={addItem}
+        onclick={(_e)=>addItem()}
         class="bg-blue-500 text-white px-4 py-2 rounded"
       >
         Add
       </button>
-      <p class="mt-2">Current value: {inputValue}</p>
+      <p class="mt-2">Current value: {inputValue()}</p>
     </div>
   );
 }

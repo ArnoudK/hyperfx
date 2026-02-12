@@ -2,9 +2,11 @@
 import { attributeManager } from "./attributes";
 import { FRAGMENT_TAG } from "./constants";
 import { isHydrationEnabled, claimHydrationElement } from "./hydration";
+import type { LifecycleAPI } from "../../reactive/lifecycle";
 import type { FunctionComponent, JSXChildren, JSXElement, ComponentProps } from "./types";
-import { isSignal } from "../../reactive/signal";
+import { getAccessor, isAccessor } from "../../reactive/signal";
 import { renderChildren } from "./children";
+import { insert } from "../../runtime-dom";
 
 /**
  * Client-side Fragment component
@@ -74,15 +76,22 @@ function appendChildren(parent: Node, children: JSXChildren): void {
       parent.appendChild(children);
     }
   } else if (typeof children === 'function') {
-    // Handle reactive children (signals)
-    const textNode = document.createTextNode('');
-    parent.appendChild(textNode);
-    // Simple text-only reactivity for now
-    if (isSignal(children)) {
-      children.subscribe((val) => {
+    // Handle reactive children (signals or functions wrapping signals from unwrapComponent)
+    const childAcc = getAccessor(children);
+    if (childAcc) {
+      const textNode = document.createTextNode('');
+      parent.appendChild(textNode);
+      childAcc.subscribe?.((val: unknown) => {
         textNode.textContent = String(val);
       });
-      textNode.textContent = String(children());
+      textNode.textContent = String(childAcc());
+    } else {
+      // This is a function wrapper from unwrapComponent (e.g., () => memo())
+      // Use insert() to set up proper reactivity with cleanup
+      const accessor = children as () => JSXElement;
+      const marker = document.createComment('hfx:comp');
+      parent.appendChild(marker);
+      insert(parent, accessor, marker);
     }
   } else {
     parent.appendChild(document.createTextNode(String(children)));
@@ -103,40 +112,38 @@ export function jsx(
     if (props?.children) {
       appendChildren(fragment, props.children);
     }
-    return fragment as unknown as JSXElement;
+    return fragment;
   }
 
   // Handle function components
   if (typeof type === 'function') {
     // Import lifecycle functions dynamically to avoid circular dependency
-    let lifecycle: typeof import('../../reactive/lifecycle.js') | undefined;
+    let lifecycle: LifecycleAPI | undefined;
     try {
-      lifecycle = require('../../reactive/lifecycle.js');
+      const loaded = require('../../reactive/lifecycle.js') as Partial<LifecycleAPI> | undefined;
+      if (loaded && typeof loaded.flushMounts === 'function' && typeof loaded.popLifecycleContext === 'function') {
+        lifecycle = loaded as LifecycleAPI;
+      }
     } catch {
       // Lifecycle module not available
     }
-    
+
     const proxyProps = new Proxy(props || {}, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
-        if (isSignal(value)) return value();
+        if (isAccessor(value)) return value();
         return value;
       }
     });
-    
-    // Push lifecycle context before rendering component
-    if (lifecycle) {
-      lifecycle.pushLifecycleContext();
-    }
-    
+
     try {
       const result = type(proxyProps);
-      
+
       // Flush mount callbacks after component renders
       if (lifecycle) {
         lifecycle.flushMounts();
       }
-      
+
       return result;
     } catch (error) {
       // Clean up context on error
@@ -153,7 +160,7 @@ export function jsx(
     renderChildren(element, props.children);
   }
 
-  return element as unknown as JSXElement;
+  return element;
 }
 
 export const jsxs = jsx;

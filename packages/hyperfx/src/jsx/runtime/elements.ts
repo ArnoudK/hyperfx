@@ -1,5 +1,5 @@
-import { isSignal } from "../../reactive/signal";
-import type { Signal } from "../../reactive/signal";
+import { isSignal, getAccessor, isAccessor, isSignalTuple } from "../../reactive/signal";
+import type { Accessor } from "../../reactive/signal";
 import { renderChildren } from "./children";
 import type { JSXChildren } from "./types";
 
@@ -12,13 +12,14 @@ export { FRAGMENT_TAG };
 
 
 // Create a text node with optional reactive content
-function createTextNode(content: string | number | boolean | Signal<unknown>): Text {
+function createTextNode(content: string | number | boolean | Accessor<unknown> | [Accessor<unknown>, (v: unknown | ((prev: unknown) => unknown)) => () => void]): Text {
   const textNode = document.createTextNode('');
 
   const updateText = () => {
     let text = '';
     if (isSignal(content)) {
-      text = String(content());
+      const accessor = getAccessor(content);
+      text = String(accessor());
     } else {
       text = String(content);
     }
@@ -27,8 +28,9 @@ function createTextNode(content: string | number | boolean | Signal<unknown>): T
 
   updateText(); // Set initial content
 
-  if (isSignal(content)) {
-    content.subscribe(updateText);
+  if (isAccessor(content) || isSignalTuple(content)) {
+    const accessor = getAccessor(content);
+    accessor?.subscribe?.(updateText);
   }
 
   return textNode;

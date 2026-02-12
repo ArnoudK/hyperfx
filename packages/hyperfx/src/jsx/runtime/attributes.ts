@@ -1,5 +1,19 @@
 import { handleReactiveValue } from "./reactive";
-import { isSignal } from "../../reactive/signal";
+import { getAccessor } from "../../reactive/signal";
+
+function toCssProperty(property: string): string {
+  if (property.includes('-')) {
+    return property;
+  }
+  return property.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+}
+
+function toCamelCaseProperty(property: string): string {
+  if (!property.includes('-')) {
+    return property;
+  }
+  return property.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+}
 
 // Simple setAttribute function that handles all attribute types
 function setAttribute(element: HTMLElement, key: string, value: unknown): void {
@@ -17,20 +31,30 @@ function setAttribute(element: HTMLElement, key: string, value: unknown): void {
 
   // Handle innerHTML and textContent specially (reactive support)
   if (key === 'innerHTML' || key === 'textContent') {
-    handleReactiveValue(element, key, value, (el, val) => {
-      (el as unknown as Record<string, unknown>)[key] = val;
-    });
+    const acc = getAccessor(value);
+    if (acc) {
+      handleReactiveValue(element, key, acc, (el, val) => {
+        (el as unknown as Record<string, unknown>)[key] = val;
+      });
+    } else {
+      try {
+        (element as unknown as Record<string, unknown>)[key] = value;
+      } catch {}
+    }
+
     return;
   }
 
-  // Handle reactive signals
-  if (isSignal(value)) {
-    handleReactiveValue(element, key, value, (el, val) => setAttribute(el, key, val));
+  // Handle accessor-based signals or Signal tuple
+  const acc = getAccessor(value);
+  if (acc) {
+    handleReactiveValue(element, key, acc, (el, val) => setAttribute(el, key, val));
     return;
   }
 
   // Handle reactive functions (create computed for reactivity)
-  else if (typeof value === 'function') {
+  if (typeof value === 'function') {
+    // console.debug(`[attributes] computed attr ${key}`, { value });
     handleReactiveValue(element, key, value, (el, val) => setAttribute(el, key, val));
     return;
   }
@@ -80,8 +104,12 @@ function setAttribute(element: HTMLElement, key: string, value: unknown): void {
       Object.entries(value as Record<string, unknown>).forEach(([property, styleValue]) => {
         if (styleValue != null) {
           try {
-            const camelCaseProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-            (element.style as unknown as Record<string, string>)[camelCaseProperty] = String(styleValue);
+            const cssProperty = toCssProperty(property);
+            element.style.setProperty(cssProperty, String(styleValue));
+            const camelProperty = toCamelCaseProperty(property);
+            if (camelProperty !== cssProperty) {
+              (element.style as CSSStyleDeclaration & Record<string, string>)[camelProperty] = String(styleValue);
+            }
           } catch (styleError) {
             console.warn(`Failed to set CSS property "${property}":`, styleError);
           }
@@ -101,8 +129,10 @@ function setAttribute(element: HTMLElement, key: string, value: unknown): void {
 
   // Handle all other attributes
   if (value != null) {
+    console.log(`[attributes] set ${key} ->`, value);
     element.setAttribute(key, String(value));
   } else {
+    console.log(`[attributes] remove ${key}`);
     element.removeAttribute(key);
   }
 }

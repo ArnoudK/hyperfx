@@ -27,14 +27,15 @@ describe("Router Rendering", () => {
     });
 
     const router = createRouter([HomeRoute]);
+    const RouterComponent = router.Router;
 
-    // Call Router function directly and get the memo
-    const routerMemo = router.Router({ initialPath: "/" });
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/" />
+      </div>
+    );
 
-    // The memo returns the actual content when called
-    const content = routerMemo();
-
-    container.appendChild(content as unknown as Node);
+    container.appendChild(App() as unknown as Node);
 
     expect(container.querySelector(".home")).toBeTruthy();
     expect(container.textContent).toContain("Home Page");
@@ -46,10 +47,15 @@ describe("Router Rendering", () => {
     });
 
     const router = createRouter([UserRoute]);
-    const routerMemo = router.Router({ initialPath: "/user/123" });
-    const content = routerMemo();
+    const RouterComponent = router.Router;
 
-    container.appendChild(content as unknown as Node);
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/user/123" />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     expect(container.querySelector(".user")).toBeTruthy();
     expect(container.textContent).toContain("User ID: 123");
@@ -65,10 +71,15 @@ describe("Router Rendering", () => {
     });
 
     const router = createRouter([PostRoute]);
-    const routerMemo = router.Router({ initialPath: "/blog/tech/42" });
-    const view = routerMemo();
+    const RouterComponent = router.Router;
 
-    container.appendChild(view as unknown as Node);
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/blog/tech/42" />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     expect(container.querySelector(".post")).toBeTruthy();
     expect(container.textContent).toContain("Category: tech");
@@ -85,10 +96,15 @@ describe("Router Rendering", () => {
     });
 
     const router = createRouter([HomeRoute, AboutRoute]);
-    const routerMemo = router.Router({ initialPath: "/about" });
-    const view = routerMemo();
+    const RouterComponent = router.Router;
 
-    container.appendChild(view as unknown as Node);
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/about" />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     expect(container.querySelector(".about")).toBeTruthy();
     expect(container.querySelector(".home")).toBeFalsy();
@@ -105,12 +121,15 @@ describe("Router Rendering", () => {
     );
 
     const router = createRouter([HomeRoute]);
-    const routerMemo = router.Router({
-      initialPath: "/nonexistent",
-      notFound: NotFound,
-    });
-    const view = routerMemo();
-    container.appendChild(view as unknown as Node);
+    const RouterComponent = router.Router;
+
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/nonexistent" notFound={NotFound} />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     expect(container.querySelector(".not-found")).toBeTruthy();
     expect(container.textContent).toContain("404: /nonexistent not found");
@@ -122,17 +141,19 @@ describe("Router Rendering", () => {
     });
 
     const router = createRouter([HomeRoute]);
-    const routerMemo = router.Router({ initialPath: "/nonexistent" });
-    const view = routerMemo();
+    const RouterComponent = router.Router;
 
-    // When Router returns null, we shouldn't try to append it
-    if (view !== null) {
-      container.appendChild(view as unknown as Node);
-    }
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/nonexistent" />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     // Should render nothing
     expect(container.textContent).toBe("");
-    expect(container.children.length).toBe(0);
+    expect(container.children.length).toBe(1);
   });
 });
 
@@ -267,6 +288,33 @@ describe("Router Navigation", () => {
 
     // Navigate to non-existent route
     router.navigate("/nowhere");
+
+    expect(container.querySelector(".not-found")).toBeTruthy();
+    expect(container.textContent).toContain("404: /nowhere");
+  });
+
+  it("should update on hfx:navigate events", () => {
+    const HomeRoute = createRoute("/", {
+      view: () => <div class="home">Home</div>,
+    });
+
+    const NotFound = ({ path }: { path: string }) => <div class="not-found">404: {path}</div>;
+
+    const router = createRouter([HomeRoute]);
+    const RouterComponent = router.Router;
+
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/" notFound={NotFound} />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
+
+    expect(container.textContent).toContain("Home");
+
+    window.history.pushState({}, "", "/nowhere");
+    window.dispatchEvent(new CustomEvent("hfx:navigate"));
 
     expect(container.querySelector(".not-found")).toBeTruthy();
     expect(container.textContent).toContain("404: /nowhere");
@@ -453,9 +501,15 @@ describe("Router Reactive Integration", () => {
     });
 
     const router = createRouter([HomeRoute, AboutRoute]);
-    const routerMemo = router.Router({ initialPath: "/" });
-    const view = routerMemo();
-    container.appendChild(view as unknown as Node);
+    const RouterComponent = router.Router;
+
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/" />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     expect(router.currentPath()).toBe("/");
 
@@ -550,9 +604,15 @@ describe("Router Edge Cases", () => {
     });
 
     const router = createRouter([HomeRoute]);
-    const routerMemo = router.Router({ initialPath: "/" });
-    const view = routerMemo();
-    container.appendChild(view as unknown as Node);
+    const RouterComponent = router.Router;
+
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/" />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     expect(container.querySelector(".home")).toBeTruthy();
   });
@@ -565,12 +625,15 @@ describe("Router Edge Cases", () => {
     const NotFound = ({ path }: { path: string }) => <div class="not-found">Not Found: {path}</div>;
 
     const router = createRouter([HomeRoute]);
-    const routerMemo = router.Router({
-      initialPath: "/about",
-      notFound: NotFound,
-    });
-    const view = routerMemo();
-    container.appendChild(view as unknown as Node);
+    const RouterComponent = router.Router;
+
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/about" notFound={NotFound} />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     expect(container.querySelector(".not-found")).toBeTruthy();
     expect(container.querySelector(".home")).toBeFalsy();
@@ -615,9 +678,15 @@ describe("Router Edge Cases", () => {
     });
 
     const router = createRouter([DocsRoute]);
-    const routerMemo = router.Router({ initialPath: "/docs/api/reference/methods" });
-    const view = routerMemo();
-    container.appendChild(view as unknown as Node);
+    const RouterComponent = router.Router;
+
+    const App = () => (
+      <div>
+        <RouterComponent initialPath="/docs/api/reference/methods" />
+      </div>
+    );
+
+    container.appendChild(App() as unknown as Node);
 
     expect(container.textContent).toContain("Docs: api/reference/methods");
   });
@@ -627,7 +696,7 @@ describe("Router Edge Cases", () => {
       view: (params: { userId: string }) => <div class="user">User: {params.userId || "none"}</div>,
     });
 
-    const NotFound = ({ path }: { path: string }) => <div class="not-found">Not Found</div>;
+    const NotFound = (props: { path: string }) => <div class="not-found">Not Found: {props.path}</div>;
 
     const router = createRouter([UserRoute]);
     const RouterComponent = router.Router;

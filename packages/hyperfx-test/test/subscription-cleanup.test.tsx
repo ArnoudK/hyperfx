@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createSignal } from 'hyperfx';
-import { jsx, cleanupElementSubscriptions } from 'hyperfx';
+import { createSignal, cleanupElementSubscriptions } from 'hyperfx';
 
 describe('Subscription Cleanup for Signal Attributes', () => {
   let container: HTMLElement;
@@ -15,13 +14,10 @@ describe('Subscription Cleanup for Signal Attributes', () => {
   });
 
   it('should allow manual cleanup of element subscriptions', () => {
-    const signal1 = createSignal('value1');
-    const signal2 = createSignal('value2');
+    const [signal1, setSignal1] = createSignal('value1');
+    const [signal2,setSignal2] = createSignal('value2');
 
-    const element = jsx('div', {
-      class: signal1,
-      title: signal2
-    }) as HTMLElement;
+    const element = <div class={signal1} title={signal2} /> as HTMLElement;
 
     container.appendChild(element);
 
@@ -39,21 +35,23 @@ describe('Subscription Cleanup for Signal Attributes', () => {
     expect(element.parentNode).toBe(container);
 
     // Changing signals should not affect element
-    signal1('new-value');
+    setSignal1('new-value');
     expect(element.className).toBe('value1'); // Should not update
   });
 
   it('should handle cleanup for elements with form input signals', () => {
-    const valueSignal = createSignal('initial');
-    const checkedSignal = createSignal(false);
-    const disabledSignal = createSignal(false);
+    const [valueSignal] = createSignal('initial');
+    const [checkedSignal] = createSignal(false);
+    const [disabledSignal] = createSignal(false);
 
-    const input = jsx('input', {
-      value: valueSignal,
-      checked: checkedSignal,
-      disabled: disabledSignal,
-      type: 'checkbox'
-    }) as HTMLInputElement;
+    const input = (
+      <input
+        value={valueSignal}
+        checked={checkedSignal}
+        disabled={disabledSignal}
+        type="checkbox"
+      />
+    ) as HTMLInputElement;
 
     container.appendChild(input);
 
@@ -70,13 +68,10 @@ describe('Subscription Cleanup for Signal Attributes', () => {
   });
 
   it('should handle cleanup for elements with content signals', () => {
-    const htmlSignal = createSignal('<span>content</span>');
-    const textSignal = createSignal('text content');
+    const [htmlSignal] = createSignal('<span>content</span>');
+    const [textSignal] = createSignal('text content');
 
-    const element = jsx('div', {
-      innerHTML: htmlSignal,
-      textContent: textSignal
-    }) as HTMLElement;
+    const element = <div innerHTML={htmlSignal} textContent={textSignal} /> as HTMLElement;
 
     container.appendChild(element);
 
@@ -96,36 +91,34 @@ describe('Subscription Cleanup for Signal Attributes', () => {
 
     // Create element with multiple signals
     const props: Record<string, unknown> = {};
-    signals.forEach((signal, index) => {
-      props[`attr${index}`] = signal;
+    signals.forEach(([getter], index) => {
+      props[`attr${index}`] = getter;
     });
 
-    const element = jsx('div', props) as HTMLElement;
+    const element = <div {...props} /> as HTMLElement;
     container.appendChild(element);
 
     // All signals should have subscribers
-    signals.forEach(signal => {
-      expect(signal.subscriberCount).toBe(1);
+    signals.forEach(([getter]) => {
+      expect(getter.subscriberCount).toBe(1);
     });
 
     cleanupElementSubscriptions(element);
 
     // All subscriptions should be cleaned up
-    signals.forEach(signal => {
-      expect(signal.subscriberCount).toBe(0);
+    signals.forEach(([getter]) => {
+      expect(getter.subscriberCount).toBe(0);
     });
   });
 
-  it('should handle cleanup for function attributes (non-reactive)', () => {
+  it('should handle cleanup for function attributes', () => {
     let callCount = 0;
     const getValue = () => {
       callCount++;
       return `value-${callCount}`;
     };
 
-    const element = jsx('div', {
-      'data-value': getValue
-    }) as HTMLElement;
+    const element = <div data-value={getValue} /> as HTMLElement;
 
     container.appendChild(element);
 
@@ -133,7 +126,7 @@ describe('Subscription Cleanup for Signal Attributes', () => {
     expect(callCount).toBe(1);
     expect(element.getAttribute('data-value')).toBe('value-1');
 
-    // No subscriptions to clean up for function attributes
+    // Subscriptions should be cleaned up for function attributes
     cleanupElementSubscriptions(element);
 
     // Function should not be called again during cleanup
@@ -142,8 +135,8 @@ describe('Subscription Cleanup for Signal Attributes', () => {
   });
 
   it('should handle multiple cleanup calls safely', () => {
-    const signal = createSignal('value');
-    const element = jsx('div', { class: signal }) as HTMLElement;
+    const [signal] = createSignal('value');
+    const element = <div class={signal} /> as HTMLElement;
 
     container.appendChild(element);
 
@@ -159,10 +152,7 @@ describe('Subscription Cleanup for Signal Attributes', () => {
   });
 
   it('should handle cleanup for elements without subscriptions', () => {
-    const element = jsx('div', {
-      class: 'static-class',
-      title: 'static-title'
-    }) as HTMLElement;
+    const element = <div class="static-class" title="static-title" /> as HTMLElement;
 
     container.appendChild(element);
 

@@ -12,7 +12,7 @@ import type { SSRNode } from "../ssr/render";
 export interface Context<T> {
     id: symbol;
     defaultValue: T;
-    Provider: (props: { value: T; children: JSXChildren | (() => JSXElement) }) => JSXElement;
+    Provider: (props: { value: T; children: JSXChildren | (() => JSXElement) }) => JSXChildren;
 }
 
 // Global context stack
@@ -76,10 +76,10 @@ export function createContext<T>(defaultValue: T): Context<T> {
                     (fragment as DocumentFragment).appendChild(child);
                 }
             });
-            return fragment as unknown as JSXElement;
+            return fragment;
         }
 
-        return children as JSXElement;
+        return children;
     };
 
     return {

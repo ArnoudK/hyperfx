@@ -170,11 +170,6 @@ function matchStandard(
     return null;
   }
 
-  // URL cannot have more segments than the route pattern allows
-  if (urlSegments.length > routeSegments.length) {
-    return null;
-  }
-
   const params: Record<string, string | undefined> = {};
 
   for (let i = 0; i < routeSegments.length; i++) {

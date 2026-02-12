@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createSignal, createComputed } from 'hyperfx';
-import { jsx, batchUpdates, cleanupElementSubscriptions } from 'hyperfx';
+import { createSignal, createComputed, batchUpdates, cleanupElementSubscriptions } from 'hyperfx';
 
 describe('Batch Update Mechanism', () => {
   let container: HTMLElement;
@@ -16,15 +15,13 @@ describe('Batch Update Mechanism', () => {
 
   describe('Basic Batching', () => {
     it('should batch multiple signal updates', () => {
-      const signal1 = createSignal('value1');
-      const signal2 = createSignal('value2');
-      const signal3 = createSignal('value3');
+      const [signal1, setSignal1] = createSignal('value1');
+      const [signal2, setSignal2] = createSignal('value2');
+      const [signal3, setSignal3] = createSignal('value3');
 
-      const element = jsx('div', {
-        'attr1': signal1,
-        'attr2': signal2,
-        'attr3': signal3
-      }) as HTMLElement;
+      const element = (
+        <div attr1={signal1} attr2={signal2} attr3={signal3} />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
@@ -35,9 +32,9 @@ describe('Batch Update Mechanism', () => {
 
       // Batch update multiple signals
       batchUpdates(() => {
-        signal1('new-value1');
-        signal2('new-value2');
-        signal3('new-value3');
+        setSignal1('new-value1');
+        setSignal2('new-value2');
+        setSignal3('new-value3');
       });
 
       // All attributes should be updated
@@ -47,23 +44,22 @@ describe('Batch Update Mechanism', () => {
     });
 
     it('should batch nested batch calls', () => {
-      const signal1 = createSignal('value1');
-      const signal2 = createSignal('value2');
+      const [signal1, setSignal1] = createSignal('value1');
+      const [signal2, setSignal2] = createSignal('value2');
 
-      const element = jsx('div', {
-        'attr1': signal1,
-        'attr2': signal2
-      }) as HTMLElement;
+      const element = (
+        <div attr1={signal1} attr2={signal2} />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
       // Nested batch calls
       batchUpdates(() => {
-        signal1('nested1');
+        setSignal1('nested1');
         batchUpdates(() => {
-          signal2('nested2');
+          setSignal2('nested2');
         });
-        signal1('nested3');
+        setSignal1('nested3');
       });
 
       expect(element.getAttribute('attr1')).toBe('nested3');
@@ -71,13 +67,13 @@ describe('Batch Update Mechanism', () => {
     });
 
     it('should return value from batch function', () => {
-      const signal = createSignal('initial');
-      const element = jsx('div', { 'attr': signal }) as HTMLElement;
+      const [signal, setSignal] = createSignal('initial');
+      const element = <div attr={signal} /> as HTMLElement;
 
       container.appendChild(element);
 
       const result = batchUpdates(() => {
-        signal('updated');
+        setSignal('updated');
         return 'batch-result';
       });
 
@@ -88,16 +84,18 @@ describe('Batch Update Mechanism', () => {
 
   describe('Batch with Different Attribute Types', () => {
     it('should batch updates for form inputs', () => {
-      const valueSignal = createSignal('test-value');
-      const checkedSignal = createSignal(false);
-      const disabledSignal = createSignal(false);
+      const [valueSignal, setValueSignal] = createSignal('test-value');
+      const [checkedSignal, setCheckedSignal] = createSignal(false);
+      const [disabledSignal, setDisabledSignal] = createSignal(false);
 
-      const input = jsx('input', {
-        type: 'text',
-        value: valueSignal,
-        checked: checkedSignal,
-        disabled: disabledSignal
-      }) as HTMLInputElement;
+      const input = (
+        <input
+          type="text"
+          value={valueSignal}
+          checked={checkedSignal}
+          disabled={disabledSignal}
+        />
+      ) as HTMLInputElement;
 
       container.appendChild(input);
 
@@ -106,9 +104,9 @@ describe('Batch Update Mechanism', () => {
       expect(input.disabled).toBe(false);
 
       batchUpdates(() => {
-        valueSignal('new-value');
-        checkedSignal(true);
-        disabledSignal(true);
+        setValueSignal('new-value');
+        setCheckedSignal(true);
+        setDisabledSignal(true);
       });
 
       expect(input.value).toBe('new-value');
@@ -117,19 +115,19 @@ describe('Batch Update Mechanism', () => {
     });
 
     it('should batch updates for style objects', () => {
-      const styleSignal = createSignal<Record<string, string>>({
+      const [styleSignal, setStyleSignal] = createSignal<Record<string, string>>({
         color: 'red',
         fontSize: '16px'
       });
 
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
       expect(element.style.fontSize).toBe('16px');
 
       batchUpdates(() => {
-        styleSignal({
+        setStyleSignal({
           color: 'blue',
           fontSize: '20px',
           backgroundColor: 'yellow' as any // Add to type
@@ -142,11 +140,11 @@ describe('Batch Update Mechanism', () => {
     });
 
     it('should batch updates for content attributes', () => {
-      const htmlSignal = createSignal('<span>content</span>');
-      const textSignal = createSignal('text-content');
+      const [htmlSignal, setHtmlSignal] = createSignal('<span>content</span>');
+      const [textSignal, setTextSignal] = createSignal('text-content');
 
-      const element1 = jsx('div', { innerHTML: htmlSignal }) as HTMLElement;
-      const element2 = jsx('div', { textContent: textSignal }) as HTMLElement;
+      const element1 = <div innerHTML={htmlSignal} /> as HTMLElement;
+      const element2 = <div textContent={textSignal} /> as HTMLElement;
 
       container.appendChild(element1);
       container.appendChild(element2);
@@ -155,8 +153,8 @@ describe('Batch Update Mechanism', () => {
       expect(element2.textContent).toBe('text-content');
 
       batchUpdates(() => {
-        htmlSignal('<p>updated</p>');
-        textSignal('updated-text');
+        setHtmlSignal('<p>updated</p>');
+        setTextSignal('updated-text');
       });
 
       expect(element1.innerHTML).toBe('<p>updated</p>');
@@ -166,17 +164,17 @@ describe('Batch Update Mechanism', () => {
 
   describe('Batch with Computed Signals', () => {
     it('should batch updates through computed signals', () => {
-      const baseSignal = createSignal('base');
-      const computedSignal = createComputed(() => `${baseSignal()}-computed`);
+      const [baseSignal, setBaseSignal] = createSignal('base');
+      const Signal = createComputed(() => `${baseSignal()}-computed`);
 
-      const element = jsx('div', { 'attr': computedSignal }) as HTMLElement;
+      const element = <div attr={Signal} /> as HTMLElement;
 
       container.appendChild(element);
 
       expect(element.getAttribute('attr')).toBe('base-computed');
 
       batchUpdates(() => {
-        baseSignal('updated');
+        setBaseSignal('updated');
         // Computed should update during batch
       });
 
@@ -184,15 +182,14 @@ describe('Batch Update Mechanism', () => {
     });
 
     it('should batch multiple computed signal dependencies', () => {
-      const signal1 = createSignal('val1');
-      const signal2 = createSignal('val2');
+      const [signal1, setSignal1] = createSignal('val1');
+      const [signal2, setSignal2] = createSignal('val2');
       const computed1 = createComputed(() => `${signal1()}-comp1`);
       const computed2 = createComputed(() => `${signal2()}-comp2`);
 
-      const element = jsx('div', {
-        'attr1': computed1,
-        'attr2': computed2
-      }) as HTMLElement;
+      const element = (
+        <div attr1={computed1} attr2={computed2} />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
@@ -200,8 +197,8 @@ describe('Batch Update Mechanism', () => {
       expect(element.getAttribute('attr2')).toBe('val2-comp2');
 
       batchUpdates(() => {
-        signal1('new1');
-        signal2('new2');
+        setSignal1('new1');
+        setSignal2('new2');
       });
 
       expect(element.getAttribute('attr1')).toBe('new1-comp1');
@@ -212,21 +209,20 @@ describe('Batch Update Mechanism', () => {
   describe('Error Handling in Batches', () => {
     // Note: Error handling in batches is tested but implementation may vary
     it('should continue batch execution on non-critical errors', () => {
-      const signal1 = createSignal('value1');
-      const signal2 = createSignal('value2');
+      const [signal1, setSignal1] = createSignal('value1');
+      const [signal2, setSignal2] = createSignal('value2');
 
-      const element = jsx('div', {
-        'attr1': signal1,
-        'attr2': signal2
-      }) as HTMLElement;
+      const element = (
+        <div attr1={signal1} attr2={signal2} />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
       // This tests that batch execution continues even if some updates fail
       expect(() => {
         batchUpdates(() => {
-          signal1('updated1');
-          signal2('updated2');
+          setSignal1('updated1');
+          setSignal2('updated2');
         });
       }).not.toThrow();
 
@@ -237,16 +233,15 @@ describe('Batch Update Mechanism', () => {
 
   describe('Performance Optimization', () => {
     it('should reduce DOM updates when batching', () => {
-      const signal1 = createSignal('value1');
-      const signal2 = createSignal('value2');
+      const [signal1, setSignal1] = createSignal('value1');
+      const [signal2, setSignal2] = createSignal('value2');
 
       let updateCount1 = 0;
       let updateCount2 = 0;
 
-      const element = jsx('div', {
-        'attr1': signal1,
-        'attr2': signal2
-      }) as HTMLElement;
+      const element = (
+        <div attr1={signal1} attr2={signal2} />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
@@ -259,8 +254,8 @@ describe('Batch Update Mechanism', () => {
       };
 
       // Multiple updates without batching should cause multiple DOM updates
-      signal1('update1');
-      signal2('update2');
+      setSignal1('update1');
+      setSignal2('update2');
       expect(updateCount1).toBe(1); // Each signal caused separate update
       expect(updateCount2).toBe(1);
 
@@ -270,8 +265,8 @@ describe('Batch Update Mechanism', () => {
 
       // Multiple updates with batching should be more efficient
       batchUpdates(() => {
-        signal1('batched1');
-        signal2('batched2');
+        setSignal1('batched1');
+        setSignal2('batched2');
       });
 
       // Should still update each attribute, but potentially in a more optimized way
@@ -283,13 +278,12 @@ describe('Batch Update Mechanism', () => {
 
   describe('Cleanup with Batching', () => {
     it('should cleanup batched subscriptions properly', () => {
-      const signal1 = createSignal('value1');
-      const signal2 = createSignal('value2');
+      const [signal1, setSignal1] = createSignal('value1');
+      const [signal2, setSignal2] = createSignal('value2');
 
-      const element = jsx('div', {
-        'attr1': signal1,
-        'attr2': signal2
-      }) as HTMLElement;
+      const element = (
+        <div attr1={signal1} attr2={signal2} />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
@@ -303,7 +297,7 @@ describe('Batch Update Mechanism', () => {
 
       // Batching should still work after cleanup
       batchUpdates(() => {
-        signal1('after-cleanup');
+        setSignal1('after-cleanup');
       });
 
       // Element should not be affected

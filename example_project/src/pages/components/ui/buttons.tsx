@@ -1,4 +1,4 @@
-import { createMemo, JSXChild, JSXChildPrimitive, JSXElement } from "hyperfx";
+import { createComputed, JSXChild, JSXChildPrimitive, JSXElement } from "hyperfx";
 
 
 
@@ -31,7 +31,7 @@ export function Button(
     }
 ) {
 
-    const classes = createMemo(() => [
+    const classes = createComputed(() => [
         baseClasses,
         variantClasses[props.variant || "primary"],
         sizeClasses[props.size || "medium"],

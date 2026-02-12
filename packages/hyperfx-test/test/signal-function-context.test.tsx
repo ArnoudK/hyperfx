@@ -11,7 +11,7 @@ describe('Signal Function Context', () => {
     });
 
     it('should render signal values correctly in text content', () => {
-        const count = createSignal(5);
+        const [count] = createSignal(5);
         
         const Component = () => {
             return <button>+{count}</button>;
@@ -23,15 +23,15 @@ describe('Signal Function Context', () => {
     });
 
     it('should handle signals in onclick handlers correctly', () => {
-        const count = createSignal(0);
-        const step = createSignal(2);
+        const [count, setCount] = createSignal(0);
+        const [step] = createSignal(2);
         let clickCount = 0;
 
         const Component = () => {
             return (
                 <button onclick={() => {
                     clickCount++;
-                    count(count() + step());
+                    setCount(count() + step());
                 }}>
                     +{step}
                 </button>
@@ -53,11 +53,11 @@ describe('Signal Function Context', () => {
     });
 
     it('should handle signals in function children with proper reactivity', () => {
-        const step = createSignal(3);
+        const [step, setStep] = createSignal(3);
         
         const Component = () => {
             return (
-                <button onclick={() => step(step() + 1)}>
+                <button onclick={() => setStep(step() + 1)}>
                     +{step}
                 </button>
             );
@@ -78,7 +78,7 @@ describe('Signal Function Context', () => {
     });
 
     it('should preserve signal calls in function contexts', () => {
-        const step = createSignal(5);
+        const [step, setStep] = createSignal(5);
         let lastStepValue: number | undefined;
 
         const Component = () => {
@@ -100,7 +100,7 @@ describe('Signal Function Context', () => {
         expect(lastStepValue).toBe(5);
         
         // Update signal
-        step(10);
+        setStep(10);
         button?.click();
         expect(lastStepValue).toBe(10);
     });

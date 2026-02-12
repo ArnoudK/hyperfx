@@ -1,4 +1,4 @@
-import { cleanupElementSubscriptions, createComputed, createSignal, jsx } from 'hyperfx';
+import { cleanupElementSubscriptions, createComputed, createSignal } from 'hyperfx';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 
@@ -16,62 +16,62 @@ describe('Enhanced Style Attribute Reactivity', () => {
 
   describe('String Style Signals', () => {
     it('should handle style string signals', () => {
-      const styleSignal = createSignal('color: red; font-size: 16px;');
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const [styleSignal, setStyleSignal] = createSignal('color: red; font-size: 16px;');
+      const element = <div style={styleSignal} /> as HTMLElement;
 
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
       expect(element.style.fontSize).toBe('16px');
 
-      styleSignal('color: blue; font-size: 20px;');
+      setStyleSignal('color: blue; font-size: 20px;');
       expect(element.style.color).toBe('blue');
       expect(element.style.fontSize).toBe('20px');
     });
 
     it('should handle empty style string signals', () => {
-      const styleSignal = createSignal('color: red;');
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const [styleSignal, setStyleSignal] = createSignal('color: red;');
+      const element = <div style={styleSignal} /> as HTMLElement;
 
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
 
-      styleSignal('');
+      setStyleSignal('');
       expect(element.style.color).toBe('');
       expect(element.getAttribute('style')).toBe('');
     });
 
     it('should handle null style string signals', () => {
-      const styleSignal = createSignal('color: red;');
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const [styleSignal, setStyleSignal] = createSignal('color: red;');
+      const element = <div style={styleSignal} /> as HTMLElement;
 
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
       expect(element.hasAttribute('style')).toBe(true);
 
-      styleSignal(null as any);
+      setStyleSignal(null as any);
       expect(element.hasAttribute('style')).toBe(false);
     });
   });
 
   describe('Object Style Signals', () => {
     it('should handle style object signals', () => {
-      const styleSignal = createSignal({
+      const [styleSignal, setStyleSignal] = createSignal({
         color: 'red',
         fontSize: '16px',
         backgroundColor: 'blue'
       });
 
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
       expect(element.style.fontSize).toBe('16px');
       expect(element.style.backgroundColor).toBe('blue');
 
-      styleSignal({
+      setStyleSignal({
         color: 'green',
         fontSize: '20px',
         backgroundColor: 'yellow'
@@ -83,8 +83,8 @@ describe('Enhanced Style Attribute Reactivity', () => {
     });
 
     it('should handle computed style object signals', () => {
-      const colorSignal = createSignal('red');
-      const sizeSignal = createSignal('16px');
+      const [colorSignal, setColorSignal] = createSignal('red');
+      const [sizeSignal, setSizeSignal] = createSignal('16px');
 
       const styleSignal = createComputed(() => ({
         color: colorSignal(),
@@ -92,31 +92,31 @@ describe('Enhanced Style Attribute Reactivity', () => {
         backgroundColor: 'blue'
       }));
 
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
       expect(element.style.fontSize).toBe('16px');
       expect(element.style.backgroundColor).toBe('blue');
 
-      colorSignal('green');
+      setColorSignal('green');
       expect(element.style.color).toBe('green');
       expect(element.style.fontSize).toBe('16px'); // Should remain unchanged
 
-      sizeSignal('20px');
+      setSizeSignal('20px');
       expect(element.style.fontSize).toBe('20px');
       expect(element.style.color).toBe('green'); // Should remain unchanged
     });
 
     it('should handle partial style object updates', () => {
-      const styleSignal = createSignal({
+      const [styleSignal, setStyleSignal] = createSignal({
         color: 'red',
         fontSize: '16px',
         margin: '10px',
         padding: '5px'
       });
 
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
@@ -125,7 +125,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
       expect(element.style.padding).toBe('5px');
 
       // Update with fewer properties
-      styleSignal({
+      setStyleSignal({
         color: 'blue',
         fontSize: '20px',
         margin: '',
@@ -140,14 +140,14 @@ describe('Enhanced Style Attribute Reactivity', () => {
     });
 
     it('should handle null/undefined values in style objects', () => {
-      const styleSignal = createSignal({
+      const [styleSignal] = createSignal({
         color: 'red',
         fontSize: null as string | null,
         margin: undefined as string | undefined,
         padding: '5px'
       });
 
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
@@ -158,20 +158,20 @@ describe('Enhanced Style Attribute Reactivity', () => {
     });
 
     it('should handle numeric values in style objects', () => {
-      const styleSignal = createSignal({
+      const [styleSignal, setStyleSignal] = createSignal({
         opacity: 0.5,
         zIndex: 10,
         width: '100px'
       });
 
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.style.opacity).toBe('0.5');
       expect(element.style.zIndex).toBe('10');
       expect(element.style.width).toBe('100px'); // Numeric values become px for width/height
 
-      styleSignal({
+      setStyleSignal({
         opacity: 1,
         zIndex: 20,
         width: '200px'
@@ -185,13 +185,13 @@ describe('Enhanced Style Attribute Reactivity', () => {
 
   describe('Static Style Objects', () => {
     it('should handle static style objects', () => {
-      const element = jsx('div', {
-        style: {
+      const element = (
+        <div style={{
           color: 'red',
           fontSize: '16px',
           backgroundColor: 'blue'
-        }
-      }) as HTMLElement;
+        }} />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
@@ -201,7 +201,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
     });
 
     it('should handle empty static style objects', () => {
-      const element = jsx('div', { style: {} }) as HTMLElement;
+      const element = <div style={{}} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.style.length).toBe(0); // No inline styles
@@ -209,7 +209,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
     });
 
     it('should handle null static style', () => {
-      const element = jsx('div', { style: null }) as HTMLElement;
+      const element = <div style={null} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.hasAttribute('style')).toBe(false);
@@ -218,14 +218,12 @@ describe('Enhanced Style Attribute Reactivity', () => {
 
   describe('Mixed Style and Other Attributes', () => {
     it('should handle style object signals with other signal attributes', () => {
-      const styleSignal = createSignal({ color: 'red' });
-      const classNameSignal = createSignal('my-class');
+      const [styleSignal, setStyleSignal] = createSignal({ color: 'red' });
+      const [classNameSignal, setClassNameSignal] = createSignal('my-class');
 
-      const element = jsx('div', {
-        class: classNameSignal,
-        style: styleSignal,
-        title: 'static title'
-      }) as HTMLElement;
+      const element = (
+        <div class={classNameSignal} style={styleSignal} title="static title" />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
@@ -233,8 +231,8 @@ describe('Enhanced Style Attribute Reactivity', () => {
       expect(element.style.color).toBe('red');
       expect(element.title).toBe('static title');
 
-      styleSignal({ color: 'blue' });
-      classNameSignal('updated-class');
+      setStyleSignal({ color: 'blue' });
+      setClassNameSignal('updated-class');
 
       expect(element.className).toBe('updated-class');
       expect(element.style.color).toBe('blue');
@@ -242,21 +240,18 @@ describe('Enhanced Style Attribute Reactivity', () => {
     });
 
     it('should handle style string signals with other reactive attributes', () => {
-      const styleSignal = createSignal('color: red;');
-      const dataIdSignal = createSignal('test-id');
+      const [styleSignal, setStyleSignal] = createSignal('color: red;');
+      const [dataIdSignal, setDataIdSignal] = createSignal('test-id');
 
-      const element = jsx('div', {
-        style: styleSignal,
-        'data-id': dataIdSignal
-      }) as HTMLElement;
+      const element = <div style={styleSignal} data-id={dataIdSignal} /> as HTMLElement;
 
       container.appendChild(element);
 
       expect(element.style.color).toBe('red');
       expect(element.getAttribute('data-id')).toBe('test-id');
 
-      styleSignal('color: blue;');
-      dataIdSignal('updated-id');
+      setStyleSignal('color: blue;');
+      setDataIdSignal('updated-id');
 
       expect(element.style.color).toBe('blue');
       expect(element.getAttribute('data-id')).toBe('updated-id');
@@ -265,8 +260,8 @@ describe('Enhanced Style Attribute Reactivity', () => {
 
   describe('Cleanup for Style Signals', () => {
     it('should cleanup style string subscriptions', () => {
-      const styleSignal = createSignal('color: red;');
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const [styleSignal, setStyleSignal] = createSignal('color: red;');
+      const element = <div style={styleSignal} /> as HTMLElement;
 
       container.appendChild(element);
 
@@ -276,13 +271,13 @@ describe('Enhanced Style Attribute Reactivity', () => {
       expect(styleSignal.subscriberCount).toBe(0);
 
       // Signal changes should no longer affect element
-      styleSignal('color: blue;');
+      setStyleSignal('color: blue;');
       expect(element.style.color).toBe('red'); // Should remain red
     });
 
     it('should cleanup style object subscriptions', () => {
-      const styleSignal = createSignal({ color: 'red' });
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const [styleSignal, setStyleSignal] = createSignal({ color: 'red' });
+      const element = <div style={styleSignal} /> as HTMLElement;
 
       container.appendChild(element);
 
@@ -292,14 +287,14 @@ describe('Enhanced Style Attribute Reactivity', () => {
       expect(styleSignal.subscriberCount).toBe(0);
 
       // Signal changes should no longer affect element
-      styleSignal({ color: 'blue' });
+      setStyleSignal({ color: 'blue' });
       expect(element.style.color).toBe('red'); // Should remain red
     });
 
     it('should cleanup computed style subscriptions', () => {
-      const colorSignal = createSignal('red');
+      const [colorSignal] = createSignal('red');
       const styleSignal = createComputed(() => ({ color: colorSignal() }));
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
 
       container.appendChild(element);
 
@@ -314,7 +309,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
 
   describe('Error Handling', () => {
     it('should handle invalid style object values gracefully', () => {
-      const styleSignal = createSignal({
+      const [styleSignal] = createSignal({
         color: 'red',
         // Including potentially problematic values
         'background-color': 'blue',
@@ -323,7 +318,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
         padding: '10px'
       });
 
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
 
       expect(() => {
         container.appendChild(element);
@@ -335,7 +330,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
     });
 
     it('should handle mixed property names in style objects', () => {
-      const styleSignal = createSignal({
+      const [styleSignal] = createSignal({
         // Camel case
         fontSize: '16px',
         backgroundColor: 'red',
@@ -344,7 +339,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
         'margin-top': '10px'
       });
 
-      const element = jsx('div', { style: styleSignal }) as HTMLElement;
+      const element = <div style={styleSignal} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.style.fontSize).toBe('16px');

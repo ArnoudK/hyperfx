@@ -11,3 +11,8 @@ export type OverrideType<T, U> = Omit<T, keyof U> & U;
 export type Prettify<T> = {
     [K in keyof T]: T[K];
 } & {};
+
+
+export type Falsy = false | 0 | '' | null | undefined;
+
+export type Truthy<T> = Exclude<T, Falsy>;

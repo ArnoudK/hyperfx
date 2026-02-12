@@ -203,13 +203,13 @@ function createComputed$1(computeFn) {
     const newValue = computeFn();
     originalSet(newValue);
   }));
-  const computedSignal = Object.assign(signal, {
+  const Signal = Object.assign(signal, {
     destroy: () => {
       unsubscribers.forEach((unsub) => unsub());
       unsubscribers.length = 0;
     }
   });
-  return computedSignal;
+  return Signal;
 }
 function createEffect$1(effectFn) {
   let cleanup;

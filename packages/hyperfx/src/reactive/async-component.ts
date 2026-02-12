@@ -8,7 +8,7 @@
 
 import type { JSXElement } from "../jsx/runtime/types"
 import { Effect, Stream } from "effect"
-import { createEffect, createMemo } from "../reactive/state"
+import { createEffect, createComputed } from "./signal"
 import { untrack } from "../reactive/signal"
 import { runEffectFork } from "../runtime"
 
@@ -157,7 +157,7 @@ export function createAsyncComponent<P extends Record<string, unknown> = {}>(
 
     // Wrap the stream creation in a memo to track reactive prop dependencies
     // When a signal accessed inside fn() changes, this memo will re-compute
-    const currentStream = createMemo(() => fn(propsWithInjected))
+    const currentStream = createComputed(() => fn(propsWithInjected))
 
     // Function to run the stream and update DOM on each emission
     const runStream = (forceRefresh = false) => {

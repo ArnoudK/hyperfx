@@ -20,7 +20,7 @@ describe('For Component Integration', () => {
         // Mimic Todo structure
         interface Todo { id: number; text: string; completed: boolean; }
 
-        const todos = createSignal<Todo[]>([
+        const [todos, setTodos] = createSignal<Todo[]>([
             { id: 1, text: 'A', completed: false }
         ]);
 
@@ -49,7 +49,7 @@ describe('For Component Integration', () => {
 
 
         // Update item (immutable)
-        todos(todos().map(t =>
+        setTodos(todos().map(t =>
             t.id === 1 ? { ...t, completed: true } : t
         ));
 
@@ -69,12 +69,12 @@ describe('For Component Integration', () => {
     });
 
     it('updates when computed does filtering', () => {
-        const todos = createSignal([
+        const [todos, setTodos] = createSignal([
             { id: 1, val: 10 },
             { id: 2, val: 20 }
         ]);
 
-        const filterLimit = createSignal(15);
+        const [filterLimit, setFilterLimit] = createSignal(15);
 
         const filtered = createComputed(() => {
             return todos().filter(t => t.val > filterLimit());
@@ -94,11 +94,11 @@ describe('For Component Integration', () => {
         expect(container.textContent).toBe('20');
 
         // Change filter to include 10
-        filterLimit(5);
+        setFilterLimit(5);
         expect(container.textContent).toBe('1020'); // Order might vary depending on filter logic, but usually preserves source order
 
         // Update 10 to 5 (should disappear if limit is 5? No >5)
-        todos(todos().map(t => t.id === 1 ? { ...t, val: 5 } : t));
+        setTodos(todos().map(t => t.id === 1 ? { ...t, val: 5 } : t));
         // Array is now [{id:1, val:5}, {id:2, val:20}].
         // Filter > 5. 5 is not > 5.
         // Filtered: [{id:2, val:20}].

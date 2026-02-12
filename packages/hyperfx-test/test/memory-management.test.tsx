@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createSignal, createComputed } from 'hyperfx';
-import { jsx, cleanupElementSubscriptions, batchUpdates } from 'hyperfx';
+import { createSignal, createComputed, cleanupElementSubscriptions, batchUpdates } from 'hyperfx';
 
 describe('Memory Management for Signal Subscriptions', () => {
   let container: HTMLElement;
@@ -21,13 +20,9 @@ describe('Memory Management for Signal Subscriptions', () => {
       );
 
       // Create many elements with signals
-      const elements = signals.map((signal, index): HTMLElement =>
-        jsx('div', {
-          id: `element-${index}`,
-          class: signal,
-          title: `title-${index}`
-        }) as HTMLElement
-      );
+      const elements = signals.map(([getter], index): HTMLElement => (
+        <div id={`element-${index}`} class={getter} title={`title-${index}`} />
+      ));
 
       // Add all elements to DOM
       elements.forEach((element): void => {
@@ -35,8 +30,8 @@ describe('Memory Management for Signal Subscriptions', () => {
       });
 
       // All signals should have subscribers
-      signals.forEach((signal): void => {
-        expect(signal.subscriberCount).toBe(1);
+      signals.forEach(([getter]): void => {
+        expect(getter.subscriberCount).toBe(1);
       });
 
       // Remove all elements
@@ -46,19 +41,19 @@ describe('Memory Management for Signal Subscriptions', () => {
       await new Promise(resolve => setTimeout(resolve, 10));
 
       // All subscriptions should be cleaned up
-      signals.forEach((signal): void => {
-        expect(signal.subscriberCount).toBe(0);
+      signals.forEach(([getter]): void => {
+        expect(getter.subscriberCount).toBe(0);
       });
     });
 
     it('should handle rapid element creation and destruction', async () => {
-      const signal = createSignal('test-value');
+      const [signal] = createSignal('test-value');
       let creationCount = 0;
       let destructionCount = 0;
 
       // Create and destroy elements rapidly
       for (let i = 0; i < 20; i++) {
-        const element = jsx('div', { class: signal }) as HTMLElement;
+        const element = <div class={signal} /> as HTMLElement;
         container.appendChild(element);
 
         creationCount++;
@@ -80,13 +75,13 @@ describe('Memory Management for Signal Subscriptions', () => {
   });
 
   describe('Computed Signal Memory', () => {
-    it('should clean up computed signal dependencies', async () => {
-      const baseSignal = createSignal('base');
+    it('should clean up computed signal dependencies when destroyed', async () => {
+      const [baseSignal] = createSignal('base');
       const signals = Array.from({ length: 10 }, (_, i) => {
-        const computedSignal = createComputed(() => `${baseSignal()}-computed-${i}`);
-        const element = jsx('div', { class: computedSignal }) as HTMLElement;
+        const Signal = createComputed(() => `${baseSignal()}-computed-${i}`);
+        const element = <div class={Signal} /> as HTMLElement;
         container.appendChild(element);
-        return { signal: computedSignal, element };
+        return { signal: Signal, element };
       });
 
       // Base signal should have many subscribers (one for each computed)
@@ -111,28 +106,25 @@ describe('Memory Management for Signal Subscriptions', () => {
         expect(signal.subscriberCount).toBe(0);
       });
 
-      // Base signal subscriptions should also be cleaned up
+      // Base signal subscriptions should be cleaned up with computed cleanup
       expect(baseSignal.subscriberCount).toBe(0);
     });
   });
 
   describe('Batch Updates Memory', () => {
     it('should not accumulate batch queue', () => {
-      const signal1 = createSignal('value1');
-      const signal2 = createSignal('value2');
+      const [signal1, setSignal1] = createSignal('value1');
+      const [signal2, setSignal2] = createSignal('value2');
 
-      const element = jsx('div', {
-        class: signal1,
-        title: signal2
-      }) as HTMLElement;
+      const element = <div class={signal1} title={signal2} /> as HTMLElement;
 
       container.appendChild(element);
 
       // Multiple batch operations should not accumulate
       for (let i = 0; i < 20; i++) {
         batchUpdates(() => {
-          signal1(`update-${i}`);
-          signal2(`title-${i}`);
+          setSignal1(`update-${i}`);
+          setSignal2(`title-${i}`);
         });
       }
 
@@ -144,10 +136,10 @@ describe('Memory Management for Signal Subscriptions', () => {
 
   describe('Edge Cases', () => {
     it('should handle signal reuse across elements', async () => {
-      const sharedSignal = createSignal('shared');
+      const [sharedSignal] = createSignal('shared');
 
-      const element1 = jsx('div', { class: sharedSignal }) as HTMLElement;
-      const element2 = jsx('div', { class: sharedSignal }) as HTMLElement;
+      const element1 = <div class={sharedSignal} /> as HTMLElement;
+      const element2 = <div class={sharedSignal} /> as HTMLElement;
 
       container.appendChild(element1);
       container.appendChild(element2);
@@ -175,11 +167,9 @@ describe('Memory Management for Signal Subscriptions', () => {
     });
 
     it('should handle elements with no signals', () => {
-      const element = jsx('div', {
-        id: 'static-element',
-        class: 'static-class',
-        title: 'static-title'
-      }) as HTMLElement;
+      const element = (
+        <div id="static-element" class="static-class" title="static-title" />
+      ) as HTMLElement;
 
       container.appendChild(element);
 
@@ -193,8 +183,8 @@ describe('Memory Management for Signal Subscriptions', () => {
     });
 
     it('should handle repeated cleanup calls', () => {
-      const signal = createSignal('test');
-      const element = jsx('div', { class: signal }) as HTMLElement;
+      const [signal] = createSignal('test');
+      const element = <div class={signal} /> as HTMLElement;
 
       container.appendChild(element);
 
@@ -218,12 +208,9 @@ describe('Memory Management for Signal Subscriptions', () => {
       const startTime = performance.now();
 
       // Create many elements with signals
-      const elements = signals.map((signal, index): HTMLElement =>
-        jsx('div', {
-          id: `perf-${index}`,
-          className: signal
-        }) as HTMLElement
-      );
+      const elements = signals.map(([getter], index): HTMLElement => (
+        <div id={`perf-${index}`} class={getter} />
+      ));
 
       const createEndTime = performance.now();
       const createTime = createEndTime - startTime;
@@ -237,8 +224,8 @@ describe('Memory Management for Signal Subscriptions', () => {
 
       // Update all signals
       const updateStartTime = performance.now();
-      signals.forEach((signal, index): void => {
-        signal(`updated-${index}`);
+      signals.forEach(([, setSignal], index): void => {
+        setSignal(`updated-${index}`);
       });
       const updateEndTime = performance.now();
       const updateTime = updateEndTime - updateStartTime;
@@ -259,8 +246,8 @@ describe('Memory Management for Signal Subscriptions', () => {
       expect(cleanupTime).toBeLessThan(50);   // 0.05 seconds for cleanup
 
       // All subscriptions should be cleaned up
-      signals.forEach((signal): void => {
-        expect(signal.subscriberCount).toBe(0);
+      signals.forEach(([getter]): void => {
+        expect(getter.subscriberCount).toBe(0);
       });
     });
   });

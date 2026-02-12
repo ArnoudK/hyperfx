@@ -30,13 +30,14 @@ export class ComponentGenerator {
    */
   generateComponentCall(node: t.JSXElement): string {
     const componentName = this.getComponentName(node);
+    const isShow = this.isShowComponent(node);
     const hasSpread = this.hasSpreadAttributes(node);
 
     if (hasSpread) {
-      return this.generateComponentCallWithSpread(node, componentName);
+      return this.generateComponentCallWithSpread(node, componentName, isShow);
     }
 
-    return this.generateSimpleComponentCall(node, componentName);
+    return this.generateSimpleComponentCall(node, componentName, isShow);
   }
 
   /**
@@ -59,13 +60,19 @@ export class ComponentGenerator {
   /**
    * Generate component call with spread attributes
    */
-  private generateComponentCallWithSpread(node: t.JSXElement, componentName: string): string {
+  private generateComponentCallWithSpread(
+    node: t.JSXElement,
+    componentName: string,
+    isShow: boolean
+  ): string {
     const parts: string[] = [];
 
     for (const attr of node.openingElement.attributes) {
       if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name)) {
         const key = attr.name.name;
-        const value = this.getAttributeValue(attr);
+        const value = isShow && key === 'when'
+          ? this.getShowWhenValue(attr)
+          : this.getAttributeValue(attr);
         parts.push(`{ ${key}: ${value} }`);
       } else if (t.isJSXSpreadAttribute(attr)) {
         parts.push(this.codeFromNode(attr.argument));
@@ -82,20 +89,26 @@ export class ComponentGenerator {
       ? `Object.assign({}, ${parts.join(', ')})`
       : parts[0] || '{}';
 
-    return `${componentName}(${mergedProps})`;
+    return `_$unwrapComponent(${componentName}(_$unwrapProps(${mergedProps})))`;
   }
 
   /**
    * Generate simple component call without spread
    */
-  private generateSimpleComponentCall(node: t.JSXElement, componentName: string): string {
+  private generateSimpleComponentCall(
+    node: t.JSXElement,
+    componentName: string,
+    isShow: boolean
+  ): string {
     const props: string[] = [];
 
     // Add attributes
     for (const attr of node.openingElement.attributes) {
       if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name)) {
         const key = attr.name.name;
-        const value = this.getAttributeValue(attr);
+        const value = isShow && key === 'when'
+          ? this.getShowWhenValue(attr)
+          : this.getAttributeValue(attr);
         props.push(`${key}: ${value}`);
       }
     }
@@ -107,7 +120,7 @@ export class ComponentGenerator {
     }
 
     const propsObj = props.length > 0 ? `{ ${props.join(', ')} }` : '{}';
-    return `${componentName}(${propsObj})`;
+    return `_$unwrapComponent(${componentName}(_$unwrapProps(${propsObj})))`;
   }
 
   /**
@@ -120,6 +133,49 @@ export class ComponentGenerator {
 
     if (t.isJSXExpressionContainer(attr.value)) {
       return this.codeFromNode(attr.value.expression);
+    }
+
+    if (t.isStringLiteral(attr.value)) {
+      return `"${attr.value.value}"`;
+    }
+
+    return this.codeFromNode(attr.value);
+  }
+
+  private isShowComponent(node: t.JSXElement): boolean {
+    if (t.isJSXIdentifier(node.openingElement.name)) {
+      return node.openingElement.name.name === 'Show';
+    }
+
+    if (t.isJSXMemberExpression(node.openingElement.name)) {
+      return node.openingElement.name.property.name === 'Show';
+    }
+
+    return false;
+  }
+
+  private getShowWhenValue(attr: t.JSXAttribute): string {
+    if (!attr.value) {
+      return 'true';
+    }
+
+    if (t.isJSXExpressionContainer(attr.value)) {
+      const expr = attr.value.expression;
+      if (t.isJSXEmptyExpression(expr)) {
+        return 'undefined';
+      }
+
+      if (
+        t.isArrowFunctionExpression(expr) ||
+        t.isFunctionExpression(expr) ||
+        t.isIdentifier(expr) ||
+        t.isMemberExpression(expr) ||
+        t.isOptionalMemberExpression(expr)
+      ) {
+        return this.codeFromNode(expr);
+      }
+
+      return `() => (${this.codeFromNode(expr)})`;
     }
 
     if (t.isStringLiteral(attr.value)) {

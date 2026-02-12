@@ -1,17 +1,18 @@
-import { createEffect } from "../reactive/state";
-import type { JSXElement, ReactiveValue } from "../jsx/jsx-runtime";
-import type { Signal } from "../reactive/signal";
-import { isSignal, createSignal } from "../reactive/signal";
+import { createEffect } from "../reactive/signal";
+import type {  JSXElement, ReactiveValue } from "../jsx/jsx-runtime";
+import type { Accessor } from "../reactive/signal";
+import { isAccessor, createSignal } from "../reactive/signal";
 import {
   isSSR,
   createUniversalFragment,
   createUniversalComment,
 } from "./runtime/universal-node";
 import type { SSRNode } from "../ssr/render";
+import { Truthy } from "../tools/type_utils";
 
 interface ForProps<T> {
   each: ReactiveValue<T[]>;
-  children: (item: T, index: Signal<number>) => JSXElement;
+  children: (item: T, index: Accessor<number>) => JSXElement;
   fallback?: JSXElement;
 }
 
@@ -31,15 +32,16 @@ export function For<T>(props: ForProps<T>): JSXElement {
 
   type ItemInstance = {
     nodes: (Node | SSRNode)[];
-    indexSignal: Signal<number>;
+    indexSignal: Accessor<number>;
+    setIndex: (value: number) => () => void;
   };
 
   const instanceMap = new Map<T, ItemInstance[]>();
 
   const updateList = (): void => {
     let newItems: T[] = [];
-    if (isSignal(props.each)) {
-      newItems = props.each() as T[];
+    if (isAccessor(props.each)) {
+      newItems = (props.each as (() => T[]))();
     } else if (typeof props.each === 'function') {
       newItems = (props.each as Function)() as T[];
     } else {
@@ -61,11 +63,11 @@ export function For<T>(props: ForProps<T>): JSXElement {
       const stack = availableInstances.get(item);
       if (stack && stack.length > 0) {
         const instance = stack.shift()!;
-        instance.indexSignal(index);
+        instance.setIndex(index);
         nextInstances.push(instance);
       } else {
-        const indexSignal = createSignal(index);
-        const element = (renderItem as (item: T, index: Signal<number>) => JSXElement)(item, indexSignal);
+        const [indexSignalGet, indexSignalSet] = createSignal(index);
+        const element = (renderItem as (item: T, index: Accessor<number>) => JSXElement)(item, indexSignalGet);
 
         let nodes: (Node | SSRNode)[] = [];
         if (isSSR()) {
@@ -77,7 +79,7 @@ export function For<T>(props: ForProps<T>): JSXElement {
             nodes = [element];
           }
         }
-        nextInstances.push({ nodes, indexSignal: indexSignal as Signal<number> });
+        nextInstances.push({ nodes, indexSignal: indexSignalGet as Accessor<number>, setIndex: indexSignalSet });
       }
     });
 
@@ -130,7 +132,7 @@ export function For<T>(props: ForProps<T>): JSXElement {
     createEffect(updateList);
   }
 
-  return fragment as unknown as JSXElement;
+  return fragment;
 }
 
 export function Index<T>(props: {
@@ -144,19 +146,19 @@ export function Index<T>(props: {
   (fragment as any).appendChild(startMarker);
   (fragment as any).appendChild(endMarker);
 
-  const itemSignals: Signal<T>[] = [];
+  const itemSignals: { get: Accessor<T>, set: (value: T) => () => void }[] = [];
   const renderedNodes: (Node | SSRNode)[][] = [];
 
   const update = () => {
-    const newItems = isSignal(props.each) ? props.each() : (typeof props.each === 'function' ? (props.each as Function)() : props.each);
+    const newItems = isAccessor(props.each) ? (props.each as () => T[])() : (typeof props.each === 'function' ? (props.each as Function)() : props.each);
     const parent = isSSR() ? fragment : ((startMarker as Comment).parentNode || fragment);
 
     while (itemSignals.length < newItems.length) {
       const index = itemSignals.length;
-      const signal = createSignal(newItems[index]);
-      itemSignals.push(signal as Signal<T>);
+      const [sigGet, sigSet] = createSignal(newItems[index]);
+      itemSignals.push({ get: sigGet, set: sigSet });
 
-      const element = props.children(() => signal(), index);
+      const element = props.children(() => sigGet(), index);
 
       if (isSSR()) {
         const nodes = [element as unknown as SSRNode];
@@ -178,8 +180,8 @@ export function Index<T>(props: {
     }
 
     for (let i = 0; i < newItems.length; i++) {
-      if (itemSignals[i]!() !== newItems[i]) {
-        itemSignals[i]!(newItems[i]);
+      if (itemSignals[i]!.get() !== newItems[i]) {
+        itemSignals[i]!.set(newItems[i]);
       }
     }
   };
@@ -190,12 +192,12 @@ export function Index<T>(props: {
     createEffect(update);
   }
 
-  return fragment as unknown as JSXElement;
+  return fragment;
 }
 
 export function Show<T>(props: {
   when: T,
-  children: JSXElement | ((data: T) => JSXElement),
+  children: JSXElement | ((data: Truthy<T>) => JSXElement),
   fallback?: JSXElement | (() => JSXElement)
 }): JSXElement {
   const fragment = createUniversalFragment();
@@ -208,7 +210,7 @@ export function Show<T>(props: {
   let currentNodes: (Node | SSRNode)[] = [];
 
   const update = () => {
-    const when = typeof props.when === 'function' ? props.when() : (isSignal(props.when) ? props.when() : props.when);
+    const when = typeof props.when === 'function' ? props.when() : (isAccessor(props.when) ? (props.when as () => any)() : props.when);
     const condition = !!when;
     const data = when;
     const parent = isSSR() ? fragment : ((startMarker as Comment).parentNode || fragment);
@@ -239,7 +241,7 @@ export function Show<T>(props: {
     createEffect(update);
   }
 
-  return fragment as unknown as JSXElement;
+  return fragment;
 }
 
 export function ErrorBoundary(props: {
@@ -248,7 +250,7 @@ export function ErrorBoundary(props: {
   children: JSXElement
 }): JSXElement {
   const fragment = createUniversalFragment();
-  const errorSignal = createSignal<unknown | null>(null);
+  const [errorSignal, setErrorSignal] = createSignal<unknown | null>(null);
   const marker = createUniversalComment('ErrorBoundary');
 
   (fragment as any).appendChild(marker);
@@ -260,7 +262,7 @@ export function ErrorBoundary(props: {
       (fragment as DocumentFragment).appendChild(props.children);
     }
   } catch (error) {
-    errorSignal(error);
+    setErrorSignal(error);
     if (props.onError) {
       props.onError(error);
     }
@@ -290,5 +292,5 @@ export function ErrorBoundary(props: {
     });
   }
 
-  return fragment as unknown as JSXElement;
+  return fragment;
 }

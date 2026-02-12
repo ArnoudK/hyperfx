@@ -1,16 +1,37 @@
-import { isSignal, createComputed as signal_createComputed } from "../../reactive/signal";
-import type { Signal } from "../../reactive/signal";
+import { getAccessor, createComputed, createEffect } from "../../reactive/signal";
+import type { Accessor } from "../../reactive/signal";
 import { addToBatch } from "./batching";
 import type { NormalizedValue } from "./types";
 
 // Track signal subscriptions for each element for cleanup
-// Use globalThis to avoid multiple instances in mono-repos
-const elementSubscriptions = (globalThis as { __HYPERFX_ELEMENT_SUBSCRIPTIONS__?: WeakMap<Element, Set<() => void>> }).__HYPERFX_ELEMENT_SUBSCRIPTIONS__ ||
-  ((globalThis as { __HYPERFX_ELEMENT_SUBSCRIPTIONS__?: WeakMap<Element, Set<() => void>> }).__HYPERFX_ELEMENT_SUBSCRIPTIONS__ = new WeakMap<Element, Set<() => void>>());
+// Use module-scoped singletons (do not rely on globalThis)
+const elementSubscriptions = new WeakMap<Element, Set<() => void>>();
+type Destroyable = { destroy?: () => void };
 
-// Track computed signals for each element so we can destroy them
-const elementComputedSignals = (globalThis as { __HYPERFX_ELEMENT_COMPUTED_SIGNALS__?: WeakMap<Element, Set<{ destroy: () => void }>> }).__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ ||
-  ((globalThis as { __HYPERFX_ELEMENT_COMPUTED_SIGNALS__?: WeakMap<Element, Set<{ destroy: () => void }>> }).__HYPERFX_ELEMENT_COMPUTED_SIGNALS__ = new WeakMap<Element, Set<{ destroy: () => void }>>());
+const elementSignals = new WeakMap<Element, Set<Destroyable>>();
+const elementSubscriptionSet = new Set<Element>();
+
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+function ensureCleanupInterval(): void {
+  if (cleanupInterval || typeof window === 'undefined' || typeof Element === 'undefined') {
+    return;
+  }
+
+  cleanupInterval = setInterval(() => {
+    const elementsToCheck = Array.from(elementSubscriptionSet);
+    for (const element of elementsToCheck) {
+      if (!element.isConnected) {
+        cleanupElementSubscriptions(element);
+      }
+    }
+
+    if (elementSubscriptionSet.size === 0 && cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
+  }, 10);
+}
 
 // Helper to handle reactive values (signals or functions)
 export function handleReactiveValue(
@@ -20,39 +41,43 @@ export function handleReactiveValue(
   setter: (el: HTMLElement, val: unknown) => void
 ): void {
   try {
-    if (isSignal(value)) {
+    const acc = getAccessor(value);
+    // console.debug(`[reactive] handleReactiveValue key=${key} has acc=${!!acc}`);
+    if (acc) {
       // Check if this is a computed signal (has destroy method)
-      const isComputed = typeof (value as { destroy?: () => void }).destroy === 'function';
+      const isComputed = typeof acc.destroy === 'function';
       if (isComputed) {
-        addElementComputedSignal(element, value as unknown as { destroy: () => void });
+        addElementSignal(element, acc);
       }
 
-      const update = () => {
+      // Use an effect to track dependencies and update the element when value changes
+      const stop = createEffect(() => {
         try {
-          setter(element, value());
+          const val = acc();
+          setter(element, val);
         } catch (error) {
           console.error(`Error updating ${key}:`, error);
-          setter(element, ''); // Clear on error
+          try { setter(element, ''); } catch {}
         }
-      };
-      const unsubscribe = value.subscribe(() => addToBatch(update));
-      addElementSubscription(element, unsubscribe);
-      update(); // initial
+      });
+      addElementSubscription(element, stop);
+      // initial update handled by createEffect automatically
     } else if (typeof value === 'function') {
-      const computed = signal_createComputed(value as () => unknown);
+      const computed = createComputed(value as () => unknown);
 
       // Track the computed signal for cleanup
-      addElementComputedSignal(element, computed);
+      addElementSignal(element, computed);
 
       const update = () => {
         try {
-          setter(element, computed());
+          const val = computed();
+          setter(element, val);
         } catch (error) {
           console.error(`Error updating computed ${key}:`, error);
           setter(element, ''); // Clear on error
         }
       };
-      const unsubscribe = computed.subscribe(() => addToBatch(update));
+      const unsubscribe = computed.subscribe ? computed.subscribe(() => addToBatch(update)) : () => {};
       addElementSubscription(element, unsubscribe);
       update(); // initial
     } else {
@@ -70,13 +95,12 @@ if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {
     try {
       mutations.forEach((mutation) => {
         mutation.removedNodes.forEach((node) => {
-          if (typeof Element !== 'undefined' && node instanceof Element && (elementSubscriptions.has(node) || elementComputedSignals.has(node))) {
-            cleanupElementSubscriptions(node);
-          }
-          // Also check child nodes recursively
           if (typeof Element !== 'undefined' && node instanceof Element) {
+            if (elementSubscriptions.has(node) || elementSignals.has(node)) {
+              cleanupElementSubscriptions(node);
+            }
             node.querySelectorAll('*').forEach((child) => {
-              if (elementSubscriptions.has(child) || elementComputedSignals.has(child)) {
+              if (elementSubscriptions.has(child) || elementSignals.has(child)) {
                 cleanupElementSubscriptions(child);
               }
             });
@@ -84,12 +108,34 @@ if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {
         });
       });
     } catch (error) {
-      // Ignore errors during test teardown when Element may be undefined
       if (typeof Element === 'undefined') return;
       console.error('Error in mutation observer:', error);
     }
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+
+  const observeTarget = () => {
+    if (typeof document === 'undefined') return;
+    if (document.body) {
+      observer.observe(document.body, { childList: true, subtree: true });
+      return;
+    }
+
+    const retry = () => {
+      if (!document.body) {
+        setTimeout(retry, 0);
+        return;
+      }
+      observer.observe(document.body, { childList: true, subtree: true });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', retry, { once: true });
+    } else {
+      setTimeout(retry, 0);
+    }
+  };
+
+  observeTarget();
 }
 
 /**
@@ -102,18 +148,24 @@ export function addElementSubscription(element: Element, unsubscribe: () => void
   } else {
     subscriptions.add(unsubscribe);
   }
+
+  elementSubscriptionSet.add(element);
+  ensureCleanupInterval();
 }
 
 /**
  * Track a computed signal for an element so it can be destroyed on cleanup
  */
-export function addElementComputedSignal(element: Element, computed: { destroy: () => void }): void {
-  const computedSignals = elementComputedSignals.get(element);
-  if (!computedSignals) {
-    elementComputedSignals.set(element, new Set([computed]));
+export function addElementSignal<T>(element: Element, computed: Accessor<T> | { destroy?: () => void }): void {
+  const Signals = elementSignals.get(element);
+  if (!Signals) {
+    elementSignals.set(element, new Set([computed]));
   } else {
-    computedSignals.add(computed);
+    Signals.add(computed);
   }
+
+  elementSubscriptionSet.add(element);
+  ensureCleanupInterval();
 }
 
 /**
@@ -135,30 +187,35 @@ export function cleanupElementSubscriptions(element: Element): void {
   }
 
   // Clean up computed signals
-  const computedSignals = elementComputedSignals.get(element);
-  if (computedSignals) {
-    computedSignals.forEach((computed: { destroy: () => void }) => {
+  const Signals = elementSignals.get(element);
+  if (Signals) {
+    Signals.forEach((computed: { destroy?: () => void }) => {
       try {
-        computed.destroy();
+        if (typeof computed.destroy === 'function') {
+          computed.destroy();
+        }
       } catch (error) {
         console.error('Error destroying computed signal:', error);
       }
     });
-    computedSignals.clear();
-    elementComputedSignals.delete(element);
+    Signals.clear();
+    elementSignals.delete(element);
   }
+
+  elementSubscriptionSet.delete(element);
 }
 
 // Normalize reactive values (utility function)
-export function normalizeValue<T>(value: T | Signal<T> | (() => T)): NormalizedValue<T> {
-  // Handle signals
-  if (isSignal(value)) {
+export function normalizeValue<T>(value: T | Accessor<T> | (() => T)): NormalizedValue<T> {
+  // Handle signals (accessor or tuple)
+  const acc = getAccessor(value);
+  if (acc) {
     return {
       isReactive: true,
       isFunction: false,
       getValue: () => {
         try {
-          return (value as Signal<T>)();
+          return acc() as T;
         } catch (error) {
           console.error('Error accessing signal value:', error);
           return undefined as T;
@@ -166,7 +223,7 @@ export function normalizeValue<T>(value: T | Signal<T> | (() => T)): NormalizedV
       },
       subscribe: (callback: (v: T) => void) => {
         try {
-          return (value as Signal<T>).subscribe(callback);
+          return acc.subscribe ? acc.subscribe((v: unknown) => callback(v as T)) : () => {};
         } catch (error) {
           console.error('Error subscribing to signal:', error);
           return () => { };

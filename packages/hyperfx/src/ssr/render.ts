@@ -1,5 +1,5 @@
 // Server-Side Rendering (SSR) module for HyperFX - Pure String Implementation
-import { getRegisteredSignals } from "../reactive/signal";
+import { getRegisteredSignals, getSetter, getAccessor } from "../reactive/signal";
 
 import {
   isSSRMode,
@@ -113,12 +113,11 @@ export function renderAttributes(props: Record<string, unknown> | null | undefin
   if (!props) return result;
   for (const [key, value] of Object.entries(props)) {
     if (key === 'children' || key === 'key' || key === 'ref' || key.startsWith('on')) continue;
-    const attrName = key === 'className' ? 'class' : key;
-    if (BOOLEAN_ATTRIBUTES.has(attrName)) {
-      if (value) result += ` ${attrName}`;
+    if (BOOLEAN_ATTRIBUTES.has(key)) {
+      if (value) result += ` ${key}`;
       continue;
     }
-    if (attrName === 'style' && typeof value === 'object' && value !== null) {
+    if (key === 'style' && typeof value === 'object' && value !== null) {
       const styleStr = Object.entries(value as Record<string, unknown>)
         .map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${v}`)
         .join('; ');
@@ -126,7 +125,7 @@ export function renderAttributes(props: Record<string, unknown> | null | undefin
       continue;
     }
     if (value != null && value !== false) {
-      result += ` ${attrName}="${escapeHtml(String(value))}"`;
+      result += ` ${key}="${escapeHtml(String(value))}"`;
     }
   }
   return result;
@@ -152,7 +151,9 @@ export function renderToString(
     if (ssrHydration && initialState?.signals) {
       const registeredSignals = getRegisteredSignals();
       for (const [key, value] of Object.entries(initialState.signals)) {
-        registeredSignals.get(key)?.set(value);
+        const sig = registeredSignals.get(key);
+        const setter = sig ? getSetter(sig) : undefined;
+        if (setter) setter(value);
       }
     }
 
@@ -190,7 +191,8 @@ export function renderToString(
     if (ssrHydration) {
       const registeredSignals = getRegisteredSignals();
       for (const [key, signal] of registeredSignals) {
-        state.signals[key] = signal.peek();
+        const acc = getAccessor(signal);
+        state.signals[key] = acc ? acc() : undefined;
       }
     }
 
@@ -206,7 +208,7 @@ export function renderToString(
 /**
  * Create an SSR result for a tag
  */
-export function ssrElement(tag: string, props: Record<string, unknown>, children: string): SSRResult {
+export function ssrElement(tag: string, props: Record<string, unknown>, children: string): SSRNode {
   const t = tag.toLowerCase();
   let html = `<${t}`;
 
