@@ -2,7 +2,8 @@
  * Router factory - creates a typesafe router with signals and components
  */
 
-import { createSignal, createEffect, createMemo, ReactiveSignal, JSXElement } from "hyperfx";
+import {  createEffect, createComputed, JSXElement, Signal, createSignal } from "hyperfx";
+import { markerSlot } from "hyperfx/runtime-dom";
 import type { RouteDefinition, RouteMatch } from "./createRoute";
 import { matchFirst } from "./createRoute";
 import { parseUrl, parseSearchParams } from "./path";
@@ -13,9 +14,9 @@ export type NavigateOptions = {
 };
 
 interface RouterState<R extends RouteDefinition<any>> {
-  currentPath: ReactiveSignal<string>;
-  currentSearch: ReactiveSignal<Record<string, string | string[]>>;
-  currentMatch: ReactiveSignal<RouteMatch<R> | null>;
+  currentPath: Signal<string>;
+  currentSearch: Signal<Record<string, string | string[]>>;
+  currentMatch: Signal<RouteMatch<R> | null>;
   navigate: (path: string, options?: NavigateOptions) => void;
   routes: R[];
 }
@@ -41,25 +42,31 @@ function isBrowser() {
 }
 
 export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
-  const currentPath = createSignal<string>("/");
-  const currentSearch = createSignal<Record<string, string | string[]>>({});
-  const currentMatch = createMemo(() => matchFirst(routes, currentPath(), currentSearch()));
+  const [currentPath, setCurrentPath] = createSignal<string>("/");
+  const [currentSearch, setCurrentSearch] = createSignal<Record<string, string | string[]>>({});
+  const currentMatch = createComputed(() => {
+    const path = currentPath();
+    const search = currentSearch();
+    console.log("Matching route for path:", path, "with search:", search);
+    return matchFirst(routes, path, search);
+  });
 
   const navigate = (path: string, options?: NavigateOptions) => {
     const replace = options?.replace ?? false;
     const scroll = options?.scroll ?? true;
 
     const { path: newPath, search } = parseUrl(path);
-    currentPath(newPath);
-    currentSearch(search);
+    setCurrentPath(newPath);
+    setCurrentSearch(search);
 
     if (isBrowser()) {
       if (replace) {
         window.history.replaceState({}, "", path);
       } else {
         window.history.pushState({}, "", path);
-        window.dispatchEvent(new CustomEvent("hfx:navigate"));
       }
+
+      window.dispatchEvent(new CustomEvent("hfx:navigate"));
 
       if (scroll) {
         window.scrollTo(0, 0);
@@ -68,23 +75,23 @@ export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
   };
 
   const Link = function Link(props: LinkProps<R>) {
-    const paramKeys = createMemo(() => props.to.path.match(/:(\w+)/g) || []);
-    const path = createMemo(() =>
+    const paramKeys = createComputed(() => props.to.path.match(/:(\w+)/g) || []);
+    const path = createComputed<string>(() =>
       paramKeys().reduce((result: string, match: string) => {
         const key = match.slice(1);
         return result.replace(match, String(props.params?.[key] ?? ""));
       }, props.to.path),
     );
 
-    const searchEntries = createMemo(() =>
+    const searchEntries = createComputed(() =>
       Object.entries(props.search ?? {}).filter(([, v]) => v !== undefined && v !== null),
     );
-    const searchString = createMemo(() =>
+    const searchString = createComputed(() =>
       searchEntries()
         .map(([k, v]) => `${k}=${v}`)
         .join("&"),
     );
-    const fullPath = createMemo(() => (searchString() ? `${path()}?${searchString()}` : path()));
+    const fullPath = createComputed(() => (searchString() ? `${path()}?${searchString()}` : path()));
 
     return (
       <a
@@ -101,47 +108,57 @@ export function createRouter<R extends RouteDefinition<any>>(routes: R[]) {
   };
 
   function Router(props: Omit<RouterProps<R>, "routes">) {
-    const initialPath = props.initialPath ?? "/";
-    const initialSearch = props.initialSearch ?? {};
-    const notFound = props.notFound;
-    const onRouteChange = props.onRouteChange;
+    const initialPath = props.initialPath ?? (isBrowser() ? window.location.pathname : "/");
+    const initialSearch = props.initialSearch ?? (isBrowser()
+      ? parseSearchParams(window.location.search)
+      : {});
 
-    currentPath(initialPath);
-    currentSearch(initialSearch);
-
-    createEffect(() => {
-      const match = currentMatch();
-      onRouteChange?.(match ?? null);
-    });
+    setCurrentPath(initialPath);
+    setCurrentSearch(initialSearch);
 
     createEffect(() => {
       if (isBrowser()) {
         const handleNavigate = () => {
           const pathname = window.location.pathname;
           const searchString = window.location.search;
-          currentPath(pathname);
-          currentSearch(parseSearchParams(searchString));
+          setCurrentPath(pathname);
+          setCurrentSearch(parseSearchParams(searchString));
         };
 
-        window.addEventListener("navigate", handleNavigate);
+        window.addEventListener("popstate", handleNavigate);
         window.addEventListener("hfx:navigate", handleNavigate);
         return () => {
           window.removeEventListener("hfx:navigate", handleNavigate);
-          window.removeEventListener("navigate", handleNavigate);
+          window.removeEventListener("popstate", handleNavigate);
         };
       }
     });
 
-    return createMemo(() => {
+    createEffect(() => {
+      if (props.onRouteChange) {
+        props.onRouteChange(currentMatch());
+      }
+    });
+
+    const renderRoute = () => {
       const match = currentMatch();
-      const path = currentPath();
       if (match) {
         return match.route.view(match.params);
       }
 
-      if (notFound) return notFound({ path });
+      if (props.notFound) {
+        return props.notFound({ path: currentPath() });
+      }
+
       return null;
-    });
+    };
+
+    if (typeof document === "undefined") {
+      return renderRoute();
+    }
+
+    return markerSlot(renderRoute, "hfx:router");
+      
   }
 
   return {

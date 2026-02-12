@@ -1,1 +1,0 @@
-{"version":3,"file":"use_color_helper.js","sourceRoot":"","sources":["../../src/tools/use_color_helper.ts"],"names":[],"mappings":"AAAA,MAAM,CAAC,MAAM,aAAa,GAAG;IAC3B,QAAQ;IACR,OAAO;IACP,MAAM;IACN,OAAO;IACP,YAAY;CACJ,CAAC;AAIX,MAAM,UAAU,cAAc,CAC5B,eAAuB,QAAQ,EAC/B,kBAA2B,EAC3B,UAA6B,aAAa;IAE1C,IAAI,YAAY,KAAK,QAAQ,EAAE,CAAC;IAChC,CAAC;AACH,CAAC"}

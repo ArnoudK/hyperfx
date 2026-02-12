@@ -5,9 +5,9 @@ function testFineGrainedReactivity() {
   console.log('🧪 Testing Fine-Grained Reactivity in HyperFX');
 
   // Create multiple signals
-  const signal1 = createSignal('Signal 1: 0');
-  const signal2 = createSignal('Signal 2: 0');
-  const signal3 = createSignal('Signal 3: 0');
+  const [signal1, setSignal1] = createSignal('Signal 1: 0');
+  const [signal2, setSignal2] = createSignal('Signal 2: 0');
+  const [signal3, setSignal3] = createSignal('Signal 3: 0');
 
   // Create DOM elements
   const div1 = document.createElement('div');
@@ -45,15 +45,15 @@ function testFineGrainedReactivity() {
 
   // Test: Update signal1
   console.log('\n--- Testing signal1 update ---');
-  signal1('Signal 1: 42');
+  setSignal1('Signal 1: 42');
 
   // Test: Update signal2
   console.log('\n--- Testing signal2 update ---');
-  signal2('Signal 2: 1337');
+  setSignal2('Signal 2: 1337');
 
   // Test: Update signal3
   console.log('\n--- Testing signal3 update ---');
-  signal3('Signal 3: 999');
+  setSignal3('Signal 3: 999');
 
   // Verify other signals didn't trigger updates
   console.log('\n✅ Fine-grained reactivity verified!');

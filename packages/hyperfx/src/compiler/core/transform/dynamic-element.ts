@@ -71,7 +71,7 @@ export function generateDynamicCode(
     }
 
     const code = options.codeFromNode(dynamic.expression, 'reactive');
-    lines.push(`  _$effect(() => _$setProp(${elementVar}, "${attrName}", ${code}));`);
+    lines.push(`  _$bindProp(${elementVar}, "${attrName}", ${code});`);
   }
 
   if (childDynamics.length > 0) {
@@ -111,7 +111,7 @@ export function generateDynamicCode(
         lines.push(`  const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerId}');`);
         lines.push(`  if (_marker${i}$) {`);
         lines.push(`    _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
-        lines.push(`    _marker${i}$.remove();`);
+        // Don't remove marker for components - they might return signals and need it for reactivity
         lines.push(`  }`);
       }
     }
@@ -173,7 +173,7 @@ export function generateElementCodeInline(
       continue;
     }
 
-    if (attrName === 'class' || attrName === 'className') {
+    if (attrName === 'class') {
       const constantValue = options.tryEvaluateConstant(dynamic.expression);
       if (constantValue !== null) {
         continue;
@@ -181,7 +181,7 @@ export function generateElementCodeInline(
     }
 
     const code = options.codeFromNode(dynamic.expression, 'reactive');
-    lines.push(`_$effect(() => _$setProp(${elementVar}, "${attrName}", ${code}));`);
+    lines.push(`_$bindProp(${elementVar}, "${attrName}", ${code});`);
   }
 
   if (childDynamics.length > 0) {
@@ -221,7 +221,7 @@ export function generateElementCodeInline(
         lines.push(`const _marker${i}$ = _$findMarker(_el$, 'hfx:dyn:${dynamic.markerId}');`);
         lines.push(`if (_marker${i}$) {`);
         lines.push(`  _$insert(_marker${i}$.parentNode, ${code}, _marker${i}$);`);
-        lines.push(`  _marker${i}$.remove();`);
+        // Don't remove marker for components - they might return signals and need it for reactivity
         lines.push(`}`);
       }
     }

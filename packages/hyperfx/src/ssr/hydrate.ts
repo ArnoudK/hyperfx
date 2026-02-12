@@ -1,7 +1,7 @@
 // Client-side hydration for SSR-rendered content - Structural Matching
 import { JSXElement, startHydration, endHydration } from "../jsx/jsx-runtime";
 import type { HydrationData } from "./render";
-import { getRegisteredSignals } from "../reactive/signal";
+import { getRegisteredSignals, getSetter } from "../reactive/signal";
 
 /**
  * Read hydration data from the window global
@@ -186,9 +186,10 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
       const signal = registeredSignals.get(key);
       if (signal) {
         try {
-          signal.set(value);
+          const setter = getSetter(signal);
+          setter?.(value);
         } catch (e) {
-          console.warn(`[HyperFX] Failed to restore signal "${key}":`, e);
+          console.warn('[Hydration] Failed to restore signal', key, e);
         }
       }
     }

@@ -25,10 +25,10 @@ const router  = createRouter([
 export const Link = router.Link;
 
 
-function NotFound({ path }: { path: string }) {
+function NotFound(props: { path: string }) {
   return <div class="p-4 bg-gray-700 text-white rounded-md m-4 text-center">
     <h2 class="text-2xl font-bold mb-4">404 - Not Found</h2>
-    <p>The path "{path}" does not exist.</p>
+    <p>The path "{props?.path}" does not exist.</p>
   </div>;
 }
 

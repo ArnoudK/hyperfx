@@ -12,7 +12,7 @@ describe('For Component Reconciliation', () => {
     });
 
     it('should reuse DOM nodes when items are reordered', () => {
-        const list = createSignal([1, 2, 3]);
+        const [list, setList] = createSignal([1, 2, 3]);
         let renderCount = 0;
 
         const Component = () => {
@@ -35,7 +35,7 @@ describe('For Component Reconciliation', () => {
         expect(renderCount).toBe(3);
 
         // Reorder list
-        list([3, 1, 2]);
+        setList([3, 1, 2]);
 
         const newNodes = Array.from(container.childNodes);
         expect(newNodes.length).toBe(5);

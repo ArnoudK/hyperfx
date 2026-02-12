@@ -8,5 +8,26 @@ export * from './elements.js';
 export * from './children.js';
 export * from './constants.js';
 
-// Default to the client-side factory - curated exports to avoid conflicts (like Fragment)
-export { jsx, jsxs, jsxDEV, createJSXElement, createElement } from './factory.js';
+function compilerOnlyError(): never {
+  throw new Error('HyperFX requires compilation. The runtime JSX factory is not supported.');
+}
+
+export function jsx(): never {
+  return compilerOnlyError();
+}
+
+export function jsxs(): never {
+  return compilerOnlyError();
+}
+
+export function jsxDEV(): never {
+  return compilerOnlyError();
+}
+
+export function createJSXElement(): never {
+  return compilerOnlyError();
+}
+
+export function createElement(): never {
+  return compilerOnlyError();
+}

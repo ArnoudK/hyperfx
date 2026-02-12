@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'happy-dom',
 
     globals: true,
+    exclude: ['dist/**'],
   },
   esbuild: {
     jsx: 'preserve',

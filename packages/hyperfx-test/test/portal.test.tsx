@@ -75,7 +75,7 @@ describe('Portal Component', () => {
 
   describe('dynamic mount target', () => {
     it('should move content when mount target changes', async () => {
-      const mountSignal = createSignal<Element>(portalTarget);
+      const [mountSignal, setMountSignal] = createSignal<Element>(portalTarget);
       const child = document.createElement('div');
       child.id = 'dynamic-portal-child';
       
@@ -95,7 +95,7 @@ describe('Portal Component', () => {
       expect(otherTarget.contains(child)).toBe(false);
       
       // Change mount target
-      mountSignal(otherTarget);
+      setMountSignal(otherTarget);
       
       await waitForEffects();
       

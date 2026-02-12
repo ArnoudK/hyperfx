@@ -10,19 +10,19 @@ export const HomeRoute = createRoute('/',
 
 export function HomePage() {
 
-  const thing = createSignal('Thing');
+  const [thing, setThing] = createSignal('Thing');
 
-  const name = createSignal('');
-  const count = createSignal(0);
+  const [name, setName] = createSignal('');
+  const [count, setCount] = createSignal(0);
 
   // Computed greeting that updates when name changes
   const greeting = createComputed(() =>
     `Hello, ${name() || 'Anonymous'}! Welcome to HyperFX.`
   );
 
-  const increment = () => count(count() + 1);
-  const decrement = () => count(count() - 1);
-  const reset = () => count(0);
+  const increment = () => setCount(prev => prev + 1);
+  const decrement = () => setCount(prev => prev - 1);
+  const reset = () => setCount(0);
 
   const counterText = createComputed(() => {
     const c = count();

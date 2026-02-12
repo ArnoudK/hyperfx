@@ -1,5 +1,5 @@
 // Additional JSX Type Utilities
-import { ReactiveSignal } from '../reactive/state';
+import { Accessor } from '../reactive/signal';
 import { JSXChildren, JSXElement, ComponentProps } from './jsx-runtime';
 
 /**
@@ -30,18 +30,18 @@ export type WithKey<T = {}> = T & { key?: string | number };
 /**
  * Utility type to make a prop reactive
  */
-export type Reactive<T> = T | ReactiveSignal<T>;
+export type Reactive<T> = T | Accessor<T>;
 
 /**
  * Utility type for reactive children that can be used in JSX
  */
 export type ReactiveChildren = 
    | JSXChildren
-   | ReactiveSignal<string>
-   | ReactiveSignal<number>
-   | ReactiveSignal<boolean>
-   | ReactiveSignal<JSXElement>
-   | ReactiveSignal<JSXElement[]>;
+   | Accessor<string>
+   | Accessor<number>
+   | Accessor<boolean>
+   | Accessor<JSXElement>
+   | Accessor<JSXElement[]>;
 
 /**
  * Utility type to make all props of an object potentially reactive

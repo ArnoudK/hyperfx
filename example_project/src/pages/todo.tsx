@@ -10,14 +10,14 @@ const filterOptions = ['all', 'active', 'completed'];
 type FilterType = typeof filterOptions[number];
 
 export function TodoPage() {
-  const todos = createSignal<Todo[]>([
+  const [todos, setTodos] = createSignal<Todo[]>([
     { id: 1, text: "Learn HyperFX", completed: false },
     { id: 2, text: "Build a demo app", completed: true },
     { id: 3, text: "Write documentation", completed: false }
   ]);
 
-  const newTodoText = createSignal('');
-  const filterStatus = createSignal<FilterType>('all');
+  const [newTodoText, setNewTodoText] = createSignal('');
+  const [filterStatus, setFilterStatus] = createSignal<FilterType>('all');
 
 
 
@@ -70,27 +70,27 @@ export function TodoPage() {
       completed: false
     };
 
-    todos([...todos(), newTodo]);
-    newTodoText.set(''); // Reactive binding will clear the input
+    setTodos(prev => [...prev, newTodo]);
+    setNewTodoText(''); // Reactive binding will clear the input
   };
 
   const toggleTodo = (id: number) => {
-    todos((todos().map(todo =>
+    setTodos(prev => prev.map(todo =>
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    )));
+    ));
   };
 
   const deleteTodo = (id: number) => {
-    todos((todos().filter(todo => todo.id !== id)));
+    setTodos(prev => prev.filter(todo => todo.id !== id));
   };
 
   const clearCompleted = () => {
-    todos((todos().filter(todo => !todo.completed)));
+    setTodos(prev => prev.filter(todo => !todo.completed));
   };
 
   const toggleAll = () => {
     const hasIncomplete = todos().some(todo => !todo.completed);
-    todos((todos().map(todo => ({ ...todo, completed: hasIncomplete }))));
+    setTodos(prev => prev.map(todo => ({ ...todo, completed: hasIncomplete })));
   };
 
   return (
@@ -132,8 +132,8 @@ export function TodoPage() {
             type="text"
             class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-green-500"
             placeholder="What needs to be done?"
-            value={newTodoText}
-            oninput={(e) => newTodoText.set((e.target as HTMLInputElement).value)}
+            value={newTodoText()}
+            oninput={(e) => setNewTodoText((e.target as HTMLInputElement).value)}
             onkeypress={(e) => {
               if (e.key === 'Enter') {
                 addTodo();

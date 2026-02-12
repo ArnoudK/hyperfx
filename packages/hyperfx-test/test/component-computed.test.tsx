@@ -1,4 +1,4 @@
-import { createSignal, createMemo } from 'hyperfx';
+import { createSignal, createComputed } from 'hyperfx';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('Component returning computed', () => {
@@ -15,10 +15,10 @@ describe('Component returning computed', () => {
   });
 
   it('should render component that returns a memo switching between elements', () => {
-    const thing = createSignal(false);
+    const [thing, setThing] = createSignal(false);
     
     function MyComponent() {
-      return createMemo(() => {
+      return createComputed(() => {
         const b = thing();
         if (b) {
           return <span>Span content</span>;
@@ -44,7 +44,7 @@ describe('Component returning computed', () => {
     expect(container.querySelector('div.wrapper span')).toBeNull();
 
     // Toggle to true - should render span
-    thing(true);
+    setThing(true);
     
 
     expect(container.querySelector('div.wrapper span')).toBeTruthy();
@@ -52,7 +52,7 @@ describe('Component returning computed', () => {
     expect(container.querySelector('div.wrapper div:not(.wrapper)')).toBeNull();
 
     // Toggle back to false - should render div again
-    thing(false);
+    setThing(false);
     
     expect(container.querySelector('div.wrapper div:not(.wrapper)')).toBeTruthy();
     expect(container.querySelector('div.wrapper div:not(.wrapper)')?.textContent).toBe('Div content');
@@ -60,10 +60,10 @@ describe('Component returning computed', () => {
   });
 
   it('should handle component returning memo with text nodes', () => {
-    const count = createSignal(0);
+    const [count, setCount] = createSignal(0);
     
     function Counter() {
-      return createMemo(() => {
+      return createComputed(() => {
         const c = count();
         return <div class="counter">Count: {c}</div>;
       });
@@ -82,23 +82,22 @@ describe('Component returning computed', () => {
     expect(counterDiv?.textContent?.trim()).toBe('Count: 0');
 
     // Update count
-    count(5);
+    setCount(5);
 
     expect(container.querySelector('.counter')?.textContent?.trim()).toBe('Count: 5');
   });
 
-  // TODO: Fix reactive attributes inside memo-returned JSX
-  it.skip('should handle nested components returning memos', () => {
-    const show = createSignal(true);
+  it('should handle nested components returning memos', () => {
+    const [show, setShow] = createSignal(true);
     
     function Inner() {
-      return createMemo(() => {
+      return createComputed(() => {
         return <span class="inner">Inner content</span>;
       });
     }
     
     function Outer() {
-      return createMemo(() => {
+      return createComputed(() => {
         if (show()) {
           return (
             <div class="outer">
@@ -125,20 +124,19 @@ describe('Component returning computed', () => {
     expect(container.querySelector('.inner')?.textContent).toBe('Inner content');
 
     // Toggle to false
-    show(false);
+    setShow(false);
     
     expect(container.querySelector('.outer-empty')).toBeTruthy();
     expect(container.querySelector('.outer-empty')?.textContent).toBe('Empty');
     expect(container.querySelector('.inner')).toBeNull();
   });
 
-  // TODO: Fix reactive attributes inside memo-returned JSX  
-  it.skip('should handle component returning memo with dynamic attributes', () => {
-    const isActive = createSignal(false);
-    const text = createSignal('initial');
+  it('should handle component returning memo with dynamic attributes', () => {
+    const [isActive, setIsActive] = createSignal(false);
+    const [text, setText] = createSignal('initial');
     
     function DynamicComponent() {
-      const memo = createMemo(() => {
+      const memo = createComputed(() => {
         const active = isActive();
         const textValue = text();
         const element = (
@@ -172,8 +170,8 @@ describe('Component returning computed', () => {
 
     // Update signals
     
-    isActive(true);
-    text('updated');
+    setIsActive(true);
+    setText('updated');
    
     
     const updatedDiv = container.querySelector('div:not(.container)');
@@ -183,10 +181,10 @@ describe('Component returning computed', () => {
   });
 
   it('should handle component returning memo that can be null', () => {
-    const show = createSignal(true);
+    const [show, setShow] = createSignal(true);
     
     function OptionalComponent() {
-      return createMemo(() => {
+      return createComputed(() => {
         if (show()) {
           return <div class="visible">Visible</div>;
         }
@@ -206,13 +204,13 @@ describe('Component returning computed', () => {
     expect(container.querySelector('.visible')?.textContent).toBe('Visible');
 
     // Hide component
-    show(false);
+    setShow(false);
     
     expect(container.querySelector('.visible')).toBeNull();
     expect(container.querySelector('.wrapper')?.children.length).toBe(0);
 
     // Show again
-    show(true);
+    setShow(true);
     
     expect(container.querySelector('.visible')).toBeTruthy();
     expect(container.querySelector('.visible')?.textContent).toBe('Visible');

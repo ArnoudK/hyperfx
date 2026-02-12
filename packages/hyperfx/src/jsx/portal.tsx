@@ -127,5 +127,5 @@ export function Portal(props: PortalProps): JSXElement {
   });
 
   // Return empty fragment (children are portaled elsewhere)
-  return fragment as unknown as JSXElement;
+  return fragment;
 }

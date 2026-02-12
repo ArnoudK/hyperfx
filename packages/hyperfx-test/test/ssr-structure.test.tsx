@@ -1,8 +1,6 @@
 // Test SSR structural output without IDs
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderToString, clearSSRState, setSSRMode } from 'hyperfx';
-// Import explicitly from the server runtime for testing string output
-import { createElement } from 'hyperfx/jsx-server';
 
 describe('SSR structural improvements', () => {
   beforeEach(() => {
@@ -12,7 +10,7 @@ describe('SSR structural improvements', () => {
 
   it('should generate valid HTML without IDs', () => {
     // Basic test
-    const { html } = renderToString(() => createElement('div', null));
+    const { html } = renderToString(() => <div />);
     expect(html).toContain('<div></div>');
     expect(html).not.toContain('data-hfxh');
   });
@@ -38,6 +36,8 @@ describe('SSR structural improvements', () => {
       );
     }
     const { html } = renderToString(() => <Parent />);
-    expect(normalize(html)).toContain(normalize('<div><span>Child</span></div>'));
+    // Markers are kept for potential hydration
+    expect(normalize(html)).toContain(normalize('<div><span>Child</span>'));
+    expect(normalize(html)).toContain('hfx:dyn');
   });
 });

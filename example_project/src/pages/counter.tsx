@@ -1,4 +1,4 @@
-import { createSignal, createComputed, For } from "hyperfx";
+import { createSignal, createComputed, For, Show } from "hyperfx";
 import { createRoute } from "hyperfx-extra";
 import { Button } from "./components/ui/buttons";
 
@@ -26,13 +26,7 @@ export function CounterPage() {
   });
   const evenOddText = createComputed(() => isEven() ? 'Even' : 'Odd');
 
-  // Reactive step buttons
-  const stepButtons = createComputed(() =>
-    [1, 2, 5, 10, 25, 100].map(value => ({
-      value,
-      isActive: step() === value
-    }))
-  );
+
 
   return <div class="max-w-4xl mx-auto space-y-8">
     <div class="text-center">
@@ -48,7 +42,9 @@ export function CounterPage() {
     <div class="bg-gray-800 p-8 rounded-lg shadow-lg text-center">
       <div class="space-y-6">
         <div class="text-6xl font-bold text-yellow-400">
-          {count}
+          <Show when={()=>count() === 0} fallback={<p>{count()}</p>}>
+            <p class="italic">Zero</p>
+          </Show>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-lg">
@@ -149,19 +145,20 @@ export function CounterPage() {
 
         <div class="space-y-4">
           <div class="grid grid-cols-3 gap-2">
-            <For each={stepButtons}>
-              {({ value, isActive }) => (
-                <button
+            <For each={[1, 2, 5, 10, 25, 100]}>
+              {(val ) => {
+               const isActive = step() === val;
+               return <button
                   type="button"
-                  onclick={() => step(value)}
+                  onclick={() => step(val)}
                   class={`px-3 py-2 rounded-md transition-colors ${isActive
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                     }`}
                 >
-                  {value}
+                  {val}
                 </button>
-              )}
+              }}
             </For>
           </div>
 
@@ -173,7 +170,7 @@ export function CounterPage() {
               id="step-input"
               type="number"
               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={step().toString()}
+              value={step()}
               oninput={(e) => {
                 const value = parseInt((e.target as HTMLInputElement).value) || 1;
                 step(Math.max(1, value));

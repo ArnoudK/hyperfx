@@ -1,5 +1,5 @@
 
-import { createComputed, createSignal, For, JSXChild } from 'hyperfx';
+import { createComputed, createSignal, JSXChild } from 'hyperfx';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 
@@ -36,7 +36,7 @@ describe('Direct child primitive', () => {
     });
 
     it('should update primitive child when signal changes', () => {
-        const text = createSignal('Initial Text');
+        const [text, setText] = createSignal('Initial Text');
 
         const element = (
             <ComponentWithPrimitiveChild>
@@ -50,12 +50,12 @@ describe('Direct child primitive', () => {
         expect(wrapper?.textContent.trim()).toBe('Initial Text');
 
         // Update signal
-        text('Updated Text');
+        setText('Updated Text');
 
         expect(wrapper?.textContent.trim()).toBe('Updated Text');
     });
     it('should handle numeric primitive child', () => {
-        const numberSignal = createSignal(42);
+        const [numberSignal, setNumberSignal] = createSignal(42);
 
         const element = (
             <ComponentWithPrimitiveChild>
@@ -69,14 +69,14 @@ describe('Direct child primitive', () => {
         expect(wrapper?.textContent.trim()).toBe('42');
 
         // Update signal
-        numberSignal(100);
+        setNumberSignal(100);
 
         expect(wrapper?.textContent.trim()).toBe('100');
     });
 
     it('should handle nested primitive children', () => {
-        const text1 = createSignal('First');
-        const text2 = createSignal('Second');
+        const [text1, setText1] = createSignal('First');
+        const [text2, setText2] = createSignal('Second');
 
         const element = (
             <ComponentWithPrimitiveChild>
@@ -90,9 +90,38 @@ describe('Direct child primitive', () => {
         expect(wrapper?.textContent.trim()).toBe('First and Second');
 
         // Update signals
-        text1('1st');
-        text2('2nd');
+        setText1('1st');
+        setText2('2nd');
 
         expect(wrapper?.textContent.trim()).toBe('1st and 2nd');
+    });
+
+    it('should update when component returns memo', () => {
+        const [count, setCount] = createSignal(1);
+        const Component = () => {
+            const memo = createComputed(() => count());
+            return <div>{memo}</div>;
+        };
+
+        const element = Component() as HTMLDivElement;
+        container.appendChild(element as Node);
+
+        expect(element.textContent).toBe('1');
+
+        setCount(2);
+        expect(element.textContent).toBe('2');
+    });
+
+    it('should update when child returns function value', () => {
+        const [count, setCount] = createSignal(1);
+        const Component = () => <div>{() => count()}</div>;
+
+        const element = Component() as HTMLDivElement;
+        container.appendChild(element as Node);
+
+        expect(element.textContent).toBe('1');
+
+        setCount(2);
+        expect(element.textContent).toBe('2');
     });
 });

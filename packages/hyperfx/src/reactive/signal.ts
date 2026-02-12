@@ -10,7 +10,45 @@ import { setInsideEffect } from './lifecycle.js';
 
 // Global tracking context for automatic dependency detection
 let isTracking = false;
-const accessedSignals = new Set<Signal<any>>();
+
+
+// Stack-based dependency tracking for nested computed/effects
+// Each frame tracks dependencies independently to avoid conflicts
+interface TrackingFrame {
+  dependencies: Set<Accessor<any>>;
+}
+
+const trackingStack: TrackingFrame[] = [];
+
+function pushTrackingFrame(): void {
+  trackingStack.push({ dependencies: new Set() });
+}
+
+function popTrackingFrame(): Set<Accessor<any>> {
+  const frame = trackingStack.pop();
+  return frame?.dependencies ?? new Set();
+}
+
+function getCurrentFrame(): TrackingFrame | undefined {
+  return trackingStack[trackingStack.length - 1];
+}
+
+function trackSignal(signal: Accessor<any>): void {
+  const frame = getCurrentFrame();
+  if (frame) {
+    frame.dependencies.add(signal);
+  }
+}
+
+// Owner stack for nested effect tracking
+// When an effect runs, it becomes the owner for any child effects created within it
+const ownerStack: EffectContext[] = [];
+let currentOwner: EffectContext | null = null;
+
+interface EffectContext {
+  children: Set<() => void>;
+  dispose: () => void;
+}
 
 // Global signal registry for SSR serialization
 const globalSignalRegistry = new Map<string, Signal<any>>();
@@ -47,62 +85,40 @@ export function registerSignal<T>(key: string, signal: Signal<T>): void {
   globalSignalRegistry.set(key, signal);
 }
 
-/**
- * Signal function that can be called to get/set values
- * Compatible with both callable API (signal()) and object API (signal.get())
- */
-export type Signal<T = unknown> = {
-  (): T;
-  (value: T): T;
-  get(): T;
-  set(value: T): T;
-  subscribe(callback: (value: T) => void): () => void;
-  peek(): T;
-  update(updater: (current: T) => T): T;
-  subscriberCount: number;
-  key?: string; // Optional key for SSR serialization
-  [Symbol.iterator](): Iterator<Signal<T>>;
+
+export type Accessor<T> = (() => T) & {
+  subscribe: (cb: (v: T) => void) => () => void;
+  destroy?: () => void;
+  subscriberCount?: number;
 };
 
-/**
- * Extended signal interface for computed signals
- */
-interface ComputedSignal<T> extends Signal<T> {
-  destroy(): void;
-}
+export type Signal<T> = [Accessor<T>, (v: T | ((prev: T) => T)) => () => void];
+
+
 
 class SignalImpl<T = unknown> {
   private _value: T;
   private subscribers: Set<(value: T) => void> = new Set();
-  callableSignal!: Signal<T>;
 
   constructor(initialValue: T) {
     this._value = initialValue;
   }
 
-  /**
-   * Get the current signal value
-   */
   get(): T {
-    // Track access if we're tracking dependencies
-    if (isTracking) {
-      accessedSignals.add(this.callableSignal);
-    }
     return this._value;
   }
 
-  /**
-   * Set a new signal value and notify subscribers
-   */
+  getSubscriberCount(): number {
+    return this.subscribers.size;
+  }
+
   set(newValue: T): T {
     if (Object.is(this._value, newValue)) {
-      return newValue; // No change, skip notification
+      return newValue;
     }
 
     this._value = newValue;
 
-    // Copy subscribers array before iterating to avoid issues
-    // when subscribers modify the subscription list during notification
     const subscribersToNotify = Array.from(this.subscribers);
 
     subscribersToNotify.forEach((callback) => {
@@ -116,156 +132,144 @@ class SignalImpl<T = unknown> {
     return newValue;
   }
 
-  /**
-   * Subscribe to signal changes
-   * Returns an unsubscribe function
-   */
   subscribe(callback: (value: T) => void): () => void {
     this.subscribers.add(callback);
 
-    // Return unsubscribe function
     return () => {
       this.subscribers.delete(callback);
     };
   }
-
-  /**
-   * Get current value and subscribe to changes in one call
-   * Useful for reactive contexts
-   */
-  peek(): T {
-    return this._value;
-  }
-
-  /**
-   * Update value using a function
-   */
-  update(updater: (current: T) => T): T {
-    return this.set(updater(this._value));
-  }
-
-  /**
-   * Get number of active subscribers (for debugging)
-   */
-  get subscriberCount(): number {
-    return this.subscribers.size;
-  }
 }
 
-/**
- * Options for creating a signal
- */
+/** Internal helper to create a raw implementation for computed/registry */
+function createRawSignal<T>(initialValue: T): SignalImpl<T> {
+  return new SignalImpl(initialValue);
+}
+
 export interface SignalOptions {
   key?: string; // Unique key for SSR serialization
 }
 
 /**
- * Create a new signal with callable API and object methods
+ * Create a new signal that returns [get, set]
+ * - `get()` reads the value (and is used for dependency tracking)
+ * - `set(value | updater)` sets the value and returns an `undo()` function that restores the previous value
  */
 export function createSignal<T>(initialValue: T, options?: SignalOptions): Signal<T> {
-  const signal = new SignalImpl(initialValue);
+  // Support SSR registry: if already registered with key, return existing tuple
+  if (options?.key && globalSignalRegistry.has(options.key)) {
+    return globalSignalRegistry.get(options.key)!;
+  }
 
-  // Create callable function with methods
-  const callableSignal = Object.assign(
-    (value?: T) => {
-      if (value !== undefined) {
-        return signal.set(value);
-      }
-      return signal.get();
-    },
-    {
-      get: () => signal.get(),
-      set: (value: T) => signal.set(value),
-      subscribe: (callback: (value: T) => void) => signal.subscribe(callback),
-      peek: () => signal.peek(),
-      update: (updater: (current: T) => T) => signal.update(updater),
-      key: options?.key,
-      [Symbol.iterator]: function* () {
-        yield callableSignal;
-        yield callableSignal;
-      }
-    }
-  ) as unknown as Signal<T>;
+  const impl = createRawSignal(initialValue);
 
-  // Add subscriberCount getter dynamically
-  Object.defineProperty(callableSignal, 'subscriberCount', {
-    get() { return signal.subscriberCount; },
-    enumerable: true,
-    configurable: true
-  });
+  // Build public getter function that participates in tracking
+  const getter = createGetter(impl);
+  const setter = createSetter(impl);
 
-  // Store reference to callable signal
-  signal.callableSignal = callableSignal;
+  const signalTuple: Signal<T> = [getter, setter];
 
-  // Register signal if it has a key and we're in SSR mode
+  // Register tuple for SSR if requested
   if (options?.key) {
     if (globalSignalRegistry.has(options.key)) {
       console.warn(`Signal with key "${options.key}" already exists. Using existing signal.`);
-      return globalSignalRegistry.get(options.key) as Signal<T>;
+    } else {
+      registerSignal(options.key, signalTuple);
     }
-    registerSignal(options.key, callableSignal);
   }
 
-  return callableSignal;
+  // Return the signal tuple
+  return signalTuple;
+}
+
+function createGetter<T>(impl: SignalImpl<T>): Accessor<T> {
+  const fn: Accessor<T> = () => {
+    // Getter behavior
+    if (isTracking) {
+      trackSignal(fn);
+    }
+    return impl.get();
+  };
+
+  // Attach subscribe for convenience
+  fn.subscribe = (cb: (v: T) => void) => {
+    const unsubscribe = impl.subscribe(cb);
+    fn.subscriberCount = impl.getSubscriberCount();
+    return () => {
+      unsubscribe();
+      fn.subscriberCount = impl.getSubscriberCount();
+    };
+  };
+
+  // Expose subscriberCount for tests
+  fn.subscriberCount = impl.getSubscriberCount();
+
+  return fn;
+}
+
+function createSetter<T>(impl: SignalImpl<T>) {
+  return (valueOrUpdater: T | ((prev: T) => T)) => {
+    const prev = impl.get();
+    const newValue = typeof valueOrUpdater === 'function' ? (valueOrUpdater as (prev: T) => T)(prev) : (valueOrUpdater as T);
+    impl.set(newValue);
+    // Return undo function
+    return () => {
+      impl.set(prev);
+    };
+  };
 }
 
 /**
  * Create a computed signal that derives from other signals
  * Automatically tracks dependencies when accessed
  */
-export function createComputed<T>(computeFn: () => T): ComputedSignal<T> {
+export function createComputed<T>(computeFn: () => T): Accessor<T> {
   // Track dependencies during computation
   const oldTracking = isTracking;
   isTracking = true;
-  accessedSignals.clear();
+
+  // Push a new tracking frame for this computed
+  pushTrackingFrame();
 
   let initialValue: T;
+  let deps: Array<Accessor<T>>;
   try {
     initialValue = computeFn();
   } finally {
+    // Get the dependencies from this frame
+    deps = Array.from(popTrackingFrame());
     isTracking = oldTracking;
   }
 
-  // Create the signal with initial value
-  const signal = createSignal(initialValue);
+  // Use a raw impl to store computed value so it's writable internally
+  const impl = createRawSignal(initialValue);
 
-  // Get the dependencies that were accessed
-  const deps = Array.from(accessedSignals) as Signal<any>[];
-
-  // Clear accessed signals for future use
-  accessedSignals.clear();
-
-  // Make the signal read-only
-  const originalSet = signal.set;
-  signal.set = () => {
-    throw new Error('Cannot set computed signal directly. Computed signals are read-only.');
-  };
+  // Create getter to return (read-only)
+  const getter = createGetter(impl);
 
   // Subscribe to dependencies
-  const unsubscribers = deps.map(dep =>
-    dep.subscribe(() => {
-      // Recompute when dependency changes
+  const unsubscribers = deps.map((dep) =>
+    dep.subscribe ? dep.subscribe(() => {
       const newValue = computeFn();
-      originalSet(newValue);
-    })
+      impl.set(newValue);
+    }) : () => {}
   );
 
   // Add destroy method to clean up subscriptions
-  const computedSignal = Object.assign(signal, {
-    destroy: () => {
-      // Unsubscribe from all dependencies
-      unsubscribers.forEach(unsub => unsub());
-      // Clear the unsubscribers array
-      unsubscribers.length = 0;
-    }
-  }) as ComputedSignal<T>;
+  getter.destroy = () => {
+    unsubscribers.forEach(unsub => unsub());
+    unsubscribers.length = 0;
+  };
 
-  return computedSignal;
+  return getter;
 }
+
+
 
 /**
  * Create an effect that runs when signals change
  * Effects automatically track dependencies and re-subscribe when they change
+ * Nested effects are tracked and disposed when parent re-runs
  */
 export function createEffect(effectFn: () => void | (() => void)): () => void {
   let cleanup: (() => void) | void;
@@ -273,6 +277,43 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
   let isDisposed = false;
   let isRunning = false; // Prevent re-entrance during signal notifications
   let pendingRun = false; // Track if we should run after current execution
+
+  // Create effect context for tracking children
+  const context: EffectContext = {
+    children: new Set(),
+    dispose: () => {
+      // This will be set below
+    }
+  };
+
+  // Dispose function that cleans up this effect and all children
+  const dispose = () => {
+    if (isDisposed) return;
+    isDisposed = true;
+    
+    // Dispose all child effects first
+    context.children.forEach(childDispose => {
+      childDispose();
+    });
+    context.children.clear();
+
+    // Unsubscribe from dependencies
+    unsubscribers.forEach((unsub) => {
+      unsub();
+    });
+    unsubscribers = [];
+    
+    // Call cleanup function
+    if (typeof cleanup === 'function') {
+      cleanup();
+    }
+
+    // Remove from parent's children set if we have an owner
+    if (currentOwner) {
+      currentOwner.children.delete(dispose);
+    }
+  };
+  context.dispose = dispose;
 
   // Function to run the effect and update subscriptions
   const runEffect = () => {
@@ -293,6 +334,12 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
     while (iterations < MAX_ITERATIONS) {
       pendingRun = false;
 
+      // Dispose all child effects before re-running
+      context.children.forEach(childDispose => {
+        childDispose();
+      });
+      context.children.clear();
+
       // Unsubscribe from previous dependencies
       unsubscribers.forEach(unsub => unsub());
       unsubscribers = [];
@@ -303,10 +350,15 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
         cleanup = undefined;
       }
 
+      // Push this effect onto the owner stack
+      const previousOwner = currentOwner;
+      currentOwner = context;
+      ownerStack.push(context);
+
       // Track dependencies during effect run
       const oldTracking = isTracking;
       isTracking = true;
-      accessedSignals.clear();
+      pushTrackingFrame();
 
       // Mark that we're inside an effect for onMount detection
       setInsideEffect(true);
@@ -318,17 +370,22 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
         // Reset tracking and effect flag
         isTracking = oldTracking;
         setInsideEffect(false);
+        
+        // Pop this effect from the owner stack
+        ownerStack.pop();
+        currentOwner = previousOwner;
       }
 
       // Subscribe to all accessed signals
-  const dependencies = Array.from(accessedSignals) as Signal<any>[];
-      accessedSignals.clear();
+  const dependencies = Array.from(popTrackingFrame());
 
       unsubscribers = dependencies.map(dep =>
-        dep.subscribe(() => {
+        dep.subscribe ? dep.subscribe(() => {
           // Trigger effect to run (will be deferred if currently running)
           runEffect();
-        })
+        }) : () => {
+          /* no-op if no subscribe support */
+        }
       );
 
       // If no new run was triggered during execution, we're done
@@ -347,28 +404,16 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
     isRunning = false;
   };
 
+  // Register this effect with the current owner (if any)
+  if (currentOwner) {
+    currentOwner.children.add(dispose);
+  }
+
   // Initial run (synchronous)
   runEffect();
 
-  // Return cleanup function that unsubscribes
-  return () => {
-    isDisposed = true;
-    unsubscribers.forEach((unsub) => {
-      unsub();
-    });
-    if (typeof cleanup === 'function') {
-      cleanup();
-    }
-  };
-}
-
-/**
- * Batch multiple signal updates
- */
-export function batch<T>(fn: () => T): T {
-  // Simple implementation - just run the function
-  // In a full implementation, this would defer notifications
-  return fn();
+  // Return cleanup function
+  return dispose;
 }
 
 /**
@@ -386,23 +431,44 @@ export function untrack<T>(fn: () => T): T {
 }
 
 /**
- * Utility to check if a value is a Signal
+ * Check if a value is an Accessor (callable accessor)
  */
-export function isSignal(value: unknown): value is Signal {
-  return typeof value === 'function' && value !== null && 'subscribe' in value && 'get' in value && 'set' in value;
+export function isAccessor(value: unknown): value is Accessor<any> {
+  return typeof value === 'function' && 'subscribe' in value && typeof value.subscribe === 'function';
 }
 
 /**
- * Get signal value, or return value if not a signal
+ * Utility to check if a value is a Signal tuple
  */
-export function unwrapSignal<T>(value: T | Signal<T>): T {
-  return isSignal(value) ? (value as Signal<T>)() : (value as T);
+export function isSignal<T>(value: Signal<T> | unknown): value is Signal<T> {
+  return Array.isArray(value) && value.length === 2 && typeof value[0] === 'function' && typeof value[1] === 'function';
+}
+
+export function getAccessor<T>(value: Signal<T>): Accessor<T>;
+export function getAccessor<T>(value: Accessor<T>): Accessor<T>;
+export function getAccessor(value: unknown): Accessor<unknown> | undefined;
+export function getAccessor<T>(value: Signal<T> | Accessor<T> | unknown): Accessor<T> | Accessor<unknown> | undefined {
+  if (isSignal(value)) return value[0];
+  if (isAccessor(value)) return value;
+  return undefined;
+}
+
+export function getSetter<T>(value: Signal<T>): (v: T | ((prev: T) => T)) => () => void;
+export function getSetter(value: unknown): ((v: unknown | ((prev: unknown) => unknown)) => () => void) | undefined;
+export function getSetter<T>(value: Signal<T> | unknown): ((v: T | ((prev: T) => T)) => () => void) | ((v: unknown | ((prev: unknown) => unknown)) => () => void) | undefined {
+  if (isSignal(value)) return value[1];
+  return undefined;
 }
 
 /**
- * Legacy compatibility exports
+ * Get signal value from a tuple, or return value if not a signal tuple
  */
-export { Signal as ReactiveSignal };
-export { createSignal as signal };
-export { createComputed as computed };
-export { createComputed as createMemo };
+export function unwrapSignal<T>(value: Signal<T>): T;
+export function unwrapSignal<T>(value: Accessor<T>): T;
+export function unwrapSignal<T>(value: T): T;
+export function unwrapSignal(value: unknown): unknown;
+export function unwrapSignal<T>(value: T | Signal<T> | Accessor<T>): unknown {
+  if (isSignal(value)) return value[0]();
+  if (isAccessor(value)) return value();
+  return value;
+}

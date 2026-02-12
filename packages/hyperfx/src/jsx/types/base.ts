@@ -1,11 +1,10 @@
-import type { ReactiveValue } from '../jsx-runtime';
 
-// Re-export for convenience
-export type { ReactiveValue } from '../jsx-runtime';
 
 // ========================================
 // BASE REACTIVE TYPES
 // ========================================
+
+import { ReactiveValue } from "../runtime";
 
 /** Reactive string value - can be static, signal, or computed */
 export type ReactiveString = ReactiveValue<string>;
@@ -43,7 +42,7 @@ export type Reactive<T> = T | ReactiveValue<T>;
 
 /** Type guard to check if a value is reactive */
 export function isReactive(value: unknown): value is ReactiveValue<unknown> {
-  return typeof value === 'object' && value !== null && 'subscribe' in value;
+  return (typeof value === 'object' || typeof value === 'function') && value !== null && 'subscribe' in value;
 }
 
 /** Type guard to check if a value is a reactive signal */

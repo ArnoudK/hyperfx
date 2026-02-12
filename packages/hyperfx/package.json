@@ -38,7 +38,6 @@
     },
     "./jsx": {
       "types": "./dist/jsx/jsx-runtime.d.ts",
-      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-runtime.js"
     },
     "./jsx-server": {
@@ -55,12 +54,10 @@
     },
     "./jsx-runtime": {
       "types": "./dist/jsx/jsx-runtime.d.ts",
-      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-runtime.js"
     },
     "./jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
-      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-dev-runtime.js"
     },
     "./jsx-server-runtime": {
@@ -69,17 +66,14 @@
     },
     "./jsx/jsx-runtime": {
       "types": "./dist/jsx/jsx-runtime.d.ts",
-      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-runtime.js"
     },
     "./jsx/jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
-      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-dev-runtime.js"
     },
     "./jsx-runtime/jsx-dev-runtime": {
       "types": "./dist/jsx/jsx-dev-runtime.d.ts",
-      "node": "./dist/jsx/jsx-server-runtime.js",
       "default": "./dist/jsx/jsx-dev-runtime.js"
     },
     "./runtime-dom": {

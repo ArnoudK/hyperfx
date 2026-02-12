@@ -7,9 +7,9 @@ interface FineGrainedTestProps {
 }
 
 function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
-  const count1 = createSignal(0);
-  const count2 = createSignal(0);
-  const status = createSignal('idle');
+  const [count1, setCount1] = createSignal(0);
+  const [count2, setCount2] = createSignal(0);
+  const [status, setStatus] = createSignal('idle');
 
   console.log('FineGrainedTest mounted');
 
@@ -28,7 +28,7 @@ function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
           <p class="text-2xl mb-4">Count: {count1()}</p>
           <button
             type="button"
-            onclick={() => count1(count1() + 1)}
+            onclick={() => setCount1(prev => prev + 1)}
             class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
           >
             Increment Count 1
@@ -41,7 +41,7 @@ function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
           <p class="text-2xl mb-4">Count: {count2()}</p>
           <button
             type="button"
-            onclick={() => count2(count2() + 1)}
+            onclick={() => setCount2(prev => prev + 1)}
             class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
           >
             Increment Count 2

@@ -11,11 +11,11 @@ describe('Functional Hydration', () => {
 
     it('should hydrate and claim existing nodes', () => {
         function App() {
-            const count = createSignal<number>(0);
+            const [count, setCount] = createSignal<number>(0);
             return (
                 <div id="app-root">
                     <span id="counter">{count}</span>
-                    <button id="inc" onclick={() => {count(count() + 1)}}>Inc</button>
+                    <button id="inc" onclick={() => {setCount(count() + 1)}}>Inc</button>
                 </div>
             );
         }
@@ -41,11 +41,11 @@ describe('Functional Hydration', () => {
 
     it('should restore interactivity (signals)', () => {
         function Counter() {
-            const count = createSignal(5);
+            const [count, setCount] = createSignal(5);
             return (
                 <div id="counter-app">
                     <span id="display">{count}</span>
-                    <button id="btn" onclick={() => count(count() + 1)}>Add</button>
+                    <button id="btn" onclick={() => setCount(count() + 1)}>Add</button>
                 </div>
             );
         }

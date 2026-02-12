@@ -5,15 +5,46 @@
  * create and update DOM elements.
  */
 
-import { createEffect } from '../reactive/signal';
-import { addElementSubscription } from '../jsx/runtime/reactive';
+import { createEffect, isAccessor, getAccessor } from '../reactive/signal';
+import type { JSXElement } from '../jsx/runtime/types';
+import { addElementSubscription, addElementSignal } from '../jsx/runtime/reactive';
 import { isHydrationEnabled } from '../jsx/runtime/hydration';
 
 type Accessor<T> = () => T;
-type SignalLike<T> = Accessor<T> & { get: () => T; subscribe: (callback: (value: T) => void) => () => void };
-type InsertableValue = Node | string | number | boolean | null | undefined;
-type Insertable = InsertableValue | InsertableValue[] | SignalLike<InsertableValue> | Accessor<InsertableValue>;
+type SignalLike<T> = Accessor<T> & { get: () => T; subscribe: (callback: (value: T) => void) => () => void, destroy?: () => void };
+type TemplateNode = Node & { t?: string; __ssr?: boolean; cloneNode: (deep?: boolean) => Node };
+ 
+export type InsertableValue = Node | string | number | boolean | null | undefined | DocumentFragment;
+export type Insertable =
+  | JSXElement
+  | InsertableValue
+  | InsertableValue[]
+  | SignalLike<JSXElement>
+  | Accessor<JSXElement>;
 type InsertResult = InsertableValue | Node | { _node: Text; toString: () => string; _cleanup?: () => void } | InsertResult[] | null;
+
+/**
+ * Check if a value is a signal (has subscribe and get methods)
+ */
+function isSignalValue(value: unknown): value is SignalLike<unknown> {
+  return value !== null &&
+    (typeof value === 'function' || typeof value === 'object') &&
+    'subscribe' in value &&
+    typeof (value as { subscribe: unknown }).subscribe === 'function' &&
+    'get' in value &&
+    typeof (value as { get: unknown }).get === 'function';
+}
+
+/**
+ * Unwrap component result - handles signals returned from components
+ * This ensures components can return memo signals and they render correctly
+ */
+export function unwrapComponent<T>(result: T): T | (() => T) {
+  if (isSignalValue(result)) {
+    return () => (result as SignalLike<T>)();
+  }
+  return result;
+}
 
 // Cache for parsed templates
 const templateCache = new Map<string, Node>();
@@ -27,11 +58,11 @@ const templateCache = new Map<string, Node>();
 export function template(html: string): Node {
   // Server-side: return a simple mock that works with the string-based SSR
   if (typeof document === 'undefined') {
-    const mockNode = {
+    const mockNode: TemplateNode = {
       t: html,
       __ssr: true,
-      cloneNode: function () { return { ...this }; }
-    } as unknown as Node;
+      cloneNode: function () { return { ...this } as TemplateNode; }
+    } as TemplateNode;
     return mockNode;
   }
 
@@ -58,15 +89,69 @@ export function insert(
   marker?: Node | null,
   init?: InsertResult
 ): InsertResult {
+  if (isSignalValue(accessor)) {
+    return insertExpression(parent, accessor, init, marker);
+  }
   // If accessor is not a function, it's a static value
   if (typeof accessor !== 'function') {
     return insertExpression(parent, accessor, init, marker);
   }
 
-  // For reactive values, create an effect that updates on change
+  let parentNode: Node = parent;
   let current = init;
+
+  const resolveParent = (): Node | null => {
+    if (marker && marker.parentNode) {
+      return marker.parentNode;
+    }
+
+    if (Array.isArray(current)) {
+      for (let i = 0; i < current.length; i++) {
+        const entry = current[i];
+        if (entry instanceof Node && entry.parentNode) {
+          return entry.parentNode;
+        }
+        if (entry && typeof entry === 'object') {
+          const node = (entry as { _node?: Text })._node;
+          if (node && node.parentNode) {
+            return node.parentNode;
+          }
+        }
+      }
+      return null;
+    }
+
+    if (current instanceof Node && current.parentNode) {
+      return current.parentNode;
+    }
+
+    if (current && typeof current === 'object') {
+      const node = (current as { _node?: Text })._node;
+      if (node && node.parentNode) {
+        return node.parentNode;
+      }
+    }
+
+    return null;
+  };
+
+  // For reactive values, create an effect that updates on change
   const stop = createEffect(() => {
-    current = insertExpression(parent, accessor(), current, marker);
+    if (typeof DocumentFragment !== 'undefined' && parentNode instanceof DocumentFragment) {
+      const resolved = resolveParent();
+      if (resolved) {
+        parentNode = resolved;
+      }
+    }
+
+    current = insertExpression(parentNode, accessor(), current, marker);
+
+    if (typeof DocumentFragment !== 'undefined' && parentNode instanceof DocumentFragment) {
+      const resolved = resolveParent();
+      if (resolved) {
+        parentNode = resolved;
+      }
+    }
   });
 
   if (parent instanceof Element) {
@@ -74,6 +159,17 @@ export function insert(
   }
 
   return current;
+}
+
+export function markerSlot(
+  accessor: Accessor<InsertableValue> | Insertable,
+  markerId = 'hfx:slot'
+): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  const marker = document.createComment(markerId);
+  fragment.appendChild(marker);
+  insert(fragment, accessor, marker);
+  return fragment;
 }
 
 /**
@@ -116,6 +212,18 @@ function insertExpression(
     value = String(value);
   }
 
+  if (typeof DocumentFragment !== 'undefined' && value instanceof DocumentFragment) {
+    if (current != null) {
+      cleanChildren(parent, current, marker);
+    }
+    const nodes = Array.from(value.childNodes);
+    const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+    for (let i = 0; i < nodes.length; i++) {
+      parent.insertBefore(nodes[i]!, insertBeforeNode);
+    }
+    return nodes;
+  }
+
   // Handle DOM nodes
   if (value instanceof Node) {
     if (current !== value) {
@@ -129,20 +237,25 @@ function insertExpression(
     return value;
   }
 
-  // Handle signals - create reactive effect for signal values
-  if (isSignal(value)) {
-    // For signals, we need to create an effect that updates the text node
+  // Handle accessors (callable signals) - create reactive effect for accessor values
+  if (isAccessor(value)) {
+    // For accessors, we need to create an effect that updates the text node
     const textNode = document.createTextNode(String(value()));
     const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
     parent.insertBefore(textNode, insertBeforeNode);
     
-    // Create effect to update when signal changes
+    // Create effect to update when accessor changes
     const stop = createEffect(() => {
       textNode.data = String(value());
     });
     
     if (parent instanceof Element) {
       addElementSubscription(parent, stop);
+    }
+
+    const hasDestroy = typeof value.destroy === 'function';
+    if (hasDestroy && parent instanceof Element) {
+      addElementSignal(parent, value);
     }
     
     return { _node: textNode, toString: () => textNode.data, _cleanup: stop };
@@ -205,12 +318,19 @@ function cleanChildren(parent: Node, current: InsertResult, marker?: Node | null
     for (let i = 0; i < current.length; i++) {
       cleanChildren(parent, current[i], marker);
     }
+  } else if (current && typeof current === 'object' && (current as { _node?: Text })._node instanceof Text) {
+    const node = (current as { _node: Text })._node;
+    if (node.parentNode === parent) {
+      parent.removeChild(node);
+    }
   } else if (current instanceof Node) {
-    parent.removeChild(current);
+    if (current.parentNode === parent) {
+      parent.removeChild(current);
+    }
   } else {
     // Remove text node
     const node = marker ? marker.previousSibling : parent.lastChild;
-    if (node) {
+    if (node && node.parentNode === parent) {
       parent.removeChild(node);
     }
   }
@@ -222,39 +342,16 @@ function cleanChildren(parent: Node, current: InsertResult, marker?: Node | null
 export function spread<T extends Element>(
   element: T,
   accessor: () => Record<string, unknown>,
-  isSVG?: boolean,
+  _isSVG?: boolean,
   skipChildren?: boolean
 ): void {
   const props = accessor();
 
   for (const prop in props) {
-    const value = props[prop];
-
-    // Skip children if requested
     if (skipChildren && prop === 'children') {
       continue;
     }
-
-    // Handle special props
-    if (prop === 'style') {
-      if (typeof value === 'object' && element instanceof HTMLElement) {
-        Object.assign(element.style, value);
-      } else {
-        element.setAttribute('style', String(value));
-      }
-    } else if (prop === 'class' || prop === 'className') {
-      element.setAttribute('class', String(value));
-    } else if (prop.startsWith('on')) {
-      // Event handler - will be handled by delegate
-      const eventName = prop.slice(2).toLowerCase();
-      (element as unknown as Record<string, unknown>)[`on${eventName}`] = value;
-    } else if (prop in element && !isSVG) {
-      // Set as property
-      (element as unknown as Record<string, unknown>)[prop] = value;
-    } else {
-      // Set as attribute
-      element.setAttribute(prop, String(value));
-    }
+    bindProp(element, prop, props[prop]);
   }
 }
 
@@ -390,7 +487,7 @@ export function assign<T extends Element>(
   value: unknown
 ): void {
   if (prop in element) {
-    (element as unknown as Record<string, unknown>)[prop] = value;
+    (element as Record<string, unknown>)[prop] = value;
   } else {
     element.setAttribute(prop, String(value));
   }
@@ -399,10 +496,75 @@ export function assign<T extends Element>(
 /**
  * Check if a value is a signal (has signal-specific properties)
  */
-function isSignal(value: unknown): value is SignalLike<unknown> {
-  return typeof value === 'function' && 
-         typeof (value as SignalLike<unknown>).get === 'function' && 
-         typeof (value as SignalLike<unknown>).subscribe === 'function';
+// legacy compatibility: prefer `getAccessor`/`isAccessor` for runtime checks
+// This function is intentionally removed and replaced by `isSignalValue` usage
+
+
+export function unwrapProps<T extends Record<string, unknown>>(props: T): T {
+  return new Proxy(props, {
+    get(target, prop, receiver) {
+      if (prop === 'children') {
+        return Reflect.get(target, prop, receiver);
+      }
+      const value = Reflect.get(target, prop, receiver);
+      if (isAccessor(value)) return value();
+      return value;
+    }
+  });
+}
+
+export function bindProp<T extends Element>(
+  element: T,
+  prop: string,
+  value: unknown
+): void {
+  try {
+    const isEvent = prop.startsWith('on');
+
+    if (!isEvent) {
+      const acc = getAccessor(value);
+      if (acc) {
+        const hasDestroy = typeof acc.destroy === 'function';
+        if (hasDestroy) {
+          addElementSignal(element, acc);
+        }
+
+        const update = () => {
+          const resolved = acc();
+          setProp(element, prop, resolved);
+        };
+
+        let unsubscribe: (() => void) | null = null;
+        try {
+          unsubscribe = acc.subscribe ? acc.subscribe(() => update()) : null;
+        } catch (error) {
+          console.error(`Error setting up reactivity for ${prop}:`, error);
+          return;
+        }
+
+        if (unsubscribe) addElementSubscription(element, unsubscribe);
+        try {
+          update();
+        } catch (error) {
+          console.error(`Error during initial update for ${prop}:`, error);
+        }
+        return;
+      }
+
+      if (typeof value === 'function') {
+        const update = () => {
+          setProp(element, prop, (value)());
+        };
+        const stop = createEffect(update);
+        addElementSubscription(element, stop);
+        return;
+      }
+    }
+
+    setProp(element, prop, value);
+  } catch (error) {
+    console.error(`Error setting up reactivity for ${prop}:`, error);
+  }
 }
 
 /**
@@ -413,28 +575,52 @@ export function setProp<T extends Element>(
   prop: string,
   value: unknown
 ): void {
-  // If value is a signal accessor, call it to get the actual value
-  const actualValue = isSignal(value) ? value() : value;
+  // If value is a signal accessor or tuple, call it to get the actual value
+  const acc = getAccessor ? getAccessor(value) : undefined;
+  let actualValue = acc ? acc() : value;
+
+  // Note: we intentionally DO NOT call function-valued attribute values here.
+  // Function-valued attributes should be handled at a higher level (e.g., via createComputed or handleReactiveValue).
+  // This avoids accidentally invoking Accessor functions or other function values that should not be executed here.
+  if (!prop.startsWith('on') && typeof actualValue === 'function') {
+    // keep actualValue as the function (will be stringified below)
+  }
   
   // Handle null/undefined - remove attribute
   if (actualValue == null) {
-    if (prop in element && !(element instanceof SVGElement)) {
-      (element as unknown as Record<string, unknown>)[prop] = null;
+    if (prop === 'style') {
+      element.removeAttribute('style');
+    } else if (prop in element && !(element instanceof SVGElement)) {
+      (element as Record<string, unknown>)[prop] = null;
+      element.removeAttribute(prop);
     } else {
       element.removeAttribute(prop);
     }
     return;
   }
 
-  // Special handling for common attributes
-  if (prop === 'class' || prop === 'className') {
+  const isDataOrAria = prop.startsWith('data-') || prop.startsWith('aria-');
+
+  if (isDataOrAria) {
+    element.setAttribute(prop, String(actualValue));
+  } else if (prop === 'class') {
     if (element instanceof HTMLElement || element instanceof SVGElement) {
       element.setAttribute('class', String(actualValue));
     }
   } else if (prop === 'style') {
     if (typeof actualValue === 'object' && element instanceof HTMLElement) {
-      // Style object
-    Object.assign(element.style, actualValue as CSSStyleDeclaration);
+      const styles = actualValue as Record<string, unknown>;
+      for (const key in styles) {
+        if (!Object.prototype.hasOwnProperty.call(styles, key)) continue;
+        const styleValue = styles[key];
+        if (styleValue == null) continue;
+        const cssKey = key.includes('-') ? key : key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+        element.style.setProperty(cssKey, String(styleValue));
+        const camelKey = key.includes('-') ? key.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase()) : key;
+        if (camelKey !== cssKey) {
+          (element.style as CSSStyleDeclaration & Record<string, string>)[camelKey] = String(styleValue);
+        }
+      }
     } else {
       element.setAttribute('style', String(actualValue));
     }
@@ -443,9 +629,10 @@ export function setProp<T extends Element>(
     element.value = String(actualValue);
   } else if (prop === 'checked' && element instanceof HTMLInputElement) {
     element.checked = Boolean(actualValue);
-  } else if (prop in element && !(element instanceof SVGElement)) {
+    element.toggleAttribute('checked', Boolean(actualValue));
+  } else if (prop in element && !(element instanceof SVGElement) && !(prop.startsWith('data-') || prop.startsWith('aria-'))) {
     // Set as property for HTML elements
-    (element as unknown as Record<string, unknown>)[prop] = actualValue;
+    (element as Record<string, unknown>)[prop] = actualValue;
   } else {
     // Set as attribute
     if (typeof actualValue === 'boolean') {
@@ -465,6 +652,12 @@ export function setProp<T extends Element>(
  */
 export function effect(fn: () => void | (() => void)): () => void {
   return createEffect(fn);
+}
+
+export function effectOn(element: Element, fn: () => void | (() => void)): () => void {
+  const stop = createEffect(fn);
+  addElementSubscription(element, stop);
+  return stop;
 }
 
 /**

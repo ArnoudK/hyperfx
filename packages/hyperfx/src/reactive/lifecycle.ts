@@ -14,6 +14,18 @@ interface LifecycleContext {
   isEffect: boolean; // Track if we're inside an effect
 }
 
+export type LifecycleAPI = {
+  pushLifecycleContext: (isEffectContext?: boolean) => void;
+  popLifecycleContext: () => void;
+  flushMounts: () => void;
+  isInsideEffect: () => boolean;
+  onMount: (fn: () => void | (() => void)) => void;
+  onCleanup: (fn: () => void) => void;
+  setInsideEffect: (value: boolean) => void;
+  createRoot: <T>(fn: (dispose: () => void) => T) => { result: T; dispose: () => void };
+  runWithContext: <T>(fn: () => T) => T;
+};
+
 // Stack to track nested component contexts
 const contextStack: LifecycleContext[] = [];
 

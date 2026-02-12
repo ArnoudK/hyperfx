@@ -26,13 +26,17 @@ export function addRuntimeImports(
 
   const code = s.toString();
   if (code.includes('_$insert')) usedHelpers.add('insert');
+  if (code.includes('_$markerSlot')) usedHelpers.add('markerSlot');
   if (code.includes('_$spread')) usedHelpers.add('spread');
   if (code.includes('_$delegate')) usedHelpers.add('delegate');
   if (code.includes('_$effect')) usedHelpers.add('effect');
+  if (code.includes('_$bindProp')) usedHelpers.add('bindProp');
   if (code.includes('_$setProp')) usedHelpers.add('setProp');
   if (code.includes('_$mapArray')) usedHelpers.add('mapArray');
   if (code.includes('_$mapArrayKeyed')) usedHelpers.add('mapArrayKeyed');
   if (code.includes('_$findMarker')) usedHelpers.add('findMarker');
+  if (code.includes('_$unwrapProps')) usedHelpers.add('unwrapProps');
+  if (code.includes('_$unwrapComponent')) usedHelpers.add('unwrapComponent');
 
   if (usedHelpers.size > 0) {
     const helperNames: string[] = [];

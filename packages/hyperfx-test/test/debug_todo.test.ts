@@ -18,7 +18,7 @@ describe('Todo App Debug', () => {
     it('reproduces todo list update issue', () => {
         interface Todo { id: number; text: string; completed: boolean; }
 
-        const todos = createSignal<Todo[]>([
+        const [todos, setTodos] = createSignal<Todo[]>([
             { id: 1, text: 'A', completed: false }
         ]);
 
@@ -76,7 +76,7 @@ describe('Todo App Debug', () => {
         expect(container.textContent).toContain('A');
 
         // Toggle todo
-        todos(todos().map(t =>
+        setTodos(todos().map(t =>
             t.id === 1 ? { ...t, completed: true } : t
         ));
 

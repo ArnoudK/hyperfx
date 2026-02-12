@@ -7,14 +7,14 @@
  */
 
 import { Effect } from "effect"
-import { createSignal, Signal } from "./signal"
+import { createSignal, Accessor } from "./signal"
 import { ResourceState, idle, loading, success, failure } from "./resource-state"
 import { runEffect } from "../runtime"
 
 /**
  * Extended Signal that holds ResourceState and provides refetch/invalidate
  */
-export interface EffectSignal<A, E = unknown> extends Signal<ResourceState<A, E>> {
+export interface EffectSignal<A, E = unknown> extends Accessor<ResourceState<A, E>> {
   /** Trigger a refetch of the resource */
   refetch: () => Promise<void>
   /** Mark data as stale and trigger refetch */
@@ -93,7 +93,7 @@ export function createResource<A, E = unknown>(
   } = options
 
   // Create underlying signal
-  const state = createSignal<ResourceState<A, E>>(
+  const [state, setState] = createSignal<ResourceState<A, E>>(
     initialData !== undefined ? success(initialData) : idle()
   )
 
@@ -115,7 +115,7 @@ export function createResource<A, E = unknown>(
       : undefined
 
     // Set loading state
-    state(loading(previousData))
+    setState(loading(previousData))
     onLoading?.()
 
     try {
@@ -123,11 +123,11 @@ export function createResource<A, E = unknown>(
       const result = await runEffect(effect)
 
       // Update to success state
-      state(success(result))
+      setState(success(result))
       onSuccess?.(result)
     } catch (error) {
       // Update to failure state
-      state(failure(error as E))
+      setState(failure(error as E))
       onFailure?.(error as E)
     } finally {
       isFetching = false
@@ -229,14 +229,14 @@ export function createLazyResource<A, E = unknown>(
  * )}
  * ```
  */
-export function combineResources<T extends Record<string, Signal<ResourceState<unknown, unknown>>>>(
+export function combineResources<T extends Record<string, Accessor<ResourceState<unknown, unknown>>>>(
   resources: T
-): Signal<ResourceState<
-  { [K in keyof T]: T[K] extends Signal<ResourceState<infer A, unknown>> ? A : never },
+): Accessor<ResourceState<
+  { [K in keyof T]: T[K] extends Accessor<ResourceState<infer A, unknown>> ? A : never },
   unknown
 >> {
-  type CombinedData = { [K in keyof T]: T[K] extends Signal<ResourceState<infer A, unknown>> ? A : never };
-  const combined = createSignal<ResourceState<CombinedData, unknown>>(idle())
+  type CombinedData = { [K in keyof T]: T[K] extends Accessor<ResourceState<infer A, unknown>> ? A : never };
+  const [combined, setCombined] = createSignal<ResourceState<CombinedData, unknown>>(idle())
 
   // Helper to recompute combined state
   const recompute = () => {
@@ -262,9 +262,9 @@ export function combineResources<T extends Record<string, Signal<ResourceState<u
             (previousData as Record<string, unknown>)[key] = state.previous
           }
         }
-        combined(loading(previousData as CombinedData))
+        setCombined(loading(previousData as CombinedData))
       } else {
-        combined(loading())
+        setCombined(loading())
       }
       return
     }
@@ -272,7 +272,7 @@ export function combineResources<T extends Record<string, Signal<ResourceState<u
     // Check if some failed
     const firstFailure = states.find(({ state }) => state._tag === "Failure")
     if (firstFailure) {
-      combined(failure(firstFailure.state._tag === "Failure" ? firstFailure.state.error : 'Unknown error'))
+      setCombined(failure(firstFailure.state._tag === "Failure" ? firstFailure.state.error : 'Unknown error'))
       return
     }
 
@@ -285,17 +285,17 @@ export function combineResources<T extends Record<string, Signal<ResourceState<u
           (data as Record<string, unknown>)[key] = state.data
         }
       }
-      combined(success(data))
+      setCombined(success(data))
       return
     }
 
     // Otherwise idle
-    combined(idle())
+    setCombined(idle())
   }
 
   // Subscribe to all resources
   for (const resource of Object.values(resources)) {
-    resource.subscribe(() => recompute())
+    resource.subscribe?.(() => recompute())
   }
 
   // Initial computation

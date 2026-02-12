@@ -15,7 +15,7 @@ describe('Nested Event Handlers', () => {
   });
 
   it('handles event handlers on nested input elements', () => {
-    const name = createSignal('');
+    const [name, setName] = createSignal('');
     let inputCount = 0;
 
     const element = (
@@ -25,7 +25,7 @@ describe('Nested Event Handlers', () => {
           value={name()}
           oninput={(e) => {
             inputCount++;
-            name((e.target as HTMLInputElement).value);
+            setName((e.target as HTMLInputElement).value);
           }}
         />
         <p>{name}</p>
@@ -48,7 +48,7 @@ describe('Nested Event Handlers', () => {
   });
 
   it('handles multiple event handlers on nested buttons', () => {
-    const count = createSignal(0);
+    const [count, setCount] = createSignal(0);
     let incrementClicks = 0;
     let decrementClicks = 0;
 
@@ -60,7 +60,7 @@ describe('Nested Event Handlers', () => {
             class="increment"
             onclick={() => {
               incrementClicks++;
-              count(count() + 1);
+              setCount(count() + 1);
             }}
           >
             +1
@@ -70,7 +70,7 @@ describe('Nested Event Handlers', () => {
             class="decrement"
             onclick={() => {
               decrementClicks++;
-              count(count() - 1);
+              setCount(count() - 1);
             }}
           >
             -1
@@ -107,7 +107,7 @@ describe('Nested Event Handlers', () => {
   });
 
   it('handles deeply nested event handlers', () => {
-    const value = createSignal('initial');
+    const [value, setValue] = createSignal('initial');
     let clickCount = 0;
 
     const element = (
@@ -119,7 +119,7 @@ describe('Nested Event Handlers', () => {
                 type="button"
                 onclick={() => {
                   clickCount++;
-                  value('clicked');
+                  setValue('clicked');
                 }}
               >
                 Click me
@@ -144,8 +144,8 @@ describe('Nested Event Handlers', () => {
   });
 
   it('handles event handlers and reactive attributes on same nested element', () => {
-    const inputValue = createSignal('test');
-    const isDisabled = createSignal(false);
+    const [inputValue, setInputValue] = createSignal('test');
+    const [isDisabled, setIsDisabled] = createSignal(false);
     let changeCount = 0;
 
     const element = (
@@ -156,7 +156,7 @@ describe('Nested Event Handlers', () => {
           disabled={isDisabled()}
           oninput={(e) => {
             changeCount++;
-            inputValue((e.target as HTMLInputElement).value);
+            setInputValue((e.target as HTMLInputElement).value);
           }}
         />
       </div>
@@ -177,13 +177,13 @@ describe('Nested Event Handlers', () => {
     expect(inputValue()).toBe('new value');
 
     // Change disabled state
-    isDisabled(true);
+    setIsDisabled(true);
     expect(input.disabled).toBe(true);
   });
 
   it('handles sibling elements with different event handlers', () => {
-    const firstName = createSignal('');
-    const lastName = createSignal('');
+    const [firstName, setFirstName] = createSignal('');
+    const [lastName, setLastName] = createSignal('');
     let firstNameChanges = 0;
     let lastNameChanges = 0;
 
@@ -196,7 +196,7 @@ describe('Nested Event Handlers', () => {
             value={firstName()}
             oninput={(e) => {
               firstNameChanges++;
-              firstName((e.target as HTMLInputElement).value);
+              setFirstName((e.target as HTMLInputElement).value);
             }}
           />
           <input
@@ -205,7 +205,7 @@ describe('Nested Event Handlers', () => {
             value={lastName()}
             oninput={(e) => {
               lastNameChanges++;
-              lastName((e.target as HTMLInputElement).value);
+              setLastName((e.target as HTMLInputElement).value);
             }}
           />
         </div>

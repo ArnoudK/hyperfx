@@ -43,6 +43,8 @@ pnpm --filter hyperfx run build
 ### Testing
 **Important:** Tests are in the `hyperfx-test` package, NOT in the hyperfx package itself.
 
+hyperfx-extra has its own tests, but they are separate from the core hyperfx tests.
+
 We use **vitest** for testing. Run tests with:
 ```bash
 pnpm --filter hyperfx-test test
@@ -61,6 +63,8 @@ pnpm --filter hyperfx-test test -- test/filename.test.tsx
 - If you have an issue, do not write a one-off script. Instead, write a test that reproduces the issue and then fix it in the hyperfx package.
 
 ## Implementation Guidelines
+
+NEVER leave bloat, backwards compatibility code, or dead code in the codebase. If it's not needed, remove it.
 
 Treat warnings as errors. Fix them before proceeding.
 

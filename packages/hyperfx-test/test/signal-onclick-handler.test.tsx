@@ -11,14 +11,14 @@ describe('Signal in onclick handler with JSX', () => {
     });
 
     it('should handle count(count() + 1) in onclick with JSX', () => {
-        const count = createSignal(0);
+        const [count, setCount] = createSignal(0);
         let clickCount = 0;
 
         const Component = () => {
             return (
                 <button onclick={() => {
                     clickCount++;
-                    count(count() + 1);
+                    setCount(count() + 1);
                 }}>
                     inc {count}
                 </button>
@@ -27,14 +27,14 @@ describe('Signal in onclick handler with JSX', () => {
 
         container.appendChild(<Component /> as any);
         const button = container.querySelector('button');
-        
+
         expect(button?.textContent?.trim()).toBe('inc 0');
-        
+
         button?.click();
         expect(clickCount).toBe(1);
         expect(count()).toBe(1);
         expect(button?.textContent?.trim()).toBe('inc 1');
-        
+
         button?.click();
         expect(clickCount).toBe(2);
         expect(count()).toBe(2);
@@ -42,14 +42,14 @@ describe('Signal in onclick handler with JSX', () => {
     });
 
     it('should preserve signal calls in onclick handlers', () => {
-        const count = createSignal(0);
+        const [count, setCount] = createSignal(0);
         let lastValue = -1;
 
         const Component = () => {
             return (
                 <button onclick={() => {
                     lastValue = count();
-                    count(count() + 1);
+                    setCount(count() + 1);
                 }}>
                     Click me
                 </button>
@@ -58,13 +58,13 @@ describe('Signal in onclick handler with JSX', () => {
 
         container.appendChild(<Component /> as any);
         const button = container.querySelector('button');
-        
+
         expect(count()).toBe(0);
-        
+
         button?.click();
         expect(lastValue).toBe(0);
         expect(count()).toBe(1);
-        
+
         button?.click();
         expect(lastValue).toBe(1);
         expect(count()).toBe(2);

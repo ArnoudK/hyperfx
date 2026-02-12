@@ -1,4 +1,5 @@
-import type { ReactiveString, ReactiveBoolean, ReactiveValue } from './base';
+import { ReactiveValue } from '../runtime';
+import type { ReactiveString, ReactiveBoolean } from './base';
 
 import type { EventHandler } from './events';
 

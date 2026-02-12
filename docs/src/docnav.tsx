@@ -27,9 +27,9 @@ export function DocNav(): JSX.Element {
   );
 }
 
-const expandSignal = createSignal(false);
+const [expandSignal, setExpandSignal] = createSignal(false);
 function handleToggle() {
-  console.log(expandSignal(!expandSignal()));
+  setExpandSignal(prev => !prev);
 }
 
 export function SideNavComp(): JSX.Element {
