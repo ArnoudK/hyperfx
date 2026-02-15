@@ -93,7 +93,7 @@ export class ComponentGenerator {
       ? `Object.assign({}, ${parts.join(', ')})`
       : parts[0] || '{}';
 
-    return `_$unwrapComponent(${componentName}(_$unwrapProps(${mergedProps})))`;
+    return `_$unwrapComponent(_$createComponent(${componentName}, _$unwrapProps(${mergedProps})))`;
   }
 
   /**
@@ -128,7 +128,7 @@ export class ComponentGenerator {
     }
 
     const propsObj = props.length > 0 ? `{ ${props.join(', ')} }` : '{}';
-    return `_$unwrapComponent(${componentName}(_$unwrapProps(${propsObj})))`;
+    return `_$unwrapComponent(_$createComponent(${componentName}, _$unwrapProps(${propsObj})))`;
   }
 
   /**

@@ -1,4 +1,5 @@
 import type * as t from '@babel/types';
+import { SourceMap } from 'magic-string';
 
 export interface HyperFXPluginOptions {
   /**
@@ -55,7 +56,7 @@ export interface HyperFXPluginOptions {
 
 export interface TransformResult {
   code: string;
-  map?: import('magic-string').SourceMap; // SourceMap from magic-string
+  map?: SourceMap
 }
 
 export interface TemplateInfo {

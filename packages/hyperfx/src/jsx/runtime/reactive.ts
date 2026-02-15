@@ -13,6 +13,66 @@ const elementSubscriptionSet = new Set<Element>();
 
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
+// MutationObserver ref-counting for proper cleanup
+let observer: MutationObserver | null = null;
+let mountCount = 0;
+
+function ensureObserver(): MutationObserver | null {
+  if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') {
+    return null;
+  }
+
+  if (!observer) {
+    observer = new MutationObserver((mutations) => {
+      try {
+        mutations.forEach((mutation) => {
+          mutation.removedNodes.forEach((node) => {
+            if (typeof Element !== 'undefined' && node instanceof Element) {
+              if (elementSubscriptions.has(node) || elementSignals.has(node)) {
+                cleanupElementSubscriptions(node);
+              }
+              node.querySelectorAll('*').forEach((child) => {
+                if (elementSubscriptions.has(child) || elementSignals.has(child)) {
+                  cleanupElementSubscriptions(child);
+                }
+              });
+            }
+          });
+        });
+      } catch (error) {
+        if (typeof Element === 'undefined') return;
+        console.error('Error in mutation observer:', error);
+      }
+    });
+
+    const observeTarget = () => {
+      if (typeof document === 'undefined') return;
+      if (document.body) {
+        observer!.observe(document.body, { childList: true, subtree: true });
+        return;
+      }
+
+      const retry = () => {
+        if (!document.body) {
+          setTimeout(retry, 0);
+          return;
+        }
+        observer!.observe(document.body, { childList: true, subtree: true });
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', retry, { once: true });
+      } else {
+        setTimeout(retry, 0);
+      }
+    };
+
+    observeTarget();
+  }
+
+  return observer;
+}
+
 function ensureCleanupInterval(): void {
   if (cleanupInterval || typeof window === 'undefined' || typeof Element === 'undefined') {
     return;
@@ -31,6 +91,41 @@ function ensureCleanupInterval(): void {
       cleanupInterval = null;
     }
   }, 10);
+}
+
+/**
+ * Increment mount count and ensure observer is running
+ */
+export function incrementMountCount(): void {
+  mountCount++;
+  ensureObserver();
+}
+
+/**
+ * Decrement mount count and disconnect observer when no components are mounted
+ */
+export function decrementMountCount(): void {
+  mountCount--;
+  if (mountCount <= 0 && observer) {
+    observer.disconnect();
+    observer = null;
+    mountCount = 0;
+  }
+}
+
+/**
+ * Force cleanup the observer immediately (for SSR or testing)
+ */
+export function forceCleanupObserver(): void {
+  if (observer) {
+    observer.disconnect();
+    observer = null;
+  }
+  mountCount = 0;
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
 }
 
 // Helper to handle reactive values (signals or functions)
@@ -87,55 +182,6 @@ export function handleReactiveValue(
     console.error(`Error setting up reactivity for ${key}:`, error);
     // No fallback value set
   }
-}
-
-// Automatic cleanup using MutationObserver
-if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {
-  const observer = new MutationObserver((mutations) => {
-    try {
-      mutations.forEach((mutation) => {
-        mutation.removedNodes.forEach((node) => {
-          if (typeof Element !== 'undefined' && node instanceof Element) {
-            if (elementSubscriptions.has(node) || elementSignals.has(node)) {
-              cleanupElementSubscriptions(node);
-            }
-            node.querySelectorAll('*').forEach((child) => {
-              if (elementSubscriptions.has(child) || elementSignals.has(child)) {
-                cleanupElementSubscriptions(child);
-              }
-            });
-          }
-        });
-      });
-    } catch (error) {
-      if (typeof Element === 'undefined') return;
-      console.error('Error in mutation observer:', error);
-    }
-  });
-
-  const observeTarget = () => {
-    if (typeof document === 'undefined') return;
-    if (document.body) {
-      observer.observe(document.body, { childList: true, subtree: true });
-      return;
-    }
-
-    const retry = () => {
-      if (!document.body) {
-        setTimeout(retry, 0);
-        return;
-      }
-      observer.observe(document.body, { childList: true, subtree: true });
-    };
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', retry, { once: true });
-    } else {
-      setTimeout(retry, 0);
-    }
-  };
-
-  observeTarget();
 }
 
 /**

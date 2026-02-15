@@ -23,6 +23,16 @@ function renderChildrenFlattened(
       const value = accessor();
       if (value instanceof Node) {
         node = value;
+        
+        // Set up subscription to replace node when signal updates
+        accessor.subscribe?.((newVal: unknown) => {
+          if (newVal instanceof Node && newVal !== node) {
+            if (node && node.parentNode) {
+              node.parentNode.replaceChild(newVal, node);
+              node = newVal;
+            }
+          }
+        });
       } else {
         // Try to claim existing text node
         if (canClaim) {

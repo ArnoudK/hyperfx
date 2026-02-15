@@ -245,8 +245,8 @@ export function Show<T>(props: {
 }
 
 export function ErrorBoundary(props: {
-  fallback: (error: unknown) => JSXElement
-  onError?: (error: unknown) => void
+  fallback: (error: unknown, reset?: () => void) => JSXElement
+  onError?: (error: unknown, reset?: () => void) => void
   children: JSXElement
 }): JSXElement {
   const fragment = createUniversalFragment();
@@ -254,6 +254,10 @@ export function ErrorBoundary(props: {
   const marker = createUniversalComment('ErrorBoundary');
 
   (fragment as any).appendChild(marker);
+
+  const reset = () => {
+    setErrorSignal(null);
+  };
 
   try {
     if (isSSR()) {
@@ -264,7 +268,7 @@ export function ErrorBoundary(props: {
   } catch (error) {
     setErrorSignal(error);
     if (props.onError) {
-      props.onError(error);
+      props.onError(error, reset);
     }
   }
 
@@ -280,7 +284,7 @@ export function ErrorBoundary(props: {
       }
 
       if (error) {
-        const fallback = props.fallback(error);
+        const fallback = props.fallback(error, reset);
         if (fallback instanceof Node) {
           (parent as Node).appendChild(fallback);
         }

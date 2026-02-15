@@ -2,9 +2,8 @@
 import { attributeManager } from "./attributes";
 import { FRAGMENT_TAG } from "./constants";
 import { isHydrationEnabled, claimHydrationElement } from "./hydration";
-import type { LifecycleAPI } from "../../reactive/lifecycle";
 import type { FunctionComponent, JSXChildren, JSXElement, ComponentProps } from "./types";
-import { getAccessor, isAccessor } from "../../reactive/signal";
+import { getAccessor, isAccessor, flushMounts } from "../../reactive/signal";
 import { renderChildren } from "./children";
 import { insert } from "../../runtime-dom";
 
@@ -115,44 +114,43 @@ export function jsx(
     return fragment;
   }
 
-  // Handle function components
-  if (typeof type === 'function') {
-    // Import lifecycle functions dynamically to avoid circular dependency
-    let lifecycle: LifecycleAPI | undefined;
-    try {
-      const loaded = require('../../reactive/lifecycle.js') as Partial<LifecycleAPI> | undefined;
-      if (loaded && typeof loaded.flushMounts === 'function' && typeof loaded.popLifecycleContext === 'function') {
-        lifecycle = loaded as LifecycleAPI;
+    // Handle function components
+    if (typeof type === 'function') {
+      // Check if this is already a processed component result (from unwrapComponent)
+      // These have a special marker that prevents re-processing
+      if ((type as any).__isComponentResult) {
+        const wrapper = type as unknown as () => any;
+        const result = wrapper();
+        try {
+          flushMounts();
+        } catch (error) {
+          console.error('Error flushing mounts:', error);
+          throw error;
+        }
+        return result;
       }
-    } catch {
-      // Lifecycle module not available
-    }
 
-    const proxyProps = new Proxy(props || {}, {
-      get(target, prop, receiver) {
-        const value = Reflect.get(target, prop, receiver);
-        if (isAccessor(value)) return value();
-        return value;
-      }
-    });
+      const proxyProps = new Proxy(props || {}, {
+        get(target, prop, receiver) {
+          const value = Reflect.get(target, prop, receiver);
+          // Don't eagerly call accessor children - they need to be preserved
+          // for renderChildren to set up proper reactivity
+          if (prop !== 'children' && isAccessor(value)) {
+            return value();
+          }
+          return value;
+        }
+      });
 
-    try {
       const result = type(proxyProps);
-
-      // Flush mount callbacks after component renders
-      if (lifecycle) {
-        lifecycle.flushMounts();
+      try {
+        flushMounts();
+      } catch (error) {
+        console.error('Error flushing mounts:', error);
+        throw error;
       }
-
       return result;
-    } catch (error) {
-      // Clean up context on error
-      if (lifecycle) {
-        lifecycle.popLifecycleContext();
-      }
-      throw error;
     }
-  }
 
   // Handle regular HTML elements
   const element = createElement(type as string, props);

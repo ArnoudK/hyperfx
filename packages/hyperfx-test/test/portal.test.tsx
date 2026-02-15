@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { Portal, createSignal, isSSRMode, setSSRMode } from 'hyperfx';
+import { Portal, createRoot, createSignal, isSSRMode, setSSRMode } from 'hyperfx';
 
 // Helper to wait for effects to run
 const waitForEffects = () => new Promise(resolve => setTimeout(resolve, 10));
@@ -137,7 +137,6 @@ describe('Portal Component', () => {
       child.id = 'cleanup-portal-child';
       
       // Create a root to manage the portal lifecycle
-      const { createRoot } = await import('hyperfx');
       const { dispose } = createRoot(() => {
         Portal({
           mount: portalTarget,

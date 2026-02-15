@@ -89,7 +89,7 @@ export function CounterPage() {
           <div class="flex justify-center gap-2">
             <Button
               type="button"
-              onclick={() => setCount(count() + step())}
+              onclick={() => setCount(c => c + step())}
               variant="success"
               size="medium"
             >
@@ -97,7 +97,7 @@ export function CounterPage() {
             </Button>
             <Button
               type="button"
-              onclick={() => setCount(count() - step())}
+              onclick={() => setCount(c => c - step())}
               variant="danger"
               size="medium"
             >

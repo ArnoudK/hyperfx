@@ -9,8 +9,7 @@
  * - On client: moves children to the mount point after hydration
  */
 
-import { createEffect } from '../reactive/signal';
-import { onCleanup, pushLifecycleContext, popLifecycleContext } from '../reactive/lifecycle';
+import { createEffect, onCleanup } from '../reactive/signal';
 import type { JSXElement } from '../jsx/jsx-runtime';
 import { isSSRMode } from './runtime/hydration';
 import { createUniversalFragment } from './runtime/universal-node';
@@ -55,9 +54,6 @@ export function Portal(props: PortalProps): JSXElement {
 
   // Client: Create a fragment and manage portal insertion
   const fragment = createUniversalFragment();
-  
-  // Create a lifecycle context for the portal
-  pushLifecycleContext();
   
   // Store references to the mounted nodes for cleanup
   let mountedNodes: Node[] = [];
@@ -121,9 +117,6 @@ export function Portal(props: PortalProps): JSXElement {
       }
     });
     mountedNodes = [];
-    
-    // Pop the lifecycle context
-    popLifecycleContext();
   });
 
   // Return empty fragment (children are portaled elsewhere)

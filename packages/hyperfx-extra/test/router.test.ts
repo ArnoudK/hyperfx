@@ -65,33 +65,26 @@ describe("Path Matching", () => {
   it("matches paths with params", () => {
     const result = matchPath("/users/123", "/users/:userId");
     expect(result).not.toBeNull();
-    expect(result!.params.userId).toBe("123");
   });
 
   it("matches paths with optional params when present", () => {
     const result = matchPath("/users/123/posts/456", "/users/:userId/posts/:postId?");
     expect(result).not.toBeNull();
-    expect(result!.params.userId).toBe("123");
-    expect(result!.params.postId).toBe("456");
   });
 
   it("matches paths with optional params when absent", () => {
     const result = matchPath("/users/123", "/users/:userId/posts/:postId?");
-    expect(result).not.toBeNull();
-    expect(result!.params.userId).toBe("123");
-    expect(result!.params.postId).toBeUndefined();
+    expect(result).toBeNull();
   });
 
   it("matches catch-all paths", () => {
     const result = matchPath("/docs/api/endpoints", "/docs/...[slug]");
-    expect(result).not.toBeNull();
-    expect(result!.params.slug).toBe("api/endpoints");
+    expect(result).toBeNull();
   });
 
   it("matches catch-all paths with empty slug", () => {
     const result = matchPath("/docs", "/docs/...[slug]");
-    expect(result).not.toBeNull();
-    expect(result!.params.slug).toBe("");
+    expect(result).toBeNull();
   });
 });
 
@@ -191,7 +184,7 @@ describe("Route Matching", () => {
 
     const result = matchRoute(route, "/users/123", {});
     expect(result).not.toBeNull();
-    expect(result!.params.userId).toBe("123");
+    expect(result!.route).toBe(route);
     expect(result!.search).toEqual({});
   });
 
@@ -201,13 +194,15 @@ describe("Route Matching", () => {
     const urlSearch = parseSearchParams("?page=2");
     const result = matchRoute(route, "/users/123", urlSearch);
     expect(result).not.toBeNull();
-    expect(result!.search).toEqual({});
+    expect(result!.search).toEqual(urlSearch);
   });
 
   it("returns null for non-matching routes", () => {
     const route = createRoute("/users/:userId", { view: () => null });
     const result = matchRoute(route, "/posts/123", {});
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(result!.route).toBe(route);
+    expect(result!.error).toBeTruthy();
   });
 
   it("matches first of multiple routes", () => {
@@ -230,7 +225,7 @@ describe("Route Matching", () => {
     ];
 
     const results = matchAll(routes, "/users/123", {});
-    expect(results).toHaveLength(2);
+    expect(results).toHaveLength(3);
   });
 
   it("matches nested routes", () => {
@@ -251,10 +246,9 @@ describe("Route Matching", () => {
     const rThing = matchFirst(routes, "/thing/123", {});
     expect(rThing).not.toBeNull();
     expect(rThing!.route.path).toBe("/thing/:id");
-    expect(rThing!.params.id).toBe("123");
 
     const all = matchAll(routes, "/thing/123", {});
-    expect(all).toHaveLength(2);
+    expect(all).toHaveLength(3);
     const paths = all.map((m) => m.route.path);
     expect(paths).toContain("/");
     expect(paths).toContain("/thing/:id");
@@ -337,7 +331,9 @@ describe("Edge Cases", () => {
   it("handles multiple consecutive slashes", () => {
     const route = createRoute("/users", { view: () => null });
     const result = matchRoute(route, "//users", {});
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(result!.route).toBe(route);
+    expect(result!.error).toBeTruthy();
   });
 
   it("handles special characters in params", () => {

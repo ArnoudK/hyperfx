@@ -1,4 +1,4 @@
-import { createEffect } from "./signal";
+import { createEffect, createRoot } from "./signal";
 import type { JSXElement, ComponentProps } from "../jsx/jsx-runtime";
 
 /**
@@ -210,36 +210,46 @@ export function mount<P = ComponentProps>(
     throw new Error('mount: anchor is not supported with mode "replace"');
   }
 
-  if (component) {
-    let element: JSXElement;
+  let cleanupFn: () => void;
+
+  createRoot((dispose) => {
+    cleanupFn = dispose;
+
+    if (component) {
+      let element: JSXElement;
+      if (mode === 'replace') {
+        element = mountComponentInstance(component, props as P);
+        container.replaceChildren(element as Node);
+      } else {
+        element = mountComponent(component, props as P, container, anchor);
+      }
+
+      return () => {
+        unmountComponent(component, element, container);
+      };
+    }
+
+    const factory = componentOrFactory as () => JSXElement;
+    const element = factory();
+    const domElement = element as Node;
+
     if (mode === 'replace') {
-      element = mountComponentInstance(component, props as P);
-      container.replaceChildren(element as Node);
+      container.replaceChildren(domElement);
+    } else if (anchor) {
+      container.insertBefore(domElement, anchor);
     } else {
-      element = mountComponent(component, props as P, container, anchor);
+      container.appendChild(domElement);
     }
 
     return () => {
-      unmountComponent(component, element, container);
+      if (domElement.parentNode === container) {
+        container.removeChild(domElement);
+      }
     };
-  }
-
-  const factory = componentOrFactory as () => JSXElement;
-  const element = factory();
-  const domElement = element as Node;
-
-  if (mode === 'replace') {
-    container.replaceChildren(domElement);
-  } else if (anchor) {
-    container.insertBefore(domElement, anchor);
-  } else {
-    container.appendChild(domElement);
-  }
+  });
 
   return () => {
-    if (domElement.parentNode === container) {
-      container.removeChild(domElement);
-    }
+    cleanupFn();
   };
 }
 

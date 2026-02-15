@@ -86,10 +86,12 @@ Do not use `any` type. Always provide explicit types, or let TypeScript infer th
 
 ## Signals
 
+
 Signals are callable functions that manage reactive state:
-- Call with no args to get value: `count()`
-- Call with value to set: `count(5)`
-- Have `.get()`, `.set()`, `.subscribe()` methods
+
+`const [accessor, setter] = createSignal(1)`
+
+
 
 The compiler optimizes signal calls in reactive contexts.
 

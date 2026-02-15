@@ -159,7 +159,7 @@ export function TodoPage() {
               {({ option, isActive }) => (
                 <button
                   type="button"
-                  onclick={() => filterStatus(option)}
+                  onclick={() => setFilterStatus(option)}
                   class={`px-3 py-1 rounded-md transition-colors capitalize ${isActive
                     ? 'bg-purple-600 text-white'
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'

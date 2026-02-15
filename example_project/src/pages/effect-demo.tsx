@@ -145,7 +145,7 @@ const UserListView = createAsyncComponent(
     )
 )
 
-function BasicResourceExample(): JSX.Element {
+function BasicResourceExample(){
   return (
     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
       <h2 class="text-2xl font-semibold text-blue-400 mb-4">Basic Async Component (Stream-based)</h2>
@@ -191,8 +191,8 @@ const UserDetailView = createAsyncComponent(
     )
 )
 
-function ParameterizedResourceExample(): JSX.Element {
-  const selectedUserId = createSignal<string>('1')
+function ParameterizedResourceExample(){
+  const [selectedUserId, setSelectedUserId] = createSignal<string>('1')
 
   return (
     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -205,7 +205,7 @@ function ParameterizedResourceExample(): JSX.Element {
         <label class="block text-gray-300 mb-2">Select User:</label>
         <select
           value={selectedUserId()}
-          onchange={(e) => selectedUserId((e.target as HTMLSelectElement).value)}
+          onchange={(e) => setSelectedUserId((e.target as HTMLSelectElement).value)}
           class="px-4 py-2 bg-gray-700 text-white rounded border border-gray-600"
         >
           <option value="1">User 1</option>
@@ -277,8 +277,8 @@ const UserPostsList = createAsyncComponent(
     )
 )
 
-function DependentResourcesExample(): JSX.Element {
-  const selectedUserId = createSignal<string>('1')
+function DependentResourcesExample() {
+  const [selectedUserId, setSelectedUserId] = createSignal<string>('1')
 
   return (
     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -290,7 +290,7 @@ function DependentResourcesExample(): JSX.Element {
       <div class="mb-4">
         <select
           value={selectedUserId()}
-          onchange={(e) => selectedUserId((e.target as HTMLSelectElement).value)}
+          onchange={(e) => setSelectedUserId((e.target as HTMLSelectElement).value)}
           class="px-4 py-2 bg-gray-700 text-white rounded border border-gray-600"
         >
           <option value="1">Alice</option>
@@ -356,7 +356,7 @@ const AsyncUserCard = createAsyncComponent(
     )
 )
 
-function ProgressiveLoadingExample(): JSX.Element {
+function ProgressiveLoadingExample(){
   return (
     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
       <h2 class="text-2xl font-semibold text-orange-400 mb-4">Progressive Loading</h2>
@@ -382,7 +382,7 @@ export const EffectDemoRoute = createRoute('effect-demo', {
 /**
  * Main Demo Page Component
  */
-export default function EffectDemoPage(): JSX.Element {
+export default function EffectDemoPage(){
   return (
     <div class="min-h-screen bg-gray-900 text-white p-8">
       <div class="max-w-6xl mx-auto">

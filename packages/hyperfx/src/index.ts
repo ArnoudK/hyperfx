@@ -1,11 +1,9 @@
-
 // Direct DOM Component System
 export * from "./reactive/component-dom.js";
-export * from "./reactive/reactive-dom.js";
-// Note: do not re-export reactive state here; import signals and hooks directly from their modules
 export * from "./reactive/context.js";
-export * from "./reactive/reactive-dom.js";
-export * from './reactive/signal'
+
+// Re-export signal module (createSignal, createEffect, createComputed, onMount, onCleanup, etc.)
+export * from './reactive/signal';
 
 // Hooks and State
 export * from "./reactive/state.js";
@@ -35,9 +33,6 @@ export * from './jsx/runtime/universal-node.js'
 
 // Hydration (SSR mode control)
 export * from './jsx/runtime/hydration.js';
-
-// Lifecycle Hooks
-export * from "./reactive/lifecycle.js";
 
 
 // Additional features

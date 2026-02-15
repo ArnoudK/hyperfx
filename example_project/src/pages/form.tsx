@@ -241,7 +241,7 @@ export function FormPage() {
                 <input
                   type="checkbox"
                   checked={newsletter}
-                  onchange={(e) => newsletter((e.target as HTMLInputElement).checked)}
+                  onchange={(e) => setNewsletter((e.target as HTMLInputElement).checked)}
                   class="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500 focus:ring-2"
                 />
                 <span class="ml-2 text-sm text-gray-300">Subscribe to newsletter</span>

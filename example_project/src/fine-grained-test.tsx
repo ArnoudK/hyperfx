@@ -6,7 +6,7 @@ interface FineGrainedTestProps {
   [key: string]: any;
 }
 
-function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
+function FineGrainedTest(props: FineGrainedTestProps){
   const [count1, setCount1] = createSignal(0);
   const [count2, setCount2] = createSignal(0);
   const [status, setStatus] = createSignal('idle');
@@ -56,14 +56,14 @@ function FineGrainedTest(props: FineGrainedTestProps): JSX.Element {
         <div class="flex gap-2">
           <button
             type="button"
-            onclick={() => status('active')}
+            onclick={() => setStatus('active')}
             class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Set Active
           </button>
           <button
             type="button"
-            onclick={() => status('idle')}
+            onclick={() => setStatus('idle')}
             class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           >
             Set Idle

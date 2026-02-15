@@ -2,14 +2,82 @@
  * Custom Signal Implementation for HyperFX
  *
  * A simple, synchronous signal system optimized for reactive DOM updates.
- * 
+ *
  */
 
-// Import lifecycle hooks for effect tracking
-import { setInsideEffect } from './lifecycle.js';
+/**
+ * Reactive Context for SSR isolation
+ * Each SSR request gets its own context
+ */
+interface ReactiveContext {
+  trackingStack: TrackingFrame[];
+  ownerStack: Owner[];
+  currentOwner: Owner | null;
+  globalSignalRegistry: Map<string, Signal<any>>;
+  ownerIdCounter: number;
+  templateCounter: number;
+  isTracking: boolean;
+  insideEffect: boolean;
+}
+
+interface TrackingFrame {
+  dependencies: Set<Accessor<any>>;
+}
+
+let AsyncLocalStorage: typeof import('async_hooks').AsyncLocalStorage | null = null;
+
+try {
+  AsyncLocalStorage = require('async_hooks').AsyncLocalStorage;
+} catch {
+  // Not available in browser
+}
+
+const asyncLocalStorage = AsyncLocalStorage ? new AsyncLocalStorage<ReactiveContext>() : null;
+
+function createDefaultContext(): ReactiveContext {
+  return {
+    trackingStack: [],
+    ownerStack: [],
+    currentOwner: null,
+    globalSignalRegistry: new Map(),
+    ownerIdCounter: 0,
+    templateCounter: 0,
+    isTracking: false,
+    insideEffect: false,
+  };
+}
+
+function getContext(): ReactiveContext {
+  if (asyncLocalStorage) {
+    let context = asyncLocalStorage.getStore();
+    if (!context) {
+      context = defaultContext;
+      asyncLocalStorage.enterWith(context);
+    }
+    return context;
+  }
+  return defaultContext;
+}
+
+const defaultContext = createDefaultContext();
 
 // Global tracking context for automatic dependency detection
-let isTracking = false;
+function getIsTracking(): boolean {
+  return getContext().isTracking;
+}
+
+function setIsTracking(value: boolean): void {
+  getContext().isTracking = value;
+}
+
+// Track if we're inside an effect for lifecycle hooks
+function getInsideEffect(): boolean {
+  return getContext().insideEffect;
+}
+
+function setInsideEffect(value: boolean): void {
+  getContext().insideEffect = value;
+}
 
 
 // Stack-based dependency tracking for nested computed/effects
@@ -18,19 +86,18 @@ interface TrackingFrame {
   dependencies: Set<Accessor<any>>;
 }
 
-const trackingStack: TrackingFrame[] = [];
-
 function pushTrackingFrame(): void {
-  trackingStack.push({ dependencies: new Set() });
+  getContext().trackingStack.push({ dependencies: new Set() });
 }
 
 function popTrackingFrame(): Set<Accessor<any>> {
-  const frame = trackingStack.pop();
+  const frame = getContext().trackingStack.pop();
   return frame?.dependencies ?? new Set();
 }
 
 function getCurrentFrame(): TrackingFrame | undefined {
-  return trackingStack[trackingStack.length - 1];
+  const stack = getContext().trackingStack;
+  return stack[stack.length - 1];
 }
 
 type AccessorDeps = Accessor<any> & { __deps?: Set<Accessor<any>> };
@@ -48,16 +115,178 @@ function trackSignal(signal: Accessor<any>): void {
 
 // Owner stack for nested effect tracking
 // When an effect runs, it becomes the owner for any child effects created within it
-const ownerStack: EffectContext[] = [];
-let currentOwner: EffectContext | null = null;
+function getOwnerStack(): Owner[] {
+  return getContext().ownerStack;
+}
 
-interface EffectContext {
-  children: Set<() => void>;
+function getCurrentOwner(): Owner | null {
+  return getContext().currentOwner;
+}
+
+function setCurrentOwner(owner: Owner | null): void {
+  getContext().currentOwner = owner;
+}
+
+function incrementOwnerIdCounter(): number {
+  return getContext().ownerIdCounter++;
+}
+
+export interface Owner {
+  id: number;
+  parent: Owner | null;
+  children: Set<Owner>;
+  effects: Set<() => void>;
+  signals: Set<() => void>;
+  cleanups: Set<() => void>;
+  mountCallbacks: Set<() => void | (() => void)>;
+  mountCleanups: Set<() => void>;
+  mounted: boolean;
+  disposed: boolean;
+  isRoot: boolean;
+}
+
+function createOwner(parent: Owner | null = null, isRoot = false): Owner {
+  const owner: Owner = {
+    id: incrementOwnerIdCounter(),
+    parent,
+    children: new Set(),
+    effects: new Set(),
+    signals: new Set(),
+    cleanups: new Set(),
+    mountCallbacks: new Set(),
+    mountCleanups: new Set(),
+    mounted: false,
+    disposed: false,
+    isRoot,
+  };
+  return owner;
+}
+
+export function getOwner(): Owner | null {
+  return getCurrentOwner();
+}
+
+export function runWithOwner<T>(owner: Owner, fn: () => T): T {
+  const previousOwner = getCurrentOwner();
+  setCurrentOwner(owner);
+  getOwnerStack().push(owner);
+  try {
+    return fn();
+  } finally {
+    getOwnerStack().pop();
+    setCurrentOwner(previousOwner);
+  }
+}
+
+function disposeOwner(owner: Owner): void {
+  if (owner.disposed) return;
+  owner.disposed = true;
+
+  const safeDispose = (fn: () => void) => {
+    try {
+      fn();
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  };
+
+  // Dispose all children first (LIFO - last created, first disposed)
+  const children = Array.from(owner.children).reverse();
+  for (const child of children) {
+    disposeOwner(child);
+  }
+  owner.children.clear();
+
+  // Dispose all effects
+  const effects = Array.from(owner.effects).reverse();
+  for (const dispose of effects) {
+    safeDispose(dispose);
+  }
+  owner.effects.clear();
+
+  // Dispose all signals (clear subscribers)
+  const signals = Array.from(owner.signals).reverse();
+  for (const dispose of signals) {
+    safeDispose(dispose);
+  }
+  owner.signals.clear();
+
+  // Run mount cleanup functions first (LIFO - last registered, first cleaned)
+  if (owner.mountCleanups.size > 0) {
+    const mountCleanups = Array.from(owner.mountCleanups).reverse();
+    for (const cleanup of mountCleanups) {
+      safeDispose(cleanup);
+    }
+    owner.mountCleanups.clear();
+  }
+
+  // Run cleanup handlers (LIFO)
+  const cleanups = Array.from(owner.cleanups).reverse();
+  for (const cleanup of cleanups) {
+    safeDispose(cleanup);
+  }
+  owner.cleanups.clear();
+
+  // Remove from parent
+  if (owner.parent) {
+    owner.parent.children.delete(owner);
+  }
+}
+
+export interface RootResult<T> {
+  result: T;
   dispose: () => void;
 }
 
+export function createRoot<T>(fn: (dispose: () => void) => T, options?: { detached?: boolean }): RootResult<T> {
+  const parent = options?.detached ? null : getCurrentOwner();
+  const owner = createOwner(parent, true);
+
+  setCurrentOwner(owner);
+  getOwnerStack().push(owner);
+
+  let disposed = false;
+  let cleanupFn: (() => void) | void = undefined;
+
+  const dispose = () => {
+    if (!disposed) {
+      disposed = true;
+      if (typeof cleanupFn === 'function') {
+        cleanupFn();
+      }
+      cleanupFn = undefined;
+      disposeOwner(owner);
+      getOwnerStack().pop();
+      setCurrentOwner(parent);
+    }
+  };
+
+  let result: T;
+  try {
+    result = fn(dispose);
+    if (typeof result === 'function') {
+      cleanupFn = result as () => void;
+    }
+  } catch (error) {
+    dispose();
+    throw error;
+  }
+
+  // Auto-dispose if callback didn't return a cleanup function
+  // This enables automatic cleanup for lifecycle testing while preserving
+  // manual cleanup for component mounting (which returns cleanup functions)
+  if (typeof result !== 'function' && result !== null) {
+    dispose();
+  }
+
+  return { result, dispose };
+}
+
 // Global signal registry for SSR serialization
-const globalSignalRegistry = new Map<string, Signal<any>>();
+function getGlobalSignalRegistry(): Map<string, Signal<any>> {
+  return getContext().globalSignalRegistry;
+}
+
 let isSSRMode = false;
 
 /**
@@ -66,7 +295,7 @@ let isSSRMode = false;
 export function enableSSRMode(): void {
   if (!isSSRMode) {
     isSSRMode = true;
-    globalSignalRegistry.clear();
+    getGlobalSignalRegistry().clear();
   }
 }
 
@@ -81,14 +310,21 @@ export function disableSSRMode(): void {
  * Get all registered signals for SSR serialization
  */
 export function getRegisteredSignals(): Map<string, Signal<any>> {
-  return globalSignalRegistry;
+  return getGlobalSignalRegistry();
 }
 
 /**
  * Register a signal with a key for SSR
  */
 export function registerSignal<T>(key: string, signal: Signal<T>): void {
-  globalSignalRegistry.set(key, signal);
+  getGlobalSignalRegistry().set(key, signal);
+}
+
+/**
+ * Unregister a signal by key
+ */
+export function unregisterSignal(key: string): void {
+  getGlobalSignalRegistry().delete(key);
 }
 
 
@@ -118,6 +354,10 @@ class SignalImpl<T = unknown> {
     return this.subscribers.size;
   }
 
+  clearSubscribers(): void {
+    this.subscribers.clear();
+  }
+
   set(newValue: T): T {
     if (Object.is(this._value, newValue)) {
       return newValue;
@@ -127,13 +367,21 @@ class SignalImpl<T = unknown> {
 
     const subscribersToNotify = Array.from(this.subscribers);
 
-    subscribersToNotify.forEach((callback) => {
+    let error: Error | null = null;
+
+    for (const callback of subscribersToNotify) {
       try {
         callback(newValue);
-      } catch (error) {
-        console.error('Signal subscriber error:', error);
+      } catch (e) {
+        error = e as Error;
+        break;
       }
-    });
+    }
+
+    if (error) {
+      this.subscribers.clear();
+      throw error;
+    }
 
     return newValue;
   }
@@ -154,44 +402,54 @@ function createRawSignal<T>(initialValue: T): SignalImpl<T> {
 
 export interface SignalOptions {
   key?: string; // Unique key for SSR serialization
+  unowned?: boolean; // Don't register with current owner
 }
 
 /**
  * Create a new signal that returns [get, set]
  * - `get()` reads the value (and is used for dependency tracking)
  * - `set(value | updater)` sets the value and returns an `undo()` function that restores the previous value
+ * - Accessor has `.destroy()` method for cleanup
  */
 export function createSignal<T>(initialValue: T, options?: SignalOptions): Signal<T> {
-  // Support SSR registry: if already registered with key, return existing tuple
-  if (options?.key && globalSignalRegistry.has(options.key)) {
-    return globalSignalRegistry.get(options.key)!;
+  const registry = getGlobalSignalRegistry();
+  if (options?.key && registry.has(options.key)) {
+    return registry.get(options.key)!;
   }
 
   const impl = createRawSignal(initialValue);
 
-  // Build public getter function that participates in tracking
   const getter = createGetter(impl);
   const setter = createSetter(impl);
 
   const signalTuple: Signal<T> = [getter, setter];
 
-  // Register tuple for SSR if requested
+  const destroy = () => {
+    impl.clearSubscribers();
+    registry.delete(options?.key || '');
+  };
+
+  getter.destroy = destroy;
+
+  if (!options?.unowned && getCurrentOwner()) {
+    getCurrentOwner()!.signals.add(destroy);
+  }
+
   if (options?.key) {
-    if (globalSignalRegistry.has(options.key)) {
-      console.warn(`Signal with key "${options.key}" already exists. Using existing signal.`);
+    if (registry.has(options.key)) {
+      throw new Error(`Signal with key "${options.key}" already exists.`);
     } else {
       registerSignal(options.key, signalTuple);
     }
   }
 
-  // Return the signal tuple
   return signalTuple;
 }
 
 function createGetter<T>(impl: SignalImpl<T>): Accessor<T> {
   const fn: Accessor<T> = () => {
     // Getter behavior
-    if (isTracking) {
+    if (getIsTracking()) {
       trackSignal(fn);
     }
     return impl.get();
@@ -231,8 +489,8 @@ function createSetter<T>(impl: SignalImpl<T>) {
  */
 export function createComputed<T>(computeFn: () => T): Accessor<T> {
   // Track dependencies during initial computation
-  const oldTracking = isTracking;
-  isTracking = true;
+  const oldTracking = getIsTracking();
+  setIsTracking(true);
   pushTrackingFrame();
 
   let initialValue: T;
@@ -241,7 +499,7 @@ export function createComputed<T>(computeFn: () => T): Accessor<T> {
     initialValue = computeFn();
   } finally {
     deps = popTrackingFrame();
-    isTracking = oldTracking;
+    setIsTracking(oldTracking);
   }
 
   const impl = createRawSignal(initialValue);
@@ -275,60 +533,38 @@ export function createComputed<T>(computeFn: () => T): Accessor<T> {
 
 
 
-/**
- * Create an effect that runs when signals change
- * Effects automatically track dependencies and re-subscribe when they change
- * Nested effects are tracked and disposed when parent re-runs
- */
 export function createEffect(effectFn: () => void | (() => void)): () => void {
-  let cleanup: (() => void) | void;
-  let unsubscribers: Array<() => void> = [];
   let isDisposed = false;
-  let isRunning = false; // Prevent re-entrance during signal notifications
-  let pendingRun = false; // Track if we should run after current execution
+  let isRunning = false;
+  let pendingRun = false;
 
-  // Create effect context for tracking children
-  const context: EffectContext = {
-    children: new Set(),
-    dispose: () => {
-      // This will be set below
-    }
-  };
+  const childOwner = createOwner(getCurrentOwner(), false);
+  let cleanup: (() => void) | void = undefined;
+  let unsubscribers: Array<() => void> = [];
 
-  // Dispose function that cleans up this effect and all children
   const dispose = () => {
     if (isDisposed) return;
     isDisposed = true;
-    
-    // Dispose all child effects first
-    context.children.forEach(childDispose => {
-      childDispose();
-    });
-    context.children.clear();
 
-    // Unsubscribe from dependencies
-    unsubscribers.forEach((unsub) => {
-      unsub();
-    });
-    unsubscribers = [];
-    
-    // Call cleanup function
+    if (getCurrentOwner()) {
+      getCurrentOwner()!.effects.delete(dispose);
+    }
+
     if (typeof cleanup === 'function') {
       cleanup();
     }
+    cleanup = undefined;
 
-    // Remove from parent's children set if we have an owner
-    if (currentOwner) {
-      currentOwner.children.delete(dispose);
-    }
+    disposeOwner(childOwner);
   };
-  context.dispose = dispose;
 
-  // Function to run the effect and update subscriptions
+  if (getCurrentOwner()) {
+    getCurrentOwner()!.effects.add(dispose);
+  }
+
   const runEffect = () => {
     if (isDisposed) return;
 
-    // If already running, defer this run until current one completes
     if (isRunning) {
       pendingRun = true;
       return;
@@ -336,68 +572,48 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
 
     isRunning = true;
 
-    // Loop to stabilize when effects trigger themselves
     let iterations = 0;
     const MAX_ITERATIONS = 100;
 
     while (iterations < MAX_ITERATIONS) {
       pendingRun = false;
 
-      // Dispose all child effects before re-running
-      context.children.forEach(childDispose => {
-        childDispose();
-      });
-      context.children.clear();
-
-      // Unsubscribe from previous dependencies
-      for (let i = 0; i < unsubscribers.length; i++) {
-        unsubscribers[i]!();
-      }
-      unsubscribers = [];
-
-      // Call previous cleanup if present
       if (typeof cleanup === 'function') {
         cleanup();
-        cleanup = undefined;
       }
+      cleanup = undefined;
 
-      // Push this effect onto the owner stack
-      const previousOwner = currentOwner;
-      currentOwner = context;
-      ownerStack.push(context);
+      unsubscribers.forEach(u => u());
+      unsubscribers = [];
 
-      // Track dependencies during effect run
-      const oldTracking = isTracking;
-      isTracking = true;
+      const previousOwner = getCurrentOwner();
+      setCurrentOwner(childOwner);
+      getOwnerStack().push(childOwner);
+
+      const oldTracking = getIsTracking();
+      setIsTracking(true);
       pushTrackingFrame();
 
-      // Mark that we're inside an effect for onMount detection
       setInsideEffect(true);
 
       try {
-        // Run effect
         cleanup = effectFn();
       } finally {
-        // Reset tracking and effect flag
-        isTracking = oldTracking;
+        setIsTracking(oldTracking);
         setInsideEffect(false);
-        
-        // Pop this effect from the owner stack
-        ownerStack.pop();
-        currentOwner = previousOwner;
+
+        getOwnerStack().pop();
+        setCurrentOwner(previousOwner);
       }
 
-      // Subscribe to all accessed signals
       const dependencies = Array.from(popTrackingFrame());
 
       unsubscribers = dependencies.map(dep =>
         dep.subscribe(() => {
-          // Trigger effect to run (will be deferred if currently running)
           runEffect();
         })
       );
 
-      // If no new run was triggered during execution, we're done
       if (!pendingRun) {
         break;
       }
@@ -406,22 +622,14 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
     }
 
     if (iterations >= MAX_ITERATIONS) {
-      console.error('createEffect: Maximum iterations reached - possible infinite loop in effect');
-      pendingRun = false;
+      throw new Error('createEffect: Maximum iterations reached - possible infinite loop in effect');
     }
 
     isRunning = false;
   };
 
-  // Register this effect with the current owner (if any)
-  if (currentOwner) {
-    currentOwner.children.add(dispose);
-  }
-
-  // Initial run (synchronous)
   runEffect();
 
-  // Return cleanup function
   return dispose;
 }
 
@@ -430,12 +638,12 @@ export function createEffect(effectFn: () => void | (() => void)): () => void {
  * Useful for reading signals inside effects without creating dependencies
  */
 export function untrack<T>(fn: () => T): T {
-  const wasTracking = isTracking;
-  isTracking = false;
+  const wasTracking = getIsTracking();
+  setIsTracking(false);
   try {
     return fn();
   } finally {
-    isTracking = wasTracking;
+    setIsTracking(wasTracking);
   }
 }
 
@@ -450,7 +658,7 @@ export function getAccessor<T>(value: Signal<T>): Accessor<T>;
 export function getAccessor<T>(value: Accessor<T>): Accessor<T>;
 export function getAccessor(value: unknown): Accessor<unknown> | undefined;
 export function getAccessor<T>(value: Signal<T> | Accessor<T> | unknown): Accessor<T> | Accessor<unknown> | undefined {
-  if (Array.isArray(value) && value.length === 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
+  if (Array.isArray(value) && value.length >= 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
     return value[0] as Accessor<T>;
   }
   if (isAccessor(value)) return value;
@@ -460,7 +668,7 @@ export function getAccessor<T>(value: Signal<T> | Accessor<T> | unknown): Access
 export function getSetter<T>(value: Signal<T>): (v: T | ((prev: T) => T)) => () => void;
 export function getSetter(value: unknown): ((v: unknown | ((prev: unknown) => unknown)) => () => void) | undefined;
 export function getSetter<T>(value: Signal<T> | unknown): ((v: T | ((prev: T) => T)) => () => void) | ((v: unknown | ((prev: unknown) => unknown)) => () => void) | undefined {
-  if (Array.isArray(value) && value.length === 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
+  if (Array.isArray(value) && value.length >= 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
     return value[1] as (v: T | ((prev: T) => T)) => () => void;
   }
   return undefined;
@@ -474,9 +682,98 @@ export function unwrapSignal<T>(value: Accessor<T>): T;
 export function unwrapSignal<T>(value: T): T;
 export function unwrapSignal(value: unknown): unknown;
 export function unwrapSignal<T>(value: T | Signal<T> | Accessor<T>): unknown {
-  if (Array.isArray(value) && value.length === 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
+  if (Array.isArray(value) && value.length >= 2 && typeof value[0] === 'function' && typeof value[1] === 'function') {
     return (value[0] as Accessor<T>)();
   }
   if (isAccessor(value)) return value();
   return value;
+}
+
+export function isInsideEffect(): boolean {
+  return getInsideEffect();
+}
+
+export function onMount(fn: () => void | (() => void)): void {
+  const owner = getOwner();
+  if (!owner) {
+    throw new Error(
+      'onMount must be called within a component. ' +
+      'Make sure you are calling onMount inside a component function.'
+    );
+  }
+
+  if (getInsideEffect()) {
+    throw new Error(
+      'onMount cannot be called inside createEffect. ' +
+      'onMount is for component lifecycle. ' +
+      'Use the cleanup return value from createEffect for effect cleanup.'
+    );
+  }
+
+  owner.mountCallbacks.add(fn);
+}
+
+export function onCleanup(fn: () => void): void {
+  const owner = getOwner();
+  if (owner) {
+    owner.cleanups.add(fn);
+  }
+}
+
+export function runWithContext<T>(fn: () => T): T {
+  const owner = getOwner();
+  if (owner) {
+    return runWithOwner(owner, fn);
+  }
+  return fn();
+}
+
+export function flushMounts(): void {
+  const safeRun = (fn: () => void | (() => void), mountCleanups: Set<() => void>) => {
+    try {
+      const cleanup = fn();
+      if (typeof cleanup === 'function') {
+        mountCleanups.add(cleanup);
+      }
+    } catch (error) {
+      console.error('onMount error:', error);
+    }
+  };
+
+  for (const owner of getOwnerStack()) {
+    if (!owner.mounted) {
+      owner.mounted = true;
+      for (const callback of owner.mountCallbacks) {
+        safeRun(callback, owner.mountCleanups);
+      }
+    }
+  }
+}
+
+/**
+ * Run a function within an SSR request context
+ * Creates isolated state for each request
+ */
+export function runWithSSRContext<T>(fn: () => T): T {
+  if (!asyncLocalStorage) {
+    return fn();
+  }
+
+  const context = createDefaultContext();
+  return asyncLocalStorage.run(context, fn);
+}
+
+/**
+ * Reset the reactive context (for testing)
+ */
+export function resetReactiveContext(): void {
+  const ctx = getContext();
+  ctx.trackingStack = [];
+  ctx.ownerStack = [];
+  ctx.currentOwner = null;
+  ctx.globalSignalRegistry.clear();
+  ctx.ownerIdCounter = 0;
+  ctx.templateCounter = 0;
+  ctx.isTracking = false;
+  ctx.insideEffect = false;
 }

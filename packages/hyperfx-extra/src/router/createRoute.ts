@@ -35,7 +35,7 @@ export interface RouteDefinition<
 > {
   readonly path: Path;
   readonly view: FunctionComponent<any>;
-  readonly _parsed: ReturnType<typeof import("./path").parsePath>;
+  readonly _parsed: ReturnType<typeof parsePath>;
   readonly _paramsValidator?: RawParams;
   readonly _searchValidator?: RawSearch;
 }

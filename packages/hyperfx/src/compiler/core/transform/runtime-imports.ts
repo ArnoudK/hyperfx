@@ -37,6 +37,7 @@ export function addRuntimeImports(
   if (code.includes('_$findMarker')) usedHelpers.add('findMarker');
   if (code.includes('_$unwrapProps')) usedHelpers.add('unwrapProps');
   if (code.includes('_$unwrapComponent')) usedHelpers.add('unwrapComponent');
+  if (code.includes('_$createComponent')) usedHelpers.add('createComponent');
 
   if (usedHelpers.size > 0) {
     const helperNames: string[] = [];

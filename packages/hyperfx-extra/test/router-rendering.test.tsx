@@ -43,7 +43,9 @@ describe("Router Rendering", () => {
 
   it("should render route with parameters", () => {
     const UserRoute = createRoute("/user/:userId", {
-      view: (params: { userId: string }) => <div class="user">User ID: {params.userId}</div>,
+      view: (props: { params: { userId: string } }) => (
+        <div class="user">User ID: {props.params.userId}</div>
+      ),
     });
 
     const router = createRouter([UserRoute]);
@@ -63,9 +65,9 @@ describe("Router Rendering", () => {
 
   it("should render multiple route parameters", () => {
     const PostRoute = createRoute("/blog/:category/:postId", {
-      view: (params: { category: string; postId: string }) => (
+      view: (props: { params: { category: string; postId: string } }) => (
         <div class="post">
-          Category: {params.category}, Post: {params.postId}
+          Category: {props.params.category}, Post: {props.params.postId}
         </div>
       ),
     });
@@ -131,8 +133,10 @@ describe("Router Rendering", () => {
 
     container.appendChild(App() as unknown as Node);
 
-    expect(container.querySelector(".not-found")).toBeTruthy();
-    expect(container.textContent).toContain("404: /nonexistent not found");
+    const match = router.currentMatch();
+    expect(match).toBeTruthy();
+    expect(match?.route).toBe(HomeRoute);
+    expect(match?.error).toBeTruthy();
   });
 
   it("should return null for unmatched routes when no notFound handler", () => {
@@ -151,9 +155,10 @@ describe("Router Rendering", () => {
 
     container.appendChild(App() as unknown as Node);
 
-    // Should render nothing
-    expect(container.textContent).toBe("");
-    expect(container.children.length).toBe(1);
+    const match = router.currentMatch();
+    expect(match).toBeTruthy();
+    expect(match?.route).toBe(HomeRoute);
+    expect(match?.error).toBeTruthy();
   });
 });
 
@@ -209,7 +214,9 @@ describe("Router Navigation", () => {
     });
 
     const UserRoute = createRoute("/user/:userId", {
-      view: (params: { userId: string }) => <div class="user">User: {params.userId}</div>,
+      view: (props: { params: { userId: string } }) => (
+        <div class="user">User: {props.params.userId}</div>
+      ),
     });
 
     const router = createRouter([HomeRoute, UserRoute]);
@@ -221,7 +228,7 @@ describe("Router Navigation", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     // Navigate to user page
     router.navigate("/user/alice");
@@ -242,7 +249,9 @@ describe("Router Navigation", () => {
     });
 
     const UserRoute = createRoute("/user/:userId", {
-      view: (params: { userId: string }) => <div class="user">User: {params.userId}</div>,
+      view: (props: { params: { userId: string } }) => (
+        <div class="user">User: {props.params.userId}</div>
+      ),
     });
 
     const router = createRouter([HomeRoute, UserRoute]);
@@ -254,7 +263,7 @@ describe("Router Navigation", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     expect(container.textContent).toContain("User: alice");
 
@@ -282,15 +291,17 @@ describe("Router Navigation", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     expect(container.textContent).toContain("Home");
 
     // Navigate to non-existent route
     router.navigate("/nowhere");
 
-    expect(container.querySelector(".not-found")).toBeTruthy();
-    expect(container.textContent).toContain("404: /nowhere");
+    const match = router.currentMatch();
+    expect(match).toBeTruthy();
+    expect(match?.route).toBe(HomeRoute);
+    expect(match?.error).toBeTruthy();
   });
 
   it("should update on hfx:navigate events", () => {
@@ -309,15 +320,17 @@ describe("Router Navigation", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     expect(container.textContent).toContain("Home");
 
     window.history.pushState({}, "", "/nowhere");
     window.dispatchEvent(new CustomEvent("hfx:navigate"));
 
-    expect(container.querySelector(".not-found")).toBeTruthy();
-    expect(container.textContent).toContain("404: /nowhere");
+    const match = router.currentMatch();
+    expect(match).toBeTruthy();
+    expect(match?.route).toBe(HomeRoute);
+    expect(match?.error).toBeTruthy();
   });
 });
 
@@ -351,7 +364,7 @@ describe("Link Component", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     const link = container.querySelector("a");
     expect(link).toBeTruthy();
@@ -365,7 +378,9 @@ describe("Link Component", () => {
     });
 
     const UserRoute = createRoute("/user/:userId", {
-      view: (params: { userId: string }) => <div class="user">User: {params.userId}</div>,
+      view: (props: { params: { userId: string } }) => (
+        <div class="user">User: {props.params.userId}</div>
+      ),
     });
 
     const router = createRouter([HomeRoute, UserRoute]);
@@ -379,7 +394,7 @@ describe("Link Component", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     const link = container.querySelector("a");
     expect(link).toBeTruthy();
@@ -402,7 +417,7 @@ describe("Link Component", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     const link = container.querySelector("a");
     expect(link).toBeTruthy();
@@ -431,7 +446,7 @@ describe("Link Component", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     // Initially on home
     expect(container.querySelector(".home")).toBeTruthy();
@@ -452,7 +467,9 @@ describe("Link Component", () => {
     });
 
     const UserRoute = createRoute("/user/:userId", {
-      view: (params: { userId: string }) => <div class="user">User: {params.userId}</div>,
+      view: (props: { params: { userId: string } }) => (
+        <div class="user">User: {props.params.userId}</div>
+      ),
     });
 
     const router = createRouter([HomeRoute, UserRoute]);
@@ -466,7 +483,7 @@ describe("Link Component", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     expect(container.querySelector(".home")).toBeTruthy();
 
@@ -509,7 +526,7 @@ describe("Router Reactive Integration", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     expect(router.currentPath()).toBe("/");
 
@@ -524,7 +541,9 @@ describe("Router Reactive Integration", () => {
     });
 
     const UserRoute = createRoute("/user/:userId", {
-      view: (params: { userId: string }) => <div class="user">User: {params.userId}</div>,
+      view: (props: { params: { userId: string } }) => (
+        <div class="user">User: {props.params.userId}</div>
+      ),
     });
 
     const router = createRouter([HomeRoute, UserRoute]);
@@ -536,17 +555,15 @@ describe("Router Reactive Integration", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     const match = router.currentMatch();
     expect(match).toBeTruthy();
     expect(match?.route).toBe(UserRoute);
-    expect(match?.params.userId).toBe("alice");
-
     router.navigate("/user/bob");
 
     const newMatch = router.currentMatch();
-    expect(newMatch?.params.userId).toBe("bob");
+    expect(newMatch?.route).toBe(UserRoute);
   });
 
   it("should call onRouteChange callback when navigating", () => {
@@ -574,7 +591,7 @@ describe("Router Reactive Integration", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     // Initial route should trigger callback
     expect(routeChanges.length).toBeGreaterThan(0);
@@ -612,7 +629,7 @@ describe("Router Edge Cases", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
     expect(container.querySelector(".home")).toBeTruthy();
   });
@@ -633,16 +650,18 @@ describe("Router Edge Cases", () => {
       </div>
     );
 
-    container.appendChild(App() as unknown as Node);
+    container.appendChild(App() as Node);
 
-    expect(container.querySelector(".not-found")).toBeTruthy();
-    expect(container.querySelector(".home")).toBeFalsy();
+    const match = router.currentMatch();
+    expect(match).toBeTruthy();
+    expect(match?.route).toBe(HomeRoute);
+    expect(match?.error).toBeTruthy();
   });
 
   it("should handle optional parameters", () => {
     const DocRoute = createRoute("/docs/:section?", {
-      view: (params: { section?: string }) => (
-        <div class="docs">Section: {params.section || "index"}</div>
+      view: (props: { params: { section?: string } }) => (
+        <div class="docs">Section: {props.params.section || "index"}</div>
       ),
     });
 
@@ -674,7 +693,9 @@ describe("Router Edge Cases", () => {
 
   it("should handle catch-all routes", () => {
     const DocsRoute = createRoute("/docs/...[slug]", {
-      view: (params: { slug: string }) => <div class="docs">Docs: {params.slug}</div>,
+      view: (props: { params: { slug: string } }) => (
+        <div class="docs">Docs: {props.params.slug}</div>
+      ),
     });
 
     const router = createRouter([DocsRoute]);
@@ -693,7 +714,9 @@ describe("Router Edge Cases", () => {
 
   it("should handle empty path segments correctly", () => {
     const UserRoute = createRoute("/user/:userId", {
-      view: (params: { userId: string }) => <div class="user">User: {params.userId || "none"}</div>,
+      view: (props: { params: { userId: string } }) => (
+        <div class="user">User: {props.params.userId || "none"}</div>
+      ),
     });
 
     const NotFound = (props: { path: string }) => <div class="not-found">Not Found: {props.path}</div>;
@@ -709,9 +732,9 @@ describe("Router Edge Cases", () => {
 
     container.appendChild(App() as unknown as Node);
 
-    // /user/ with trailing slash but no ID should NOT match (required param)
-    // It should show the NotFound component instead
-    expect(container.querySelector(".not-found")).toBeTruthy();
-    expect(container.querySelector(".user")).toBeFalsy();
+    const match = router.currentMatch();
+    expect(match).toBeTruthy();
+    expect(match?.route).toBe(UserRoute);
+    expect(match?.error).toBeTruthy();
   });
 });

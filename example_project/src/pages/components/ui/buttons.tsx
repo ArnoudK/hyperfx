@@ -31,12 +31,14 @@ export function Button(
     }
 ) {
 
-    const classes = createComputed(() => [
+    const classes = createComputed(() => {
+        return [
         baseClasses,
         variantClasses[props.variant || "primary"],
         sizeClasses[props.size || "medium"],
         props.disabled ? "opacity-50 cursor-not-allowed" : "",
-    ].join(" "));
+    ].join(" ");
+    });
     return (
         <button
             class={classes()}
