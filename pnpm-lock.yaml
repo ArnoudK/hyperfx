@@ -210,6 +210,9 @@ importers:
       hyperfx:
         specifier: workspace:*
         version: link:../packages/hyperfx
+      hyperfx-extra:
+        specifier: workspace:*
+        version: link:../packages/hyperfx-extra
       nitro:
         specifier: 3.0.1-alpha.2
         version: 3.0.1-alpha.2(chokidar@4.0.3)(ioredis@5.8.2)(rollup@4.53.5)(vite@7.3.0(@types/node@20.19.27)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.20.3)(yaml@2.7.1))

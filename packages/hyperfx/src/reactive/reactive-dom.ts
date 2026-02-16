@@ -316,7 +316,7 @@ export function measureReactivePerformance<T>(
   const result = fn();
   const end = performance.now();
 
-  console.log(`[HyperFX] ${name}: ${(end - start).toFixed(2)}ms`);
+  console.debug(`[HyperFX] ${name}: ${(end - start).toFixed(2)}ms`);
   return result;
 }
 

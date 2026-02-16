@@ -100,16 +100,16 @@ const assets = {
   "/style.css": {
     "type": "text/css; charset=utf-8",
     "etag": '"17-JNp3LsxU6kzN3nYbbCu3gNWXXI4"',
-    "mtime": "2026-01-30T23:40:41.213Z",
+    "mtime": "2026-02-15T15:08:17.928Z",
     "size": 23,
     "path": "../public/style.css"
   },
-  "/assets/client-DJZo2HeN.js": {
+  "/assets/client-BH5lhikG.js": {
     "type": "text/javascript; charset=utf-8",
-    "etag": '"9229-pzVLtUAc3XKmIWac5SqpWgo+a7g"',
-    "mtime": "2026-01-30T23:40:41.230Z",
-    "size": 37417,
-    "path": "../public/assets/client-DJZo2HeN.js"
+    "etag": '"daf0-gBHP6PQPViAVp0Jq5AZSeHpmIPY"',
+    "mtime": "2026-02-15T15:08:17.964Z",
+    "size": 56048,
+    "path": "../public/assets/client-BH5lhikG.js"
   }
 };
 function readAsset(id) {
@@ -136,7 +136,7 @@ const EncodingMap = {
   gzip: ".gz",
   br: ".br"
 };
-const _ppyT4o = defineHandler((event) => {
+const _ccD2mz = defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method)) {
     return;
   }
@@ -207,17 +207,17 @@ const findRouteRules = /* @__PURE__ */ (() => {
     return r;
   };
 })();
-const _lazy_JPiwvX = defineLazyEventHandler(() => Promise.resolve().then(function() {
+const _lazy_UZovM4 = defineLazyEventHandler(() => Promise.resolve().then(function() {
   return ssrRenderer$1;
 }));
 const findRoute = /* @__PURE__ */ (() => {
-  const data = { route: "/**", handler: _lazy_JPiwvX };
+  const data = { route: "/**", handler: _lazy_UZovM4 };
   return ((_m, p) => {
     return { data, params: { "_": p.slice(1) } };
   });
 })();
 const globalMiddleware = [
-  toEventHandler(_ppyT4o)
+  toEventHandler(_ccD2mz)
 ].filter(Boolean);
 const APP_ID = "default";
 function useNitroApp() {

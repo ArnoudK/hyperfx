@@ -1,5 +1,12 @@
 import { createSignal, createComputed, For, Show } from 'hyperfx';
 import { TopNav } from '../components/topnav';
+import { createRoute } from 'hyperfx-extra';
+
+
+export const ProductsRoute = createRoute(
+    '/products', {
+        view: ProductsPage
+})
 
 // Product data
 interface Product {
@@ -42,7 +49,7 @@ const products: Product[] = [
 ];
 
 // Shopping cart state
-const cart = createSignal<Product[]>([]);
+const [cart, setCart] = createSignal<Product[]>([]);
 const cartTotal = createComputed(() =>
   cart().reduce((total, product) => total + product.price, 0)
 );
@@ -56,20 +63,20 @@ const isCartEmpty = createComputed(() => cartItemCount() === 0);
 function addToCart(product: Product) {
   const currentCart = cart();
   if (!currentCart.find(item => item.id === product.id)) {
-    cart([...currentCart, product]);
+    setCart([...currentCart, product]);
   }
 }
 
 function removeFromCart(productId: number) {
   const currentCart = cart();
-  cart(currentCart.filter(item => item.id !== productId));
+  setCart(currentCart.filter(item => item.id !== productId));
 }
 
 function clearCart() {
-  cart([]);
+  setCart([]);
 }
 
-export default function ProductsPage() {
+export function ProductsPage() {
   return (
     <div class="min-h-screen bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       <TopNav />
@@ -170,7 +177,7 @@ export default function ProductsPage() {
                 );
 
                 return (
-                  <article key={product.id} class="bg-linear-to-br from-gray-800/80 to-gray-700/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-600/50 hover:border-blue-500/50 transition-all duration-300 group hover:transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/10">
+                  <article class="bg-linear-to-br from-gray-800/80 to-gray-700/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-600/50 hover:border-blue-500/50 transition-all duration-300 group hover:transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/10">
                     <header class="mb-6">
                       <div class="flex justify-between items-start mb-4">
                         <h3 class="text-2xl font-semibold text-blue-400 group-hover:text-blue-300 transition-colors duration-300">

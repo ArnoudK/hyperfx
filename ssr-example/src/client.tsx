@@ -1,6 +1,6 @@
 // Client-side hydration and routing
-import { Router, Route, hydrate, isHydratable } from 'hyperfx';
-import { routes, getAllRoutePaths } from './routes/config';
+import {  hydrate, isHydratable } from 'hyperfx';
+import { App } from './app';
 
 /**
  * Initialize client-side app with hydration and routing
@@ -20,33 +20,16 @@ function initializeClient(): void {
             return;
         }
 
-        // Pre-compute route paths to avoid issues in minified code
-        const routePaths = getAllRoutePaths();
-
-        // Create the app component tree (must match server exactly)
-        // Note: Server renders <div id="app">...</div>, so we hydrate inside it
-        const ClientApp = () => {
-            return (
-                <Router initialPath={window.location.pathname}>
-                    {() => (
-                        <>
-                            {routePaths.map(path => {
-                                const route = routes[path];
-                                return <Route path={path} component={route.component} exact={path === '/'} />;
-                            })}
-                        </>
-                    )}
-                </Router>
-            );
-        };
+    
+    
 
         // Check if we have SSR content to hydrate
         if (isHydratable(appElement)) {
             // Hydrate server-rendered content inside #app
-            hydrate(appElement, ClientApp);
+            hydrate(appElement, ()=> <App pathname={window.location.pathname} />);
         } else {
             // No SSR content, perform client-side mount
-            appElement.appendChild(ClientApp());
+            appElement.appendChild(<App pathname={window.location.pathname} /> as Node);
         }
 
     } catch (error: unknown) {

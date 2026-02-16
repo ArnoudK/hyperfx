@@ -1,25 +1,29 @@
 import { createSignal } from 'hyperfx';
 import { TopNav } from '../components/topnav';
+import { createRoute } from 'hyperfx-extra';
 
 
 
 
 
+export const HomeRoute = createRoute(
+    '/', {
+        view: HomePage
+})
 
-
-export default function HomePage() {
-    const count = createSignal<number>(0, { key: 'homepage-counter' });
+export function HomePage() {
+    const [count, setCount] = createSignal<number>(0, { key: 'homepage-counter' });
 
     const increment = () => {
-        count(count() + 1);
+        setCount(count() + 1);
     };
 
     const decrement = () => {
-        count(count() - 1);
+        setCount(count() - 1);
     };
 
     const reset = () => {
-        count(0);
+        setCount(0);
     };
 
     return (

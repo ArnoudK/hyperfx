@@ -1,4 +1,7 @@
-import { Link } from "hyperfx";
+import { Link } from '../app';
+import { AboutRoute } from '../routes/about';
+import { HomeRoute } from '../routes/homepage';
+import { ProductsRoute } from '../routes/products';
 
 export function TopNav() {
     return (
@@ -6,7 +9,7 @@ export function TopNav() {
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <nav class="flex justify-center space-x-12 py-6" role="navigation" aria-label="Main navigation">
                     <Link
-                        to="/"
+                        to={HomeRoute}
                         class="group text-blue-400 hover:text-blue-300 transition-all duration-300 text-lg font-medium relative"
                     >
                         <span class="flex items-center gap-2">
@@ -16,7 +19,7 @@ export function TopNav() {
                         <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-linear-to-r from-blue-400 to-cyan-400 group-hover:w-full transition-all duration-300"></span>
                     </Link>
                     <Link
-                        to="/about"
+                        to={AboutRoute}
                         class="group text-blue-400 hover:text-blue-300 transition-all duration-300 text-lg font-medium relative"
                     >
                         <span class="flex items-center gap-2">
@@ -26,7 +29,7 @@ export function TopNav() {
                         <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-linear-to-r from-blue-400 to-cyan-400 group-hover:w-full transition-all duration-300"></span>
                     </Link>
                     <Link
-                        to="/products"
+                        to={ProductsRoute}
                         class="group text-blue-400 hover:text-blue-300 transition-all duration-300 text-lg font-medium relative"
                     >
                         <span class="flex items-center gap-2">

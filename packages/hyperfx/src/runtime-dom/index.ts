@@ -40,9 +40,9 @@ export function unwrapComponent<T>(result: T): (() => T) | T {
     const wrapper = () => accessor();
     // Copy subscribe method so it's treated as an accessor
     if (accessor.subscribe) {
-      (wrapper as Accessor<T>).subscribe = accessor.subscribe.bind(accessor);
+      (wrapper as Accessor<T  >).subscribe = accessor.subscribe.bind(accessor);
     }
-    (wrapper as any).__isComponentResult = true;
+    (wrapper as Accessor<T> & { __isComponentResult?: true }).__isComponentResult = true;
     return wrapper;
   }
   return result;
@@ -52,19 +52,32 @@ export function unwrapComponent<T>(result: T): (() => T) | T {
  * Component cache for createComponent
  * Maps component function + props key to cached result
  */
-const componentCache = new WeakMap<Function, Map<string, { props: any; result: any; dispose: (() => void) | null }>>();
+type CachedComponentResult = {
+  props: Record<string, unknown>;
+  result: unknown;
+  dispose: (() => void) | null;
+};
+
+const componentCache = new WeakMap<Function, Map<string, CachedComponentResult>>();
 
 /**
  * Create a component with proper memoization
  * Components are only re-executed when props change (shallow comparison)
  * This prevents computed signals from being recreated on every parent render
  */
-export function createComponent<P extends Record<string, any>>(
-  Component: (props: P) => any,
+export function createComponent<P extends Record<string, unknown>, R>(
+  Component: (props: P) => R,
   props: P
-): any {
+): R {
   // Execute component
   const result = Component(props);
+
+  // Never cache DOM results.
+  // Reusing cached nodes across distinct renders (e.g. SSR -> hydration)
+  // causes stale component instances and breaks hydration correctness.
+  if (typeof Node !== 'undefined' && result instanceof Node) {
+    return result;
+  }
   
   // Don't cache reactive results (signals/accessors) as they manage their own state
   // and caching would return stale DOM elements on re-render
@@ -103,7 +116,7 @@ export function createComponent<P extends Record<string, any>>(
       }
     }
     if (!propsChanged) {
-      return cached.result;
+      return cached.result as R;
     }
     // Props changed, dispose old component
     if (cached.dispose) {
@@ -437,26 +450,73 @@ function insertExpression(
 
   // Handle accessors (callable signals) - create reactive effect for accessor values
   if (isAccessor(value)) {
-    // For accessors, we need to create an effect that updates the text node
-    const textNode = document.createTextNode(String(value()));
-    const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
-    parent.insertBefore(textNode, insertBeforeNode);
+    const initialResult = value();
     
-    // Create effect to update when accessor changes
-    const stop = createEffect(() => {
-      textNode.data = String(value());
-    });
-    
-    if (parent instanceof Element) {
-      addElementSubscription(parent, stop);
-    }
+    // Check if accessor returns DOM nodes
+    if (initialResult instanceof Node) {
+      // Accessor returns DOM nodes - need to handle insertion/replacement
+      const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+      parent.insertBefore(initialResult, insertBeforeNode);
+      
+      let currentNode: Node = initialResult;
+      
+      // Create effect to handle node replacement when accessor changes
+      const stop = createEffect(() => {
+        const newResult = value();
+        if (newResult !== currentNode) {
+          if (newResult instanceof Node) {
+            // Replace with new DOM node
+            if (currentNode.parentNode === parent) {
+              parent.replaceChild(newResult, currentNode);
+            } else {
+              parent.insertBefore(newResult, insertBeforeNode);
+            }
+            currentNode = newResult;
+          } else {
+            // Accessor now returns primitive - convert to text node
+            const textNode = document.createTextNode(String(newResult));
+            if (currentNode.parentNode === parent) {
+              parent.replaceChild(textNode, currentNode);
+            } else {
+              parent.insertBefore(textNode, insertBeforeNode);
+            }
+            currentNode = textNode;
+          }
+        }
+      });
+      
+      if (parent instanceof Element) {
+        addElementSubscription(parent, stop);
+      }
 
-    const hasDestroy = typeof value.destroy === 'function';
-    if (hasDestroy && parent instanceof Element) {
-      addElementSignal(parent, value);
+      const hasDestroy = typeof value.destroy === 'function';
+      if (hasDestroy && parent instanceof Element) {
+        addElementSignal(parent, value);
+      }
+      
+      return currentNode;
+    } else {
+      // Accessor returns primitives - use text node approach
+      const textNode = document.createTextNode(String(initialResult));
+      const insertBeforeNode = (marker && marker.parentNode === parent) ? marker : null;
+      parent.insertBefore(textNode, insertBeforeNode);
+      
+      // Create effect to update when accessor changes
+      const stop = createEffect(() => {
+        textNode.data = String(value());
+      });
+      
+      if (parent instanceof Element) {
+        addElementSubscription(parent, stop);
+      }
+
+      const hasDestroy = typeof value.destroy === 'function';
+      if (hasDestroy && parent instanceof Element) {
+        addElementSignal(parent, value);
+      }
+      
+      return { _node: textNode, toString: () => textNode.data, _cleanup: stop };
     }
-    
-    return { _node: textNode, toString: () => textNode.data, _cleanup: stop };
   }
 
   // Handle primitives (string, number, boolean)

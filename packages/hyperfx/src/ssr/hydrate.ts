@@ -198,6 +198,12 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
   try {
     // Execute the component logic - creates a fresh client tree with handlers
     const clientRoot = factory();
+    
+    // Debug logging
+    // console.log('[Hydrate Debug] clientRoot type:', clientRoot?.constructor?.name);
+    // console.log('[Hydrate Debug] clientRoot nodeType:', (clientRoot as any)?.nodeType);
+    // console.log('[Hydrate Debug] clientRoot children:', (clientRoot as any)?.childNodes?.length);
+    // console.log('[Hydrate Debug] clientRoot innerHTML:', (clientRoot as any)?.innerHTML);
 
     let clientNodes: Node[];
 
@@ -208,6 +214,9 @@ export function hydrate(container: Element, factory: () => JSXElement): void {
     } else {
       throw new Error('Factory must return a Node or DocumentFragment for hydration');
     }
+    
+    // console.log('[Hydrate Debug] clientNodes length:', clientNodes.length);
+    // console.log('[Hydrate Debug] serverChildren length:', serverChildren.length);
 
     if (clientNodes.length !== serverChildren.length) {
       console.warn(`[HyperFX] Root element count mismatch: client=${clientNodes.length}, server=${serverChildren.length}`);

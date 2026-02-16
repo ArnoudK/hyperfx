@@ -1,11 +1,11 @@
-import { renderToString, renderHydrationData, Router, Route,  enableSSRMode, disableSSRMode } from "hyperfx";
-import { routes, getAllRoutePaths } from "./routes/config";
+import { renderToString, renderHydrationData,  enableSSRMode, disableSSRMode, SSRNode } from "hyperfx";
+
 import { createDocument } from "./lib/document";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 import styles from './styles.css?url';
-import { App } from "./app";
+import { App, router } from "./app";
 
 // Cache the client script path
 let clientScriptPath: string | null = null;
@@ -50,7 +50,7 @@ export default {
    
     const appElement = <App pathname={pathname}  />;
     
-    const { html, hydrationData } = renderToString(appElement, { 
+    const { html, hydrationData } = renderToString(appElement as SSRNode, { 
       ssrHydration: true
     });
     const hydrationScript = renderHydrationData(hydrationData);
@@ -58,17 +58,14 @@ export default {
     disableSSRMode();
 
     // Determine title and description from route
-    const route = routes[pathname];
-    const title = route?.title || '404 - Page Not Found';
-    const description = route?.description || 'The requested page could not be found.';
-
+    
     // Get client script path
     const clientScript = await getClientScriptPath();
 
     // Create full HTML document
     const documentHtml = createDocument({
-      title,
-      description,
+      'title': 'HyperFX SSR Example',
+      'description': 'A server-side rendered example using HyperFX',
       body: html,
       hydrationScript,
       styles,

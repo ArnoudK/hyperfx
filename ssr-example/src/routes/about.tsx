@@ -1,36 +1,42 @@
 import { createSignal, createComputed, For } from 'hyperfx';
 import { TopNav } from '../components/topnav';
+import { createRoute } from 'hyperfx-extra';
 
 // State using HyperFX signals
-const featureList = createSignal(['SSR', 'Hydration', 'Routing', 'Reactivity']);
-const newFeature = createSignal('');
+const [featureList, setFeatureList] = createSignal(['SSR', 'Hydration', 'Routing', 'Reactivity']);
+const [newFeature, setNewFeature] = createSignal('');
 const featureCount = createComputed(() => featureList().length);
 
 // Actions
 function addFeature() {
     const feature = newFeature().trim();
     if (feature) {
-        featureList([...featureList(), feature]);
-        newFeature('');
+        setFeatureList([...featureList(), feature]);
+        setNewFeature('');
     }
 }
 
 function removeFeature(index: number) {
     const features = featureList();
-    featureList([...features.slice(0, index), ...features.slice(index + 1)]);
+    setFeatureList([...features.slice(0, index), ...features.slice(index + 1)]);
 }
 
 function updateNewFeature(event: Event) {
     const value = (event.target as HTMLInputElement).value;
-    newFeature(value);
+    setNewFeature(value);
 }
 
 function resetFeatures() {
-    featureList(['SSR', 'Hydration', 'Routing', 'Reactivity']);
-    newFeature('');
+    setFeatureList(['SSR', 'Hydration', 'Routing', 'Reactivity']);
+    setNewFeature('');
 }
 
-export default function AboutPage() {
+export const AboutRoute = createRoute(
+    '/about', {
+        view: AboutPage
+})
+
+export function AboutPage() {
     return (
         <div class="min-h-screen bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
             <TopNav />
