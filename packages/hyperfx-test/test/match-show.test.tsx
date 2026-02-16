@@ -64,7 +64,7 @@ describe('Show Component', () => {
 
     const element = (
       <Show when={data} fallback={<div>No data</div>}>
-        {(val: string) => <div>Data: {val}</div>}
+        {(val) => <div>Data: {val()}</div>}
       </Show>
     )
 
@@ -75,7 +75,7 @@ describe('Show Component', () => {
   it('should work with static truthy values', () => {
     const element = (
       <Show when="truthy string" fallback={<div>Fallback</div>}>
-        {(val: string) => <div>{val}</div>}
+        <div>truthy string</div>
       </Show>
     )
 

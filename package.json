@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "turbo run dev",
-    "test": "",
+    "pkg:build": "turbo run build --filter './packages/*'",
+    "pkg:typecheck": "turbo run typecheck --filter './packages/*'",
+    "pkg:test": "turbo run test --filter './packages/*'",
     "lint": "oxlint example_project/src docs/src packages/hyperfx/src"
   },
   "keywords": [],

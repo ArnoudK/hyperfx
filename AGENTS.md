@@ -47,12 +47,13 @@ hyperfx-extra has its own tests, but they are separate from the core hyperfx tes
 
 We use **vitest** for testing. Run tests with:
 ```bash
-pnpm --filter hyperfx-test test
+pnpm pkg:test
 ```
 
-Run specific test file:
+Most usage should be done like this:
 ```bash
-pnpm --filter hyperfx-test test -- test/filename.test.tsx
+pnpm pkg:build && pnpm pkg:test
+
 ```
 
 

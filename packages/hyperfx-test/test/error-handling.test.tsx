@@ -24,7 +24,7 @@ describe('Error Handling for Invalid Signal Values', () => {
     it('should handle undefined signal values gracefully', () => {
       const [undefinedSignal, setUndefinedSignal] = createSignal<string | undefined>(undefined);
       const element = (
-        <div title={undefinedSignal} data-test={undefinedSignal} />
+        <div title={undefinedSignal as any} data-test={undefinedSignal as any} />
       ) as HTMLElement;
 
       container.appendChild(element);
@@ -40,7 +40,7 @@ describe('Error Handling for Invalid Signal Values', () => {
 
     it('should handle null signal values gracefully', () => {
       const [nullSignal, setNullSignal] = createSignal<string | null>(null);
-      const element = <div class={nullSignal} id={nullSignal} /> as HTMLElement;
+      const element = <div class={nullSignal as any} id={nullSignal as any} /> as HTMLElement;
 
       container.appendChild(element);
 
@@ -221,9 +221,10 @@ describe('Error Handling for Invalid Signal Values', () => {
         createSignal({})
       ];
 
-      const elements = signals.map(([getter], index): HTMLElement => (
-        <div data-invalid={getter} data-index={index} />
-      )) as unknown as HTMLElement[];
+      const elements = signals.map(([getter], index) => {
+        const el = (<div data-invalid={getter as any} data-index={index} />) as unknown as HTMLElement;
+        return el;
+      });
 
       elements.forEach((element): void => {
         container.appendChild(element);

@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Effect, Stream } from 'effect'
-import { createAsyncComponent, createSignal, Signal } from 'hyperfx'
+import { createAsyncComponent, createSignal, Accessor } from 'hyperfx'
 
 
 describe('createAsyncComponent (Stream-based)', () => {
@@ -253,7 +253,7 @@ describe('createAsyncComponent (Stream-based)', () => {
     let fetchCount = 0
     const [userIdSignal, setUserIdSignal] = createSignal('user1')
 
-    type Props = { userId: Signal<string> }
+    type Props = { userId: Accessor<string> }
 
     const AsyncComponent = createAsyncComponent(
       (props: Props) => {
@@ -300,7 +300,7 @@ describe('createAsyncComponent (Stream-based)', () => {
     const [userIdSignal, setUserIdSignal] = createSignal('user1')
     const [includeEmailSignal, setIncludeEmailSignal] = createSignal(false)
 
-    type Props = { userId: Signal<string>; includeEmail: Signal<boolean> }
+    type Props = { userId: Accessor<string>; includeEmail: Accessor<boolean> }
 
     const AsyncComponent = createAsyncComponent(
       (props: Props) => {

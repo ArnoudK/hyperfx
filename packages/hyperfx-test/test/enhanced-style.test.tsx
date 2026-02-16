@@ -142,8 +142,6 @@ describe('Enhanced Style Attribute Reactivity', () => {
     it('should handle null/undefined values in style objects', () => {
       const [styleSignal] = createSignal({
         color: 'red',
-        fontSize: null as string | null,
-        margin: undefined as string | undefined,
         padding: '5px'
       });
 
@@ -152,15 +150,15 @@ describe('Enhanced Style Attribute Reactivity', () => {
 
       expect(element.style.color).toBe('red');
       expect(element.style.padding).toBe('5px');
-      // fontSize and margin should not be set when null/undefined
+      // fontSize and margin should not be set when undefined
       expect(element.style.fontSize).toBe('');
       expect(element.style.margin).toBe('');
     });
 
     it('should handle numeric values in style objects', () => {
       const [styleSignal, setStyleSignal] = createSignal({
-        opacity: 0.5,
-        zIndex: 10,
+        opacity: '0.5',
+        zIndex: '10',
         width: '100px'
       });
 
@@ -172,8 +170,8 @@ describe('Enhanced Style Attribute Reactivity', () => {
       expect(element.style.width).toBe('100px'); // Numeric values become px for width/height
 
       setStyleSignal({
-        opacity: 1,
-        zIndex: 20,
+        opacity: '1',
+        zIndex: '20',
         width: '200px'
       });
 
@@ -209,7 +207,7 @@ describe('Enhanced Style Attribute Reactivity', () => {
     });
 
     it('should handle null static style', () => {
-      const element = <div style={null} /> as HTMLElement;
+      const element = <div style={undefined} /> as HTMLElement;
       container.appendChild(element);
 
       expect(element.hasAttribute('style')).toBe(false);

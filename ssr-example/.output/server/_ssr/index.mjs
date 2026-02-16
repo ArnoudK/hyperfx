@@ -1558,7 +1558,7 @@ function createRouter(routes) {
   };
 }
 const HomeRoute = createRoute(
-  "/about",
+  "/",
   {
     view: HomePage
   }

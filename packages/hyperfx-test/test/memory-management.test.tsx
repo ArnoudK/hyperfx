@@ -20,9 +20,9 @@ describe('Memory Management for Signal Subscriptions', () => {
       );
 
       // Create many elements with signals
-      const elements = signals.map(([getter], index): HTMLElement => (
+      const elements = signals.map(([getter], index) => (
         <div id={`element-${index}`} class={getter} title={`title-${index}`} />
-      ));
+      )) as unknown as HTMLElement[];
 
       // Add all elements to DOM
       elements.forEach((element): void => {
@@ -208,9 +208,9 @@ describe('Memory Management for Signal Subscriptions', () => {
       const startTime = performance.now();
 
       // Create many elements with signals
-      const elements = signals.map(([getter], index): HTMLElement => (
+      const elements = signals.map(([getter], index) => (
         <div id={`perf-${index}`} class={getter} />
-      ));
+      )) as unknown as HTMLElement[];
 
       const createEndTime = performance.now();
       const createTime = createEndTime - startTime;

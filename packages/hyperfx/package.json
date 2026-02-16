@@ -102,10 +102,6 @@
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "dev": "tsc -b --watch --preserveWatchOutput",
-    "test": "vitest run",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "release": "pnpm run build && changeset publish",
     "prepublish": "pnpm build"
   },
   "devDependencies": {
@@ -117,13 +113,10 @@
     "@types/node": "^22.15.31",
     "@vitest/ui": "^4.0.16",
     "effect": "^3.11.0",
-    "happy-dom": "^20.0.11",
-    "jsdom": "^26.1.0",
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
     "tsx": "^4.20.2",
-    "typescript": "^5.8.3",
-    "vitest": "^4.0.16"
+    "typescript": "^5.8.3"
   },
   "files": [
     "dist/"

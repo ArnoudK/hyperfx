@@ -20,15 +20,15 @@ describe('Batch Update Mechanism', () => {
       const [signal3, setSignal3] = createSignal('value3');
 
       const element = (
-        <div attr1={signal1} attr2={signal2} attr3={signal3} />
+        <div data-attr1={signal1} data-attr2={signal2} data-attr3={signal3} />
       ) as HTMLElement;
 
       container.appendChild(element);
 
       // Initial values should be set
-      expect(element.getAttribute('attr1')).toBe('value1');
-      expect(element.getAttribute('attr2')).toBe('value2');
-      expect(element.getAttribute('attr3')).toBe('value3');
+      expect(element.getAttribute('data-attr1')).toBe('value1');
+      expect(element.getAttribute('data-attr2')).toBe('value2');
+      expect(element.getAttribute('data-attr3')).toBe('value3');
 
       // Batch update multiple signals
       batchUpdates(() => {
@@ -38,9 +38,9 @@ describe('Batch Update Mechanism', () => {
       });
 
       // All attributes should be updated
-      expect(element.getAttribute('attr1')).toBe('new-value1');
-      expect(element.getAttribute('attr2')).toBe('new-value2');
-      expect(element.getAttribute('attr3')).toBe('new-value3');
+      expect(element.getAttribute('data-attr1')).toBe('new-value1');
+      expect(element.getAttribute('data-attr2')).toBe('new-value2');
+      expect(element.getAttribute('data-attr3')).toBe('new-value3');
     });
 
     it('should batch nested batch calls', () => {
@@ -48,7 +48,7 @@ describe('Batch Update Mechanism', () => {
       const [signal2, setSignal2] = createSignal('value2');
 
       const element = (
-        <div attr1={signal1} attr2={signal2} />
+        <div data-attr1={signal1} data-attr2={signal2} />
       ) as HTMLElement;
 
       container.appendChild(element);
@@ -62,13 +62,13 @@ describe('Batch Update Mechanism', () => {
         setSignal1('nested3');
       });
 
-      expect(element.getAttribute('attr1')).toBe('nested3');
-      expect(element.getAttribute('attr2')).toBe('nested2');
+      expect(element.getAttribute('data-attr1')).toBe('nested3');
+      expect(element.getAttribute('data-attr2')).toBe('nested2');
     });
 
     it('should return value from batch function', () => {
       const [signal, setSignal] = createSignal('initial');
-      const element = <div attr={signal} /> as HTMLElement;
+      const element = <div data-attr={signal} /> as HTMLElement;
 
       container.appendChild(element);
 
@@ -78,7 +78,7 @@ describe('Batch Update Mechanism', () => {
       });
 
       expect(result).toBe('batch-result');
-      expect(element.getAttribute('attr')).toBe('updated');
+      expect(element.getAttribute('data-attr')).toBe('updated');
     });
   });
 
@@ -167,18 +167,18 @@ describe('Batch Update Mechanism', () => {
       const [baseSignal, setBaseSignal] = createSignal('base');
       const Signal = createComputed(() => `${baseSignal()}-computed`);
 
-      const element = <div attr={Signal} /> as HTMLElement;
+      const element = <div data-attr={Signal} /> as HTMLElement;
 
       container.appendChild(element);
 
-      expect(element.getAttribute('attr')).toBe('base-computed');
+      expect(element.getAttribute('data-attr')).toBe('base-computed');
 
       batchUpdates(() => {
         setBaseSignal('updated');
         // Computed should update during batch
       });
 
-      expect(element.getAttribute('attr')).toBe('updated-computed');
+      expect(element.getAttribute('data-attr')).toBe('updated-computed');
     });
 
     it('should batch multiple computed signal dependencies', () => {
@@ -188,21 +188,21 @@ describe('Batch Update Mechanism', () => {
       const computed2 = createComputed(() => `${signal2()}-comp2`);
 
       const element = (
-        <div attr1={computed1} attr2={computed2} />
+        <div data-attr1={computed1} data-attr2={computed2} />
       ) as HTMLElement;
 
       container.appendChild(element);
 
-      expect(element.getAttribute('attr1')).toBe('val1-comp1');
-      expect(element.getAttribute('attr2')).toBe('val2-comp2');
+      expect(element.getAttribute('data-attr1')).toBe('val1-comp1');
+      expect(element.getAttribute('data-attr2')).toBe('val2-comp2');
 
       batchUpdates(() => {
         setSignal1('new1');
         setSignal2('new2');
       });
 
-      expect(element.getAttribute('attr1')).toBe('new1-comp1');
-      expect(element.getAttribute('attr2')).toBe('new2-comp2');
+      expect(element.getAttribute('data-attr1')).toBe('new1-comp1');
+      expect(element.getAttribute('data-attr2')).toBe('new2-comp2');
     });
   });
 
@@ -213,7 +213,7 @@ describe('Batch Update Mechanism', () => {
       const [signal2, setSignal2] = createSignal('value2');
 
       const element = (
-        <div attr1={signal1} attr2={signal2} />
+        <div data-attr1={signal1} data-attr2={signal2} />
       ) as HTMLElement;
 
       container.appendChild(element);
@@ -226,8 +226,8 @@ describe('Batch Update Mechanism', () => {
         });
       }).not.toThrow();
 
-      expect(element.getAttribute('attr1')).toBe('updated1');
-      expect(element.getAttribute('attr2')).toBe('updated2');
+      expect(element.getAttribute('data-attr1')).toBe('updated1');
+      expect(element.getAttribute('data-attr2')).toBe('updated2');
     });
   });
 
@@ -240,7 +240,7 @@ describe('Batch Update Mechanism', () => {
       let updateCount2 = 0;
 
       const element = (
-        <div attr1={signal1} attr2={signal2} />
+        <div data-attr1={signal1} data-attr2={signal2} />
       ) as HTMLElement;
 
       container.appendChild(element);
@@ -248,8 +248,8 @@ describe('Batch Update Mechanism', () => {
       // Track updates by overriding setAttribute
       const originalSetAttribute = element.setAttribute.bind(element);
       element.setAttribute = function (name: string, value: string) {
-        if (name === 'attr1') updateCount1++;
-        if (name === 'attr2') updateCount2++;
+        if (name === 'data-attr1') updateCount1++;
+        if (name === 'data-attr2') updateCount2++;
         return originalSetAttribute(name, value);
       };
 
@@ -271,8 +271,8 @@ describe('Batch Update Mechanism', () => {
 
       // Should still update each attribute, but potentially in a more optimized way
       // The exact behavior depends on the batching implementation
-      expect(element.getAttribute('attr1')).toBe('batched1');
-      expect(element.getAttribute('attr2')).toBe('batched2');
+      expect(element.getAttribute('data-attr1')).toBe('batched1');
+      expect(element.getAttribute('data-attr2')).toBe('batched2');
     });
   });
 
@@ -282,7 +282,7 @@ describe('Batch Update Mechanism', () => {
       const [signal2, setSignal2] = createSignal('value2');
 
       const element = (
-        <div attr1={signal1} attr2={signal2} />
+        <div data-attr1={signal1} data-attr2={signal2} />
       ) as HTMLElement;
 
       container.appendChild(element);
@@ -301,7 +301,7 @@ describe('Batch Update Mechanism', () => {
       });
 
       // Element should not be affected
-      expect(element.getAttribute('attr1')).toBe('value1');
+      expect(element.getAttribute('data-attr1')).toBe('value1');
     });
   });
 });
