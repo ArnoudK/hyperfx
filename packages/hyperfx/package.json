@@ -109,7 +109,6 @@
     "prepublish": "pnpm build"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.4",
     "@effect/platform": "^0.94.2",
     "@eslint/js": "^9.28.0",
     "@types/babel__core": "^7.20.0",
