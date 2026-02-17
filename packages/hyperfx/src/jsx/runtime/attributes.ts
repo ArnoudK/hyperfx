@@ -71,7 +71,7 @@ function setAttribute(element: HTMLElement, key: string, value: unknown): void {
 
   // Handle boolean attributes
   const booleanAttrs = new Set([
-    'disabled', 'checked', 'readonly', 'readOnly', 'required', 'autofocus', 'autoplay',
+    'disabled', 'checked', 'readonly', 'required', 'autofocus', 'autoplay',
     'controls', 'default', 'defer', 'hidden', 'inert', 'loop', 'multiple',
     'muted', 'novalidate', 'open', 'reversed', 'selected'
   ]);
@@ -82,14 +82,14 @@ function setAttribute(element: HTMLElement, key: string, value: unknown): void {
     if (key === 'checked' && element instanceof HTMLInputElement) {
       element.checked = boolValue;
       element.toggleAttribute('checked', boolValue);
-    } else if ((key === 'readonly' || key === 'readOnly') && element instanceof HTMLInputElement) {
-      element.readOnly = boolValue;
-      element.toggleAttribute('readonly', boolValue);
     } else if (key === 'disabled') {
       (element as HTMLInputElement).disabled = boolValue;
       element.toggleAttribute('disabled', boolValue);
+    } else if (element instanceof HTMLInputElement && key === 'readonly') {
+      element.readOnly = boolValue;
+      element.toggleAttribute('readonly', boolValue);
     } else {
-      element.toggleAttribute(key, boolValue);
+      element.toggleAttribute(key.toLowerCase(), boolValue);
     }
     return;
   }
@@ -129,10 +129,8 @@ function setAttribute(element: HTMLElement, key: string, value: unknown): void {
 
   // Handle all other attributes
   if (value != null) {
-    console.log(`[attributes] set ${key} ->`, value);
     element.setAttribute(key, String(value));
   } else {
-    console.log(`[attributes] remove ${key}`);
     element.removeAttribute(key);
   }
 }
